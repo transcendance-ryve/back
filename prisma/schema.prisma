@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+	provider = "prisma-client-js"
+}
+
+datasource db {
+	provider = "postgresql"
+	url      = env("DATABASE_URL")
+}
+
+model User {
+	id				String			@id @default(cuid())
+	username		String			@unique
+	email			String			@unique
+	password		String
+	isAuth			Boolean			@default(false)
+	avatar			String?
+	status          Status          @default(OFFLINE)
+	level			Int			    @default(0)
+	experience		Int			    @default(0)
+	nextLevel		Int			    @default(100)
+	rankPoint       Int             @default(0)
+    wins            Int             @default(0)
+    loses           Int             @default(0)
+    played          Int             @default(0)
+	token	        Token?
+	friends			Friendship[]	@relation("friends")
+	friendsRequests	Friendship[]	@relation("friendsRequests")
+
+	@@map("users")
+}
+
+model Token {
+	id				String			@id	@default(cuid())
+	token			String			@unique
+	user			User			@relation(fields: [userId], references: [id], onDelete: Cascade)
+	userId			String			@unique
+
+	@@map("tokens")
+}
+
+model Friendship {
+	id              String          @id @default(cuid())
+	sender          User           	@relation("friends", fields: [senderId], references: [id], onDelete: Cascade)
+	senderId        String
+	receiver        User            @relation("friendsRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+	receiverId      String  
+	accepted        Boolean         @default(false)
+
+	@@unique([senderId, receiverId])
+	@@map("friendships")
+}
+
+enum Status {
+	OFFLINE @map("offline")
+	ONLINE  @map("online")
+	INGAME  @map("ingame")
+
+	@@map("_status")
+}
