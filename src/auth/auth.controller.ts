@@ -14,7 +14,7 @@ export class AuthController {
 	/* GET */
 
 	@UseGuards(LocalAuthGuard)
-    @Get('login')
+	@Get('login')
     login(
 		@Req() req: Request,
 		@Res({ passthrough: true }) res: Response
@@ -60,7 +60,7 @@ export class AuthController {
         res.cookie('jwtToken', token);
     }
 
-    @Post('forgot-password')
+	@Post('forgot-password')
     async forgotPassword(
 		@Body('email') email: string
 	) : Promise<string> {
