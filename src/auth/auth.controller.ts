@@ -1,10 +1,11 @@
-import { Controller, Post, UseGuards, Body, Req, Get, Param } from "@nestjs/common";
+import { Controller, Post, UseGuards, Body, Req, Get, Param, Res } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { FortyTwoGuard } from "./guard/42-auth.guards";
 import { LocalAuthGuard } from "./guard/local-auth.guards";
 import { downloadImageAndSave } from "src/utils";
-import { Request } from "express";
+import { Request, Response } from "express";
 import { CreateUserDto } from "./dto/create-user.dto";
+import { emitWarning } from "process";
 
 @Controller("auth")
 export class AuthController {
@@ -35,8 +36,18 @@ export class AuthController {
     }
 
     @Post('register')
-    async register(@Body() userCreateInput: CreateUserDto) {
-        return this._authService.register({ isAuth: false, ...userCreateInput });;
+    async register(
+        @Res({ passthrough: true }) res: Response,
+        @Body() userCreateInput: CreateUserDto,
+    ) : Promise<void> {
+        const token = await this._authService.register({isAuth: false, ...userCreateInput});
+
+        res.cookie('jwtToken', token);
+    }
+
+    @Get('test')
+    async test(@Req() req: Request) {
+        console.log(req.cookies);
     }
 
     @Post('forgot-password')

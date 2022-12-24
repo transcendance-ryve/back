@@ -120,7 +120,7 @@ export class UsersService {
         try {
             const users: Partial<User>[] = await this._prismaService.user.findMany({
                 orderBy: { [sortBy || "rankPoint"]: order || 'desc' },
-                take: !limit ? null : Number(limit),
+                take: Number(limit) ? Number(limit) : null,
                 select: {
                     username: true,
                     level: true,
@@ -241,7 +241,7 @@ export class UsersService {
                     }
                 },
             })
-    
+
             return friends;
         } catch(err) {
             throw new InternalServerErrorException('Internal server error'); 
