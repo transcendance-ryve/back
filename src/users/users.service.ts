@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Prisma, User, Friendship } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import * as fs from 'fs';
@@ -22,11 +22,11 @@ export class UsersService {
             const user: User = await this._prismaService.user.findUnique({ where: { id } })
             
             if (!user)
-                throw new UnauthorizedException('User not found');
+                throw new NotFoundException('User not found');
 
             return user.avatar;
         } catch(err) {
-            if (err instanceof UnauthorizedException)
+            if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
         }
@@ -38,7 +38,7 @@ export class UsersService {
     ) : Promise<User> {
         try {
             if (!avatar)
-                throw new UnauthorizedException('Avatar not found');
+                throw new NotFoundException('Avatar not found');
 
             const olderAvatar = await this.getAvatar(id);
             if (olderAvatar && olderAvatar !== this._defaultAvatar) {
@@ -52,7 +52,7 @@ export class UsersService {
 
             return user;
         } catch(err) {
-            if (err instanceof UnauthorizedException)
+            if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
         }
@@ -66,7 +66,7 @@ export class UsersService {
             const user: User = await this._prismaService.user.findUnique({ where: { id } });
 
             if (!user)
-                throw new UnauthorizedException('User not found');
+                throw new NotFoundException('User not found');
 
             const newExperience: number = user.experience + (this._experienceGain * point);
 
@@ -86,7 +86,7 @@ export class UsersService {
                 });
             }
         } catch(err) {
-            if (err instanceof UnauthorizedException)
+            if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
         }
@@ -104,7 +104,7 @@ export class UsersService {
                 data: { rankPoint: { increment: point } }
             });
         } catch(err) {
-            if (err instanceof UnauthorizedException)
+            if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
         }
@@ -134,11 +134,11 @@ export class UsersService {
             });
 
             if (!users)
-                throw new UnauthorizedException('No user found');
+                throw new NotFoundException('No user found');
 
             return users;
         } catch(err) {
-            if (err instanceof UnauthorizedException)
+            if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
         }
@@ -154,12 +154,12 @@ export class UsersService {
             const user: User = await this._prismaService.user.findUnique({ where: { id: senderID } });
 
             if (!user)
-                throw new UnauthorizedException('User not found');
+                throw new NotFoundException('User not found');
             
             const friend: User = await this._prismaService.user.findUnique({ where: { id: receiverID } });
 
             if (!friend)
-                throw new UnauthorizedException('Friend not found');
+                throw new NotFoundException('Friend not found');
             
             const friendRequest = await this._prismaService.friendship.create({
                 data: {
@@ -172,7 +172,7 @@ export class UsersService {
         } catch(err) {
             if (err instanceof PrismaClientKnownRequestError)
                 if (err.code === 'P2002')
-                    throw new UnauthorizedException('Friend request already sent');
+                    throw err;
                     
             throw new InternalServerErrorException('Internal server error');
         }
@@ -195,8 +195,6 @@ export class UsersService {
 
             return friend;
         } catch(err) {
-            if (err instanceof UnauthorizedException)
-                throw err;
             throw new InternalServerErrorException('Internal server error');
         }
     }
@@ -283,7 +281,7 @@ export class UsersService {
         try {
             return this._prismaService.user.create({ data });
         } catch(err) {
-            throw new UnauthorizedException("User already exist");
+            throw new ConflictException("User already exist");
         }
     }
 
@@ -291,15 +289,10 @@ export class UsersService {
         where: Prisma.UserWhereUniqueInput
     ) : Promise<User | null> {
         try {
-            const user: (User | null
-            ) = await this._prismaService.user.findUnique({ where });
-            if (!user)
-                return null;
+            const user: (User | null) = await this._prismaService.user.findUnique({ where });
             
             return user;
         } catch(err) {
-            if (err instanceof UnauthorizedException)
-                throw err;
             throw new InternalServerErrorException("Internal server error");
         }
     }
@@ -309,13 +302,9 @@ export class UsersService {
     ) : Promise<User[] | null> {
         try {
             const users: (User[] | null) = await this._prismaService.user.findMany({ where });
-            if (!users)
-                return null;
 
             return users;
         } catch(err) {
-            if (err instanceof UnauthorizedException)
-                throw err;
             throw new InternalServerErrorException("Internal server error");
         }
     }

@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Body, Req, Get, Param, Res } from "@nestjs/common";
+import { Controller, Post, UseGuards, Body, Req, Get, Param, Res, Delete } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { FortyTwoGuard } from "./guard/42-auth.guards";
 import { LocalAuthGuard } from "./guard/local-auth.guards";
@@ -11,14 +11,19 @@ import { emitWarning } from "process";
 export class AuthController {
     constructor(private readonly _authService: AuthService) {}
 
-    @UseGuards(LocalAuthGuard)
-    @Post('login')
-    login(@Req() req: Request) {
-        if (req.user)
-            return this._authService.createJwtToken(req.user);
+	/* GET */
+
+	@UseGuards(LocalAuthGuard)
+    @Get('login')
+    login(
+		@Req() req: Request,
+		@Res({ passthrough: true }) res: Response
+	) : void {
+		const token = this._authService.createJwtToken(req.user);
+        res.cookie('jwtToken', token);
     }
 
-    @UseGuards(FortyTwoGuard)
+	@UseGuards(FortyTwoGuard)
     @Get('42')
     fortyTwoAuth() {}
 
@@ -35,7 +40,17 @@ export class AuthController {
             return this._authService.createJwtToken(user);
     }
 
-    @Post('register')
+    @Get('reset-password/:token')
+    async resetPassword(
+		@Param('token') token: string,
+		@Body('password') password: string
+	) : Promise<string> {
+        return this._authService.resetPassword(token, password);
+    }
+	
+	/* POST */
+
+	@Post('register')
     async register(
         @Res({ passthrough: true }) res: Response,
         @Body() userCreateInput: CreateUserDto,
@@ -45,18 +60,19 @@ export class AuthController {
         res.cookie('jwtToken', token);
     }
 
-    @Get('test')
-    async test(@Req() req: Request) {
-        console.log(req.cookies);
-    }
-
     @Post('forgot-password')
-    async forgotPassword(@Body('email') email: string) {
+    async forgotPassword(
+		@Body('email') email: string
+	) : Promise<string> {
         return this._authService.forgotPassword(email);
     }
 
-    @Get('reset-password/:token')
-    async resetPassword(@Param('token') token: string, @Body('password') password: string) {
-        return this._authService.resetPassword(token, password);
-    }
+	/* DELETE */
+
+	@Delete('disconnect')
+	disconnect(
+		@Res({ passthrough: true }) res: Response
+	) : void {
+		res.clearCookie('jwtToken');
+	}
 }

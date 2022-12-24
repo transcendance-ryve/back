@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { Token, User } from '@prisma/client';
@@ -92,7 +92,7 @@ export class AuthService {
         try {
             const user: (User | null) = await this._usersService.getUser({ email });
             if (!user)
-                throw new UnauthorizedException("User not found");
+                throw new NotFoundException("User not found");
   
             const tokenExist = await this._prismaService.token.findUnique({ where: { userId: user.id } });
             if (tokenExist)
@@ -130,7 +130,7 @@ export class AuthService {
             const tokenData: (Token | null) = await this._prismaService.token.findUnique({ where: { token } });
     
             if (!tokenData)
-                throw new UnauthorizedException("Token not found");
+                throw new NotFoundException("Token not found");
             
             const user: (User | null) = await this._usersService.updateUser(
                 { id: tokenData.userId },
@@ -138,13 +138,13 @@ export class AuthService {
             );
     
             if (!user)
-                throw new UnauthorizedException("User not found");
+                throw new NotFoundException("User not found");
     
             await this._prismaService.token.delete({ where: { token } });
     
             return this.createJwtToken(user);
         } catch(err) {
-            if (err instanceof UnauthorizedException)
+            if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException("Internal server error");
         }
