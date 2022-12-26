@@ -213,7 +213,7 @@ export class UsersService {
             return friendship;
         } catch(err) {
             throw new InternalServerErrorException('Internal server error');
-        }
+		}
     }
 
     async getFriends(
@@ -222,7 +222,10 @@ export class UsersService {
         try {
             const friends = await this._prismaService.friendship.findMany({
                 where: {
-                    senderId: id,
+					OR: [
+						{ senderId: id },
+						{ receiverId: id }
+					],
                     accepted: true
                 },
                 select: {
@@ -249,7 +252,7 @@ export class UsersService {
         try {
             const friends = await this._prismaService.friendship.findMany({
                 where: {
-                    senderId: id,
+                    receiverId: id,
                     accepted: false
                 },
                 select: {
@@ -291,7 +294,9 @@ export class UsersService {
     ) : Promise<User | null> {
         try {
             const user: (User | null) = await this._prismaService.user.findUnique({ where });
-            
+			if (!user)
+				return null;
+
 			delete user.password;
 
 			return user;
