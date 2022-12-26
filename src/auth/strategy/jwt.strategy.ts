@@ -1,8 +1,8 @@
 import { Strategy, ExtractJwt } from "passport-jwt";
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { UsersService } from "src/users/users.service";
-import { JwtPayload } from "../dto/jwt-payload.dto";
+import { JwtPayloadDto } from "../dto/jwt-payload.dto";
 import { Request } from "express";
 
 @Injectable()
@@ -12,8 +12,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             jwtFromRequest: ExtractJwt.fromExtractors([
                 (req: Request) => {
 					const { cookies } = req;
-                    if (cookies && cookies.jwtToken && cookies.jwtToken.length)
-                        return cookies.jwtToken;
+                    if (cookies && cookies.acces_token && cookies.acces_token.length)
+                        return cookies.acces_token;
                     else
                         return null;
                 },
@@ -23,12 +23,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    async validate(payload: JwtPayload) {
+    async validate(payload: JwtPayloadDto) {
         const { id } = payload;
-        const user = await this._userService.getUser({ id });
 
-        if (!user)
-            throw new NotFoundException("User not found");
+		const user = await this._userService.getUser({ id });
+		if (!user)
+			throw new UnauthorizedException("User not found");
 
         return user;
     }

@@ -2,9 +2,10 @@ import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Q
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Prisma, User, Friendship } from '@prisma/client';
 import { Request, Response } from 'express';
-import { createReadStream } from 'fs';
+import { createReadStream, ReadStream } from 'fs';
 import { diskStorage } from 'multer';
 import { extname, resolve } from 'path';
+import { GetUser } from 'src/decorators/user.decorator';
 import { LeaderboardDto } from './dto/leaderboard-dto';
 import { JwtAuthGuard } from './guard/jwt.guard';
 import { UsersService } from './users.service';
@@ -14,6 +15,14 @@ export class UsersController {
     constructor(private readonly _usersService: UsersService) {}
 
     /* GET */
+
+	@Get('me')
+	@UseGuards(JwtAuthGuard)
+	getMe(
+		@GetUser() user: User
+	): User {
+		return user;
+	}
 
     @Get()
     async getAll(): Promise<User[]> {
@@ -25,10 +34,10 @@ export class UsersController {
         @Param('id') id: Prisma.UserWhereUniqueInput['id'],
         @Res({ passthrough: true }) res: Response
     ): Promise<StreamableFile> {
-        const filename = await this._usersService.getAvatar(id);
+        const filename: string = await this._usersService.getAvatar(id);
 
-        const filePath = resolve('./data/avatars', (filename || 'default.png'));
-        const file = createReadStream(filePath);
+        const filePath: string = resolve('./data/avatars', (filename || 'default.png'));
+        const file: ReadStream = createReadStream(filePath);
 
         res.set({
             'Content-Disposition': `inline; filename="${filename}"`,
@@ -52,19 +61,17 @@ export class UsersController {
     @UseGuards(JwtAuthGuard)
     @Get('friends')
     async getFriends(
-        @Req() req: Request
-    ): Promise<Partial<User>[]> {
-        const { id } = req.user as User;
-        return this._usersService.getFriends(id);
+        @GetUser() user: User
+    ): Promise<User[]> {
+        return this._usersService.getFriends(user.id);
     }
 
     @UseGuards(JwtAuthGuard)
     @Get('friendRequests')
     async getFriendRequests(
-        @Req() req: Request
+        @GetUser() user: User
     ): Promise<Partial<User>[]> {
-        const { id } = req.user as User;
-        return this._usersService.getFriendRequests(id);
+        return this._usersService.getFriendRequests(user.id);
     }
 
     /* POST */
@@ -72,24 +79,21 @@ export class UsersController {
     @UseGuards(JwtAuthGuard)
     @Post('sendFriendRequest/:id')
     async sendFriendRequest(
-        @Req() req: Request,
+        @GetUser() user: User,
         @Param('id') friendId: string
     ): Promise<Friendship> {
-        const { id } = req.user as User;
-        return this._usersService.sendFriendRequest(id, friendId);
+        return this._usersService.sendFriendRequest(user.id, friendId);
     }
 
     /* PUT */
 
     @UseGuards(JwtAuthGuard)
-    @Put("username/:id/:username")
+    @Put("username")
     async setUsername(
-        @Req() req: Request,
-        @Param('username') username: string
-    ) {
-        const { id } = req.user as User;
-
-        return this._usersService.updateUser({ id }, { username });
+        @GetUser() user: User,
+        @Body('username') username: string
+    ): Promise<Partial<User>> {
+        return this._usersService.updateUser({ id: user.id }, { username });
     }
 
     @UseGuards(JwtAuthGuard)
@@ -98,7 +102,7 @@ export class UsersController {
         FileInterceptor('image', {
             storage: diskStorage({
                 destination: './data/avatars',
-                filename: (req, file, cb) => {
+                filename: (_, file, cb) => {
                     const randomName = Array(32)
                         .fill(null)
                         .map(() => Math.round(Math.random() * 16).toString(16))
@@ -110,7 +114,7 @@ export class UsersController {
                 fileSize: 5 * 1024 * 1024,
                 files: 1,
             },
-            fileFilter: (req, file, cb) => {
+            fileFilter: (_, file, cb) => {
                 const allowedMimes = [
                     'image/jpeg',
                     'image/png',
@@ -124,11 +128,10 @@ export class UsersController {
         }),
     )
     async setAvatar(
-        @Req() req: Request,
+        @GetUser() user: User,
         @UploadedFile() avatar: Express.Multer.File,
-    ) {
-        const { id } = req.user as User;
-        return this._usersService.setAvatar(id, avatar);    
+    ): Promise<Partial<User>> {
+        return this._usersService.setAvatar(user.id, avatar);    
     }
 
     @UseGuards(JwtAuthGuard)
@@ -143,11 +146,10 @@ export class UsersController {
     @UseGuards(JwtAuthGuard)
     @Put('acceptFriendRequest/:id')
     async acceptFriendRequest(
-        @Req() req: Request,
+        @GetUser() user: User,
         @Param('id') friendId: string
     ): Promise<Friendship> {
-        const { id } = req.user as User;
-        return this._usersService.acceptFriendRequest(id, friendId);
+        return this._usersService.acceptFriendRequest(user.id, friendId);
     }
 
     /* DELETE */
@@ -155,11 +157,10 @@ export class UsersController {
     @UseGuards(JwtAuthGuard)
     @Delete('declineFriendRequest/:id')
     async declineFriendRequest(
-        @Req() req: Request,
+        @GetUser() user: User,
         @Param('id') friendId: string
     ): Promise<Friendship> {
-        const { id } = req.user as User;
-        return this._usersService.declineFriendRequest(id, friendId);
+        return this._usersService.declineFriendRequest(user.id, friendId);
     }
 
     @UseGuards(JwtAuthGuard)

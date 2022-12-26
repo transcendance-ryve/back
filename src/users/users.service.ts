@@ -151,13 +151,7 @@ export class UsersService {
         receiverID: Prisma.UserWhereUniqueInput['id']
     ) : Promise<Friendship> {
         try {
-            const user: User = await this._prismaService.user.findUnique({ where: { id: senderID } });
-
-            if (!user)
-                throw new NotFoundException('User not found');
-            
             const friend: User = await this._prismaService.user.findUnique({ where: { id: receiverID } });
-
             if (!friend)
                 throw new NotFoundException('Friend not found');
             
@@ -279,7 +273,11 @@ export class UsersService {
         data: Prisma.UserCreateInput
     ) : Promise<User> {
         try {
-            return this._prismaService.user.create({ data });
+			const user = await this._prismaService.user.create({ data });
+
+			delete user.password;
+
+            return user;
         } catch(err) {
             throw new ConflictException("User already exist");
         }
@@ -291,7 +289,9 @@ export class UsersService {
         try {
             const user: (User | null) = await this._prismaService.user.findUnique({ where });
             
-            return user;
+			delete user.password;
+
+			return user;
         } catch(err) {
             throw new InternalServerErrorException("Internal server error");
         }
@@ -302,6 +302,8 @@ export class UsersService {
     ) : Promise<User[] | null> {
         try {
             const users: (User[] | null) = await this._prismaService.user.findMany({ where });
+
+			users.map(user => delete user.password);
 
             return users;
         } catch(err) {
@@ -315,6 +317,8 @@ export class UsersService {
     ) : Promise<User> {
         try {
             const user = await this._prismaService.user.update({ where, data });
+			delete user.password;
+
             return user;
         } catch(err) {
             throw new InternalServerErrorException("Internal server error");
@@ -324,6 +328,7 @@ export class UsersService {
     async deleteUser(id: Prisma.UserWhereUniqueInput['id']) : Promise<User> {
         try {
             const user: User = await this._prismaService.user.delete({ where: { id } });
+			delete user.password;
 
             return user;
         } catch(err) {

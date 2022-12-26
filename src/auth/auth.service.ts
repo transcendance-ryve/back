@@ -17,53 +17,28 @@ export class AuthService {
         private readonly _prismaService: PrismaService,
         private readonly _mailerService: MailerService,
     ) {}
-    
-    private async _sendResetPasswordEmail(email: string, token: string) : Promise<string> {
-        try {
-            await this._mailerService.sendMail({
-                to: email,
-                from: '',
-                subject: 'Reset password',
-                text: 'Reset Password',
-                html: `<h1>Reset Password</h1>
-                <p>Hello,</p>
-                <p>You have requested to reset your password. To reset your password, click on the following link:</p>
-                <p><a href="http://localhost:8080/reset-password?token=${token}">Reset my password</a></p>
-                <p>If you did not request a password reset, please ignore this email.</p>
-                <p>Best regards,</p>
-                <p>The support team</p>`,
-            });
 
-            return token;
-        } catch (err) {
-            throw new InternalServerErrorException("Email not sent");
-        }
-    }
-  
-    createJwtToken(data: any) : string {
+    createToken(data: any) : string {
         return this._jwtService.sign({ email: data.email, id: data.id });
     }
     
-    async validateUser(email: string, password: string, isAuth: boolean): Promise<any> {
+    async login(email: string, password: string, isAuth: boolean): Promise<any> {
         try {
-            const user: (User | null) = await this._usersService.getUser({ email });
+            const user: (User | null) = await this._prismaService.user.findUnique({ where: { email } });
 
             if (!user)
                 return null;
 
             if (!isAuth) {
                 if (!user.isAuth) {
-                    if (await bcrypt.compare(password, user.password)) {
-                        delete user.password;
-                        return user;
+                    if (!await bcrypt.compare(password, user.password)) {
+						throw new UnauthorizedException("Wrong password");
                     }
-                    throw new UnauthorizedException("Wrong password");
                 } else throw new UnauthorizedException("Unauthorized to login without OAuth");
-            } else {
-                delete user.password;
-                return user;
             }
-        }
+
+			return this._usersService.updateUser({ id: user.id }, { status: "ONLINE" });
+		}
         catch(err) {
             if (err instanceof UnauthorizedException)
                 throw err;
@@ -82,7 +57,7 @@ export class AuthService {
             } else
                 user = await this._usersService.createUser(userCreateInput);
             
-            return this.createJwtToken(user);
+            return this.createToken(user);
         } catch(err) {
             throw new UnauthorizedException("User already exist");
         }
@@ -94,32 +69,37 @@ export class AuthService {
             if (!user)
                 throw new NotFoundException("User not found");
   
-            const tokenExist = await this._prismaService.token.findUnique({ where: { userId: user.id } });
-            if (tokenExist)
-                return this._sendResetPasswordEmail(email, tokenExist.token);
-            else {
-                const token: (Token | null) = await this._prismaService.token.create({
+            let token: (Token | null) = await this._prismaService.token.findUnique({ where: { userId: user.id } });
+			if (!token) {
+                token = await this._prismaService.token.create({
                     data: {
-                        token: randomBytes(20).toString('hex'),
-                        user: {
-                            connect: {
-                                id: user.id
-                            }
-                        }
-                    } 
+						token: randomBytes(20).toString('hex'), user: { connect: { id: user.id } }
+					} 
                 });
-                
-                return this._sendResetPasswordEmail(email, token.token);
             }
+
+			await this._mailerService.sendMail({
+                to: email,
+                from: '',
+                subject: 'Reset password',
+                text: 'Reset Password',
+                html: `<h1>Reset Password</h1>
+                <p>Hello,</p>
+                <p>You have requested to reset your password. To reset your password, click on the following link:</p>
+                <p><a href="http://localhost:8080/reset-password?token=${token.token}">Reset my password</a></p>
+                <p>If you did not request a password reset, please ignore this email.</p>
+                <p>Best regards,</p>
+                <p>The support team</p>`,
+            });
+
+			return token.token;
         } catch (err) {
-            
             if (err instanceof PrismaClientKnownRequestError) {
                 console.log("Code", err.code);
                 if (err.code === 'P2014')
                    throw err;
-
             }
-            if (err instanceof UnauthorizedException)
+            if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException("Internal server error");
         }
@@ -142,7 +122,7 @@ export class AuthService {
     
             await this._prismaService.token.delete({ where: { token } });
     
-            return this.createJwtToken(user);
+            return this.createToken(user);
         } catch(err) {
             if (err instanceof NotFoundException)
                 throw err;

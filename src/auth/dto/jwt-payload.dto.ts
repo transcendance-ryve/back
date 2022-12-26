@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsNumber, IsString } from "class-validator";
 
-export class JwtPayload {
+export class JwtPayloadDto {
     @IsNotEmpty()
     @IsNumber()
     id: string;
