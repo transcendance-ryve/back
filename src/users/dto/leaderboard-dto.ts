@@ -2,11 +2,13 @@ import { Type } from "class-transformer";
 import { IsNumber, IsOptional, IsString } from "class-validator";
 
 export class LeaderboardDto {
-    @IsNumber()
+    @Type(() => Number)
+	@IsNumber()
     @IsOptional()
     limit: number;
 
-    @IsNumber()
+	@Type(() => Number)
+	@IsNumber()
     @IsOptional()
     page: number;
 

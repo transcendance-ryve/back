@@ -3,6 +3,7 @@ import { Prisma, User, Friendship } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import * as fs from 'fs';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import { LeaderboardDto } from './dto/leaderboard-dto';
 
 @Injectable()
 export class UsersService {
@@ -112,15 +113,17 @@ export class UsersService {
 
     /* LEADERBOARD */
 
-    async getLeaderboard(
-        limit: number,
-        sortBy: string,
-        order: string
-    ) : Promise<Partial<User>[]> {
+    async getLeaderboard({
+        limit,
+        sortBy,
+        order,
+		page
+	}: LeaderboardDto) : Promise<Partial<User>[]> {
         try {
             const users: Partial<User>[] = await this._prismaService.user.findMany({
-                orderBy: { [sortBy || "rankPoint"]: order || 'desc' },
-                take: Number(limit) ? Number(limit) : null,
+                skip: page === undefined ? undefined : (Number(page) - 1) * Number(limit),
+				orderBy: { [sortBy || "rankPoint"]: order || 'desc' },
+                take: limit === undefined ? undefined : Number(limit),
                 select: {
                     username: true,
                     level: true,

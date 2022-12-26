@@ -1,6 +1,6 @@
 _type: export
 __export_format: 4
-__export_date: 2022-12-26T13:10:15.472Z
+__export_date: 2022-12-26T14:33:40.242Z
 __export_source: insomnia.desktop.app:v2022.7.0
 resources:
   - _id: req_2653630d116f498e95349d49d6560525
@@ -109,14 +109,31 @@ resources:
     _type: request
   - _id: req_d6914d04f0e64d17834d61217365bf93
     parentId: fld_176aa279c0d7441d8b58dc796bb96ba8
-    modified: 1671832529970
+    modified: 1672064807313
     created: 1671714393128
     url: "{{ _.base_url }}users/leaderboard"
     name: GetLeaderboard
     description: ""
     method: GET
     body: {}
-    parameters: []
+    parameters:
+      - id: pair_97ef95ece1b340ad97fefc1f84991cec
+        name: sortBy
+        value: avatar
+        description: ""
+      - id: pair_b29327e8a9474d01bfaf665906b61457
+        name: order
+        value: asc
+        description: ""
+      - id: pair_70601ced4f274e48a2cbee1c0744aa05
+        name: page
+        value: "2"
+        description: ""
+        disabled: false
+      - id: pair_b2fae1ca0acd462cb7bcdfddfbde7f1d
+        name: limit
+        value: "1"
+        description: ""
     headers: []
     authentication: {}
     metaSortKey: -1671304284754

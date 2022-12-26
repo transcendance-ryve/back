@@ -49,13 +49,9 @@ export class UsersController {
 
     @Get('leaderboard')
     async getLeaderboard(
-        @Query() { limit, sortBy, order }: LeaderboardDto
+        @Query() LeaderboardParams: LeaderboardDto
     ): Promise<Partial<User>[]> {
-        return this._usersService.getLeaderboard(
-            limit,
-            sortBy,
-            order
-        );
+        return this._usersService.getLeaderboard(LeaderboardParams);
     }
 
     @UseGuards(JwtAuthGuard)
