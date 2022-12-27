@@ -29,6 +29,13 @@ export class UsersController {
         return this._usersService.getAllUsers({});
     }
 
+	@Get(':id')
+	async getUserByID(
+		@Param('id') id: Prisma.UserWhereUniqueInput['id']
+	): Promise<User> {
+		return this._usersService.getUser({ id });
+	}
+
     @Get('avatar/:id')
     async getAvatar(
         @Param('id') id: Prisma.UserWhereUniqueInput['id'],

@@ -4,6 +4,7 @@ import { PrismaService } from 'src/prisma.service';
 import * as fs from 'fs';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { LeaderboardDto } from './dto/leaderboard-dto';
+import { contains } from 'class-validator';
 
 @Injectable()
 export class UsersService {
@@ -21,7 +22,7 @@ export class UsersService {
     ) : Promise<string> {
         try {
             const user: User = await this._prismaService.user.findUnique({ where: { id } })
-            
+
             if (!user)
                 throw new NotFoundException('User not found');
 
@@ -157,7 +158,7 @@ export class UsersService {
             const friend: User = await this._prismaService.user.findUnique({ where: { id: receiverID } });
             if (!friend)
                 throw new NotFoundException('Friend not found');
-            
+
             const friendRequest = await this._prismaService.friendship.create({
                 data: {
                     sender: { connect: { id: senderID } },
@@ -229,6 +230,14 @@ export class UsersService {
                     accepted: true
                 },
                 select: {
+					sender: {
+						select: {
+                            id: true,
+                            username: true,
+                            avatar: true,
+                            status: true
+                        }
+					},
                     receiver: {
                         select: {
                             id: true,
@@ -240,7 +249,10 @@ export class UsersService {
                 },
             })
 
-            return friends;
+            return friends.map(friend => {
+				if (friend.sender.id === id || friend.receiver.id === id)
+					delete friend.sender;
+			});
         } catch(err) {
             throw new InternalServerErrorException('Internal server error'); 
         }

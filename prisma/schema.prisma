@@ -16,7 +16,7 @@ model User {
 	email			String			@unique
 	password		String
 	isAuth			Boolean			@default(false)
-	avatar			String?
+	avatar			String?			@computed
 	status          Status          @default(OFFLINE)
 	level			Int			    @default(0)
 	experience		Int			    @default(0)
