@@ -105,12 +105,10 @@ export class UsersController {
         FileInterceptor('image', {
             storage: diskStorage({
                 destination: './data/avatars',
-                filename: (_, file, cb) => {
-                    const randomName = Array(32)
-                        .fill(null)
-                        .map(() => Math.round(Math.random() * 16).toString(16))
-                        .join('');
-                    return cb(null, `${randomName}${extname(file.originalname)}`);
+                filename: (req, file, cb) => {
+					const { id } = req.user as User;
+
+                    return cb(null, `${id}${extname(file.originalname)}`);
                 }
             }),
             limits: {

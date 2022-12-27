@@ -4,7 +4,7 @@ import { PrismaService } from 'src/prisma.service';
 import * as fs from 'fs';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { LeaderboardDto } from './dto/leaderboard-dto';
-import { contains } from 'class-validator';
+import path, { join } from 'path';
 
 @Injectable()
 export class UsersService {
@@ -42,18 +42,16 @@ export class UsersService {
             if (!avatar)
                 throw new NotFoundException('Avatar not found');
 
-            const olderAvatar = await this.getAvatar(id);
-            if (olderAvatar && olderAvatar !== this._defaultAvatar) {
-                await fs.promises.unlink(`./data/avatars/${olderAvatar}`);
-            }
+			const staticPath = "http://localhost:3000/";
 
             const user: (User | null) = await this._prismaService.user.update({
                 where: { id },
-                data: { avatar: avatar.filename }
+                data: { avatar: `${staticPath}${avatar.filename}` }
             });
 
             return user;
         } catch(err) {
+			console.log(err);
             if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
