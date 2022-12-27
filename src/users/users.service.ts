@@ -37,7 +37,7 @@ export class UsersService {
 
 			return {
 				user,
-				isFriend: friendStatus ? !friendStatus.accepted : true
+				isFriend: friendStatus ? friendStatus.accepted : false
 			}
 		} catch(err) {
 			if (err instanceof NotFoundException)
