@@ -1,10 +1,8 @@
-import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma, User, Friendship } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
-import * as fs from 'fs';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { LeaderboardDto } from './dto/leaderboard-dto';
-import path, { join } from 'path';
 
 @Injectable()
 export class UsersService {
@@ -14,8 +12,39 @@ export class UsersService {
 
     private _experienceGain: number = 10;
     private _nextLevelPourcentage: number = 2;
-    private _defaultAvatar: string = 'default.png';
     private _rankPointGain: number = 10;
+
+	async getProfile(
+		id : Prisma.UserWhereUniqueInput['id'],
+		target: Prisma.UserWhereUniqueInput['id']
+	) : Promise<{user: User, isFriend: boolean}> {
+		try {
+			const user = await this.getUser({ id: target });
+			if (!user)
+				throw new NotFoundException('User not found');
+			
+			const friendStatus = await this._prismaService.friendship.findFirst({
+				where: {
+					OR: [
+						{ AND: [{ senderId: id }, { receiverId: target }] },
+						{ AND: [{ senderId: target }, { receiverId: id }] }
+					],
+				},
+				select: {
+					accepted: true
+				}
+			});
+
+			return {
+				user,
+				isFriend: friendStatus ? friendStatus.accepted : false
+			}
+		} catch(err) {
+			if (err instanceof NotFoundException)
+				throw err;
+			throw new InternalServerErrorException('Internal server error');
+		}
+	}
 
     async getAvatar(
         id: Prisma.UserWhereUniqueInput['id']
@@ -43,7 +72,6 @@ export class UsersService {
                 throw new NotFoundException('Avatar not found');
 
 			const staticPath = "http://localhost:3000/";
-
             const user: (User | null) = await this._prismaService.user.update({
                 where: { id },
                 data: { avatar: `${staticPath}${avatar.filename}` }
@@ -182,8 +210,8 @@ export class UsersService {
             const friend = await this._prismaService.friendship.update({
                 where: {
                     senderId_receiverId: {
-                        senderId: senderID,
-                        receiverId: receiverID
+                        senderId: receiverID,
+                        receiverId: senderID
                     }
                 },
                 data: { accepted: true }
@@ -191,6 +219,9 @@ export class UsersService {
 
             return friend;
         } catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === 'P2025')
+					throw new NotFoundException('Friend request not found');
             throw new InternalServerErrorException('Internal server error');
         }
     }

@@ -53,6 +53,18 @@ model Friendship {
 	@@map("friendships")
 }
 
+// model MatchHistory {
+// 	id              String          @id @default(cuid())
+// 	player1         User            @relation(fields: [player1Id], references: [id], onDelete: Cascade)
+// 	player1Id       String
+// 	player2         User            @relation(fields: [player2Id], references: [id], onDelete: Cascade)
+// 	player2Id       String
+// 	winner          User            @relation(fields: [winnerId], references: [id], onDelete: Cascade)
+// 	winnerId        String
+
+// 	@@map("match_history")
+// }
+
 enum Status {
 	OFFLINE @map("offline")
 	ONLINE  @map("online")

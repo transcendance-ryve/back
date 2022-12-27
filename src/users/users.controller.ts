@@ -16,19 +16,21 @@ export class UsersController {
 
     /* GET */
 
-	@Get('me')
 	@UseGuards(JwtAuthGuard)
+	@Get('me')
 	getMe(
 		@GetUser() user: User
 	): User {
 		return user;
 	}
 
+	@UseGuards(JwtAuthGuard)
     @Get()
     async getAll(): Promise<User[]> {
         return this._usersService.getAllUsers({});
     }
 
+	@UseGuards(JwtAuthGuard)
 	@Get(':id')
 	async getUserByID(
 		@Param('id') id: Prisma.UserWhereUniqueInput['id']
@@ -36,6 +38,16 @@ export class UsersController {
 		return this._usersService.getUser({ id });
 	}
 
+	@UseGuards(JwtAuthGuard)
+	@Get('profile/:id')
+	async getProfile(
+		@GetUser() user: User,
+		@Param('id') target: Prisma.UserWhereUniqueInput['id']
+	): Promise<any> {
+		return this._usersService.getProfile(user.id, target);
+	}
+	
+	@UseGuards(JwtAuthGuard)
     @Get('avatar/:id')
     async getAvatar(
         @Param('id') id: Prisma.UserWhereUniqueInput['id'],
@@ -54,6 +66,7 @@ export class UsersController {
         return new StreamableFile(file);
     }
 
+	@UseGuards(JwtAuthGuard)
     @Get('leaderboard')
     async getLeaderboard(
         @Query() LeaderboardParams: LeaderboardDto
@@ -69,8 +82,8 @@ export class UsersController {
         return this._usersService.getFriends(user.id);
     }
 
-    @UseGuards(JwtAuthGuard)
     @Get('friendRequests')
+    @UseGuards(JwtAuthGuard)
     async getFriendRequests(
         @GetUser() user: User
     ): Promise<Partial<User>[]> {
