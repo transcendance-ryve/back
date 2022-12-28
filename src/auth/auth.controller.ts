@@ -51,7 +51,7 @@ export class AuthController {
 	): void {
 		const token = this._authService.createToken(user);
 
-		res.cookie('acces_token', token, { httpOnly: true });
+		res.cookie('access_token', token, { httpOnly: true });
 	}
 
 	@Post('register')
@@ -61,7 +61,7 @@ export class AuthController {
 	): Promise<void> {
 		const token = await this._authService.register({isAuth: false, ...userCreateInput});
 
-		res.cookie('acces_token', token);
+		res.cookie('access_token', token);
 	}
 
 	@Post('forgot-password')
@@ -77,6 +77,6 @@ export class AuthController {
 	disconnect(
 		@Res({ passthrough: true }) res: Response
 	): void {
-		res.clearCookie('acces_token');
+		res.clearCookie('access_token');
 	}
 }

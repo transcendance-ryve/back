@@ -146,7 +146,7 @@ export class UsersService {
         sortBy,
         order,
 		page
-	}: LeaderboardDto) : Promise<Partial<User>[]> {
+	}: LeaderboardDto) : Promise<{ users: Partial<User>[], usersCount: number }> {
         try {
             const users: Partial<User>[] = await this._prismaService.user.findMany({
                 skip: page === undefined ? undefined : (Number(page) - 1) * Number(limit),
@@ -163,11 +163,18 @@ export class UsersService {
                     played: true
                 }
             });
-
+			
 			if (!users)
                 throw new NotFoundException('No user found');
 
-            return users;
+
+			const usersCount = await this._prismaService.user.count();
+				
+
+            return {
+				users,
+				usersCount
+			};
         } catch(err) {
             if (err instanceof NotFoundException)
                 throw err;
