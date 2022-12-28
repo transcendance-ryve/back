@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, Req, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Prisma, User, Friendship } from '@prisma/client';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { createReadStream, ReadStream } from 'fs';
 import { diskStorage } from 'multer';
 import { extname, resolve } from 'path';
@@ -15,31 +15,43 @@ export class UsersController {
     constructor(private readonly _usersService: UsersService) {}
 
     /* GET */
+	
+	
 
-	@UseGuards(JwtAuthGuard)
 	@Get('me')
+	@UseGuards(JwtAuthGuard)
 	getMe(
 		@GetUser() user: User
 	): User {
 		return user;
 	}
 
-	@UseGuards(JwtAuthGuard)
+	
+
     @Get()
+	@UseGuards(JwtAuthGuard)
     async getAll(): Promise<User[]> {
         return this._usersService.getAllUsers({});
     }
 
-	@UseGuards(JwtAuthGuard)
+	@Get('leaderboard')
+    async getLeaderboard(
+		@Query() query: LeaderboardDto
+    ): Promise<any> {
+		return this._usersService.getLeaderboard(query);
+    }
+	
+
 	@Get(':id')
+	@UseGuards(JwtAuthGuard)
 	async getUserByID(
-		@Param('id') id: Prisma.UserWhereUniqueInput['id']
-	): Promise<User> {
+		@Param('id') id: string
+	): Promise<any> {
 		return this._usersService.getUser({ id });
 	}
 
-	@UseGuards(JwtAuthGuard)
 	@Get('profile/:id')
+	@UseGuards(JwtAuthGuard)
 	async getProfile(
 		@GetUser() user: User,
 		@Param('id') target: Prisma.UserWhereUniqueInput['id']
@@ -47,8 +59,8 @@ export class UsersController {
 		return this._usersService.getProfile(user.id, target);
 	}
 	
-	@UseGuards(JwtAuthGuard)
     @Get('avatar/:id')
+	@UseGuards(JwtAuthGuard)
     async getAvatar(
         @Param('id') id: Prisma.UserWhereUniqueInput['id'],
         @Res({ passthrough: true }) res: Response
@@ -66,16 +78,8 @@ export class UsersController {
         return new StreamableFile(file);
     }
 
-	@UseGuards(JwtAuthGuard)
-    @Get('leaderboard')
-    async getLeaderboard(
-        @Query() LeaderboardParams: LeaderboardDto
-    ): Promise<Partial<User>[]> {
-        return this._usersService.getLeaderboard(LeaderboardParams);
-    }
-
-    @UseGuards(JwtAuthGuard)
     @Get('friends')
+    @UseGuards(JwtAuthGuard)
     async getFriends(
         @GetUser() user: User
     ): Promise<User[]> {

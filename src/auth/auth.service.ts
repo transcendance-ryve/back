@@ -37,7 +37,7 @@ export class AuthService {
                 } else throw new UnauthorizedException("Unauthorized to login without OAuth");
             }
 
-			return this._usersService.updateUser({ id: user.id }, { status: "ONLINE" });
+			return user;
 		}
         catch(err) {
             if (err instanceof UnauthorizedException)

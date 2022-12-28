@@ -3,6 +3,7 @@ import { Prisma, User, Friendship } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { LeaderboardDto } from './dto/leaderboard-dto';
+import { send } from 'process';
 
 @Injectable()
 export class UsersService {
@@ -58,7 +59,7 @@ export class UsersService {
             return user.avatar;
         } catch(err) {
             if (err instanceof NotFoundException)
-                throw err;
+				throw err;
             throw new InternalServerErrorException('Internal server error');
         }
     }
@@ -147,6 +148,7 @@ export class UsersService {
 		page
 	}: LeaderboardDto) : Promise<Partial<User>[]> {
         try {
+			console.log(1);
             const users: Partial<User>[] = await this._prismaService.user.findMany({
                 skip: page === undefined ? undefined : (Number(page) - 1) * Number(limit),
 				orderBy: { [sortBy || "rankPoint"]: order || 'desc' },
@@ -163,8 +165,11 @@ export class UsersService {
                 }
             });
 
-            if (!users)
+			console.log('users: ', users);
+
+			if (!users)
                 throw new NotFoundException('No user found');
+
 
             return users;
         } catch(err) {
@@ -185,18 +190,32 @@ export class UsersService {
             if (!friend)
                 throw new NotFoundException('Friend not found');
 
-            const friendRequest = await this._prismaService.friendship.create({
-                data: {
-                    sender: { connect: { id: senderID } },
-                    receiver: { connect: { id: receiverID } }
-                }
-            });
+			try {
+				const friendship = await this._prismaService.friendship.update({
+					where: {
+						senderId_receiverId: {
+							senderId: receiverID,
+							receiverId: senderID
+						}
+					},
+					data: { accepted: true }
+				})
 
-            return friendRequest;
+				return friendship;
+			} catch(err) {
+				const friendRequest = await this._prismaService.friendship.create({
+					data: {
+						sender: { connect: { id: senderID } },
+						receiver: { connect: { id: receiverID } }
+					}
+				});
+
+				return friendRequest;
+			}
         } catch(err) {
             if (err instanceof PrismaClientKnownRequestError)
                 if (err.code === 'P2002')
-                    throw err;
+                    throw new ConflictException('Friend request already sent');
                     
             throw new InternalServerErrorException('Internal server error');
         }
@@ -383,7 +402,7 @@ export class UsersService {
         } catch(err) {
             if (err instanceof PrismaClientKnownRequestError)
                 if (err.code === 'P2025')
-                    throw err;
+                    throw new NotFoundException('User not found');
 
             throw new InternalServerErrorException('Internal server error');
         }
