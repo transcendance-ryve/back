@@ -148,7 +148,6 @@ export class UsersService {
 		page
 	}: LeaderboardDto) : Promise<Partial<User>[]> {
         try {
-			console.log(1);
             const users: Partial<User>[] = await this._prismaService.user.findMany({
                 skip: page === undefined ? undefined : (Number(page) - 1) * Number(limit),
 				orderBy: { [sortBy || "rankPoint"]: order || 'desc' },
@@ -165,11 +164,8 @@ export class UsersService {
                 }
             });
 
-			console.log('users: ', users);
-
 			if (!users)
                 throw new NotFoundException('No user found');
-
 
             return users;
         } catch(err) {
@@ -297,10 +293,17 @@ export class UsersService {
                 },
             })
 
-            return friends.map(friend => {
-				if (friend.sender.id === id || friend.receiver.id === id)
+			const friendsList = friends.map(friend => {
+				if (friend.sender.id === id)
 					delete friend.sender;
-			});
+				else
+					delete friend.receiver;
+
+				if (friend.sender) return friend.sender;
+				else return friend.receiver;
+			})
+
+            return friendsList;
         } catch(err) {
             throw new InternalServerErrorException('Internal server error'); 
         }
@@ -327,7 +330,7 @@ export class UsersService {
                 },
             })
 
-            return friends;
+            return friends.map(friend => friend.receiver);
         } catch(err) {
             throw new InternalServerErrorException('Internal server error');
         }

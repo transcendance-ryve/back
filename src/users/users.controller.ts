@@ -10,26 +10,60 @@ import { LeaderboardDto } from './dto/leaderboard-dto';
 import { JwtAuthGuard } from './guard/jwt.guard';
 import { UsersService } from './users.service';
 
+
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 export class UsersController {
     constructor(private readonly _usersService: UsersService) {}
 
-    /* GET */
-	
-	
+	/* Friends request */
+
+    @Get('friends')
+    async getFriends(
+        @GetUser() user: User
+    ): Promise<User[]> {
+        return this._usersService.getFriends(user.id);
+    }
+
+    @Get('friends/request')
+    async getFriendRequests(
+        @GetUser() user: User
+    ): Promise<Partial<User>[]> {
+        return this._usersService.getFriendRequests(user.id);
+    }
+
+    @Post('friends/:id')
+    async sendFriendRequest(
+        @GetUser() user: User,
+        @Param('id') friendId: string
+    ): Promise<Friendship> {
+        return this._usersService.sendFriendRequest(user.id, friendId);
+    }
+
+    @Put('friends/:id')
+    async acceptFriendRequest(
+        @GetUser() user: User,
+        @Param('id') friendId: string
+    ): Promise<Friendship> {
+        return this._usersService.acceptFriendRequest(user.id, friendId);
+    }
+
+    @Delete('friends/:id')
+    async declineFriendRequest(
+        @GetUser() user: User,
+        @Param('id') friendId: string
+    ): Promise<Friendship> {
+        return this._usersService.declineFriendRequest(user.id, friendId);
+    }
 
 	@Get('me')
-	@UseGuards(JwtAuthGuard)
 	getMe(
 		@GetUser() user: User
 	): User {
 		return user;
 	}
-
 	
-
     @Get()
-	@UseGuards(JwtAuthGuard)
     async getAll(): Promise<User[]> {
         return this._usersService.getAllUsers({});
     }
@@ -40,18 +74,27 @@ export class UsersController {
     ): Promise<any> {
 		return this._usersService.getLeaderboard(query);
     }
-	
 
 	@Get(':id')
-	@UseGuards(JwtAuthGuard)
 	async getUserByID(
 		@Param('id') id: string
 	): Promise<any> {
 		return this._usersService.getUser({ id });
 	}
 
+	@Delete()
+    async delete(
+		@Res({ passthrough: true }) res: Response,
+		@GetUser() user: User,
+		@Param('id') id: Prisma.UserWhereUniqueInput['id']
+	): Promise<User> {
+		await this._usersService.deleteUser(user.id);
+		res.clearCookie('acces_token');
+
+        return user;
+    }
+
 	@Get('profile/:id')
-	@UseGuards(JwtAuthGuard)
 	async getProfile(
 		@GetUser() user: User,
 		@Param('id') target: Prisma.UserWhereUniqueInput['id']
@@ -59,8 +102,9 @@ export class UsersController {
 		return this._usersService.getProfile(user.id, target);
 	}
 	
+	/* Avatar request */
+
     @Get('avatar/:id')
-	@UseGuards(JwtAuthGuard)
     async getAvatar(
         @Param('id') id: Prisma.UserWhereUniqueInput['id'],
         @Res({ passthrough: true }) res: Response
@@ -78,46 +122,7 @@ export class UsersController {
         return new StreamableFile(file);
     }
 
-    @Get('friends')
-    @UseGuards(JwtAuthGuard)
-    async getFriends(
-        @GetUser() user: User
-    ): Promise<User[]> {
-        return this._usersService.getFriends(user.id);
-    }
-
-    @Get('friendRequests')
-    @UseGuards(JwtAuthGuard)
-    async getFriendRequests(
-        @GetUser() user: User
-    ): Promise<Partial<User>[]> {
-        return this._usersService.getFriendRequests(user.id);
-    }
-
-    /* POST */
-
-    @UseGuards(JwtAuthGuard)
-    @Post('sendFriendRequest/:id')
-    async sendFriendRequest(
-        @GetUser() user: User,
-        @Param('id') friendId: string
-    ): Promise<Friendship> {
-        return this._usersService.sendFriendRequest(user.id, friendId);
-    }
-
-    /* PUT */
-
-    @UseGuards(JwtAuthGuard)
-    @Put("username")
-    async setUsername(
-        @GetUser() user: User,
-        @Body('username') username: string
-    ): Promise<Partial<User>> {
-        return this._usersService.updateUser({ id: user.id }, { username });
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @Put('avatar')
+	@Put('avatar')
     @UseInterceptors(
         FileInterceptor('image', {
             storage: diskStorage({
@@ -152,7 +157,15 @@ export class UsersController {
         return this._usersService.setAvatar(user.id, avatar);    
     }
 
-    @UseGuards(JwtAuthGuard)
+	
+    @Put("username")
+    async setUsername(
+        @GetUser() user: User,
+        @Body('username') username: string
+    ): Promise<Partial<User>> {
+        return this._usersService.updateUser({ id: user.id }, { username });
+    }
+
     @Put('experience/:id')
     async setExperience(
         @Param('id') id: Prisma.UserWhereUniqueInput['id'],
@@ -160,31 +173,4 @@ export class UsersController {
     ): Promise<User> {
         return this._usersService.addExperience(id, point);
     }
-
-    @UseGuards(JwtAuthGuard)
-    @Put('acceptFriendRequest/:id')
-    async acceptFriendRequest(
-        @GetUser() user: User,
-        @Param('id') friendId: string
-    ): Promise<Friendship> {
-        return this._usersService.acceptFriendRequest(user.id, friendId);
-    }
-
-    /* DELETE */
-
-    @UseGuards(JwtAuthGuard)
-    @Delete('declineFriendRequest/:id')
-    async declineFriendRequest(
-        @GetUser() user: User,
-        @Param('id') friendId: string
-    ): Promise<Friendship> {
-        return this._usersService.declineFriendRequest(user.id, friendId);
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @Delete(':id')
-    async delete(@Param('id') id: Prisma.UserWhereUniqueInput['id']): Promise<User> {
-        return this._usersService.deleteUser(id);
-    }
-
 }
