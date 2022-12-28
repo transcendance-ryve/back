@@ -141,32 +141,33 @@ export class UsersService {
 
     /* LEADERBOARD */
 
-    async getLeaderboard({
-        limit,
-        sortBy,
-        order,
-		page
-	}: LeaderboardDto) : Promise<{ users: Partial<User>[], usersCount: number }> {
-        try {
-            const users: Partial<User>[] = await this._prismaService.user.findMany({
-                skip: page === undefined ? undefined : (Number(page) - 1) * Number(limit),
-				orderBy: { [sortBy || "rankPoint"]: order || 'desc' },
-                take: limit === undefined ? undefined : Number(limit),
-                select: {
-                    username: true,
-                    level: true,
-                    experience: true,
-                    avatar: true,
-                    rankPoint: true,
-                    wins: true,
-                    loses: true,
-                    played: true,
-					nextLevel: true
-                }
-            });
-			
-			if (!users)
-                throw new NotFoundException('No user found');
+    async getLeaderboard(
+		params: any
+	) : Promise<{ users: Partial<User>[], usersCount: number }> {
+		try {
+			const options: { skip?: number, take?: number } = {};
+			const order = params.order === 'asc' ? 'asc' : 'desc';
+			const orderBy = params.sort || 'rankPoint';
+			const search = (params.search && params.search.length > 0) ? params.search : undefined;
+
+			if (params.take) options.take = Number(params.take);
+			if (params.page) options.skip = (Number(params.page) - 1) * options.take;
+
+			const users = await this._prismaService.user.findMany({
+				where : {
+					username: { contains: search }
+				},
+				orderBy: {
+					[orderBy]: order
+				},
+				select: {
+					id: true,
+					username: true,
+					rankPoint: true,
+					avatar: true
+				},
+				...options,
+			});
 
 			const usersCount = await this._prismaService.user.count();
 				

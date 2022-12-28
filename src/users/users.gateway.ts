@@ -9,7 +9,7 @@ import { UsersService } from "./users.service";
 @WebSocketGateway({
 	namespace: 'users',
 	cors: {
-		origin: 'http://localhost:5174',
+		origin: 'http://localhost:5173',
 	},
 	credentials: true,
 })

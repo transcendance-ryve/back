@@ -70,9 +70,13 @@ export class UsersController {
 
 	@Get('leaderboard')
     async getLeaderboard(
-		@Query() query: LeaderboardDto
-    ): Promise<any> {
-		return this._usersService.getLeaderboard(query);
+		@Query('search') search: string,
+		@Query('page') page: number,
+		@Query('take') take: number,
+		@Query('sort') sort: string,
+		@Query('order') order: string,
+    ): Promise<{ users: Partial<User>[], usersCount: number }> {
+		return this._usersService.getLeaderboard({ search, take, page, sort, order });
     }
 
 	@Get(':id')
