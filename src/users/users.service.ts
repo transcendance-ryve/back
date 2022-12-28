@@ -160,17 +160,16 @@ export class UsersService {
                     rankPoint: true,
                     wins: true,
                     loses: true,
-                    played: true
+                    played: true,
+					nextLevel: true
                 }
             });
 			
 			if (!users)
                 throw new NotFoundException('No user found');
 
-
 			const usersCount = await this._prismaService.user.count();
 				
-
             return {
 				users,
 				usersCount
