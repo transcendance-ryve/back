@@ -46,11 +46,9 @@ export class AuthController {
 	@UseGuards(LocalAuthGuard)
 	@Post('login')
 	login(
-		@GetUser() user: User,
+		@GetUser() token: string,
 		@Res({ passthrough: true }) res: Response
 	): void {
-		const token = this._authService.createToken(user);
-
 		res.cookie('access_token', token, { httpOnly: true });
 	}
 

@@ -19,8 +19,14 @@ export class AuthService {
         private readonly _mailerService: MailerService,
     ) {}
 
-    createToken(data: any) : string {
-        return this._jwtService.sign({ email: data.email, id: data.id });
+	async createToken(data: any) : Promise<string> {
+		return this._jwtService.signAsync({ email: data.email, id: data.id }).then((token) => {
+			console.log(token);
+			return token;
+		}).catch((err) => {
+			console.log(err);
+			return err.message;
+		});
     }
     
     async login(email: string, password: string, isAuth: boolean): Promise<any> {

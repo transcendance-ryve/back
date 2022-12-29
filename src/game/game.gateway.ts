@@ -1,8 +1,6 @@
 import { SubscribeMessage, WebSocketGateway } from "@nestjs/websockets";
 
-@WebSocketGateway({
-	namespace: "game",
-})
+@WebSocketGateway()
 export class GameGateway {
 	constructor() {}
 
