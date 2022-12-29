@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import { downloadImageAndSave } from 'src/utils';
 
 @Injectable()
 export class AuthService {
@@ -37,7 +38,7 @@ export class AuthService {
                 } else throw new UnauthorizedException("Unauthorized to login without OAuth");
             }
 
-			return user;
+			return this.createToken(user);
 		}
         catch(err) {
             if (err instanceof UnauthorizedException)
@@ -46,7 +47,7 @@ export class AuthService {
     }
 
     async register(userCreateInput: CreateUserDto) : Promise<string> {
-        const { password, isAuth } = userCreateInput;
+        const { password, isAuth, avatarURL } = userCreateInput;
 
         try {
             let user: User;
@@ -54,11 +55,20 @@ export class AuthService {
             if (!isAuth) {
                 const hash: string = await bcrypt.hash(password, 10);
                 user = await this._usersService.createUser({ ...userCreateInput, password: hash});
-            } else
+            } else {
+				delete userCreateInput.avatarURL;
                 user = await this._usersService.createUser(userCreateInput);
+				const avatar = await downloadImageAndSave(avatarURL, user.id);
+				const staticPath = "http://localhost:3000/";
+				await this._usersService.updateUser(
+					{ id: user.id },
+					{ avatar: `${staticPath}${avatar}` }
+				);
+			}
             
             return this.createToken(user);
         } catch(err) {
+			console.log(err);
             throw new UnauthorizedException("User already exist");
         }
     }

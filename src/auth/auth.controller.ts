@@ -22,15 +22,15 @@ export class AuthController {
 	@UseGuards(FortyTwoGuard)
 	async fortyTwoRedirect(
 		@GetUser() user: any,
-	): Promise<string> {
-		const { username, password, email, imageURL } = user;
+		@Res({ passthrough: true }) res: Response
+	): Promise<void> {
+		const { username, password, email, avatarURL } = user;
 		
-		const userData = await this._authService.login(email, password, true);
-		if (!userData) {
-			const avatar = await downloadImageAndSave(imageURL);
-			return this._authService.register({password, username, email, isAuth: true, avatar });
-		} else
-			return this._authService.createToken(userData);
+		let token = await this._authService.login(email, password, true);
+		if (!token)
+			token = await this._authService.register({password, username, email, isAuth: true, avatarURL });
+
+		res.cookie('access_token', token);
 	}
 
 	@Get('reset-password/:token')

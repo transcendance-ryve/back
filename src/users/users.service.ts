@@ -355,6 +355,7 @@ export class UsersService {
 
             return user;
         } catch(err) {
+			console.log(err);
             throw new ConflictException("User already exist");
         }
     }

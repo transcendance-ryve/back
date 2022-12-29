@@ -16,7 +16,7 @@ export class FortyTwoStrategy extends PassportStrategy(Strategy, '42') {
         accessToken: string,
         refreshToken: string,
         profile: Profile
-    ): Promise<{ email: string, username: string, password: string, imageURL: string}> {        
+    ): Promise<{ email: string, username: string, password: string, avatarURL: string}> {        
         const {
             username,
             emails,
@@ -33,7 +33,7 @@ export class FortyTwoStrategy extends PassportStrategy(Strategy, '42') {
             email: emails[0].value,
             username: username,
             password: '',
-            imageURL: large
+            avatarURL: large
         };
     }
 }

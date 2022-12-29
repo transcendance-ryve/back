@@ -108,24 +108,6 @@ export class UsersController {
 	
 	/* Avatar request */
 
-    @Get('avatar/:id')
-    async getAvatar(
-        @Param('id') id: Prisma.UserWhereUniqueInput['id'],
-        @Res({ passthrough: true }) res: Response
-    ): Promise<StreamableFile> {
-        const filename: string = await this._usersService.getAvatar(id);
-
-        const filePath: string = resolve('./data/avatars', (filename || 'default.png'));
-        const file: ReadStream = createReadStream(filePath);
-
-        res.set({
-            'Content-Disposition': `inline; filename="${filename}"`,
-            'Content-Type': 'image/*',
-        });
-
-        return new StreamableFile(file);
-    }
-
 	@Put('avatar')
     @UseInterceptors(
         FileInterceptor('image', {
