@@ -68,7 +68,6 @@ export class AuthService {
             
             return this.createToken(user);
         } catch(err) {
-			console.log(err);
             throw new UnauthorizedException("User already exist");
         }
     }
