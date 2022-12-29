@@ -16,25 +16,37 @@ import { JwtService } from "@nestjs/jwt";
 })
 @UseGuards(JwtAuthGuard)
 export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
-	@WebSocketServer() server: Server;
-
 	constructor(
 		private readonly _userService: UsersService,
 		private readonly _jwtService: JwtService,	
 	) {}
+
+	@WebSocketServer() private _server: Server;
+	private _sockets: Map<string, Socket> = new Map()
+
+
+	private _emitToFriends(id: string, event: string, data: any) {
+		this._userService.getFriends(id).then((friends: Partial<User>[]) => {
+			friends.forEach((friend: Partial<User>) => {
+				const friendSocket = this._sockets.get(friend.id);
+				if (friendSocket) friendSocket.emit(event, data);
+			});
+		});
+	}
 	
 	async handleConnection(socket: Socket) {
 		const { cookie } = socket.handshake?.headers;
 		const accessToken = cookie?.split('=')?.pop();
-
+		
 		try {
 			const user = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
-			this.server.emit('user_connected', `${socket.id} is connected`);
-			socket.data.user = user;
 			await this._userService.updateUser({ id: user.id }, { status: Status.ONLINE });
-		} catch(err) {
-			socket.disconnect();
-		}
+			
+			this._sockets.set(user.id, socket);
+			this._emitToFriends(user, 'user_connected', user.id);
+	
+			socket.data.id = user.id;
+		} catch(err) { socket.disconnect(); }
 	}
 
 	async handleDisconnect(socket: Socket) {
@@ -42,24 +54,6 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		if (!id) return;
 
 		await this._userService.updateUser({ id }, { status: Status.OFFLINE });
-		this.server.emit('user_disconnected', `${socket.id} is disconnected`);
+		this._emitToFriends(id, 'user_disconnected', id);
 	}
-
-	// @SubscribeMessage('join_game')
-	// joinGame(
-	// 	@GetUser() user: User,
-	// 	@ConnectedSocket() client: Socket
-	// ) : void {
-	// 	this._userService.updateUser({ id: user.id }, { status: Status.INGAME });
-	// 	this.server.emit('userJoinedGame', `${client.id} joined game`);
-	// }
-
-	// @SubscribeMessage('leave_game')
-	// leaveGame(
-	// 	@GetUser() user: User,
-	// 	@ConnectedSocket() client: Socket
-	// ) : void {
-	// 	this._userService.updateUser({ id: user.id }, { status: Status.ONLINE });
-	// 	this.server.emit('userLeftGame', `${client.id} left game`);
-	// }
 }
