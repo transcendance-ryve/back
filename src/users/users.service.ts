@@ -164,7 +164,13 @@ export class UsersService {
 					id: true,
 					username: true,
 					rankPoint: true,
-					avatar: true
+					avatar: true,
+					level: true,
+					experience: true,
+					nextLevel: true,
+					loses: true,
+					wins: true,
+					played: true
 				},
 				...options,
 			});
