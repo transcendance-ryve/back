@@ -21,10 +21,8 @@ export class AuthService {
 
 	async createToken(data: any) : Promise<string> {
 		return this._jwtService.signAsync({ email: data.email, id: data.id }).then((token) => {
-			console.log(token);
 			return token;
 		}).catch((err) => {
-			console.log(err);
 			return err.message;
 		});
     }
@@ -80,7 +78,7 @@ export class AuthService {
 
     async forgotPassword(email: string) : Promise<string> {
         try {
-            const user: (User | null) = await this._usersService.getUser({ email });
+            const user: (Partial<User> | null) = await this._usersService.getUser({ email });
             if (!user)
                 throw new NotFoundException("User not found");
   
@@ -110,9 +108,8 @@ export class AuthService {
 			return token.token;
         } catch (err) {
             if (err instanceof PrismaClientKnownRequestError) {
-                console.log("Code", err.code);
                 if (err.code === 'P2014')
-                   throw err;
+                   throw new NotFoundException("User not found");
             }
             if (err instanceof NotFoundException)
                 throw err;

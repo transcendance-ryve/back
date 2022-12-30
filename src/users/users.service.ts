@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma, User, Friendship } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
@@ -14,55 +14,6 @@ export class UsersService {
     private _experienceGain: number = 10;
     private _nextLevelPourcentage: number = 2;
     private _rankPointGain: number = 10;
-
-	async getProfile(
-		id : Prisma.UserWhereUniqueInput['id'],
-		target: Prisma.UserWhereUniqueInput['id']
-	) : Promise<{user: User, isFriend: boolean}> {
-		try {
-			const user = await this.getUser({ id: target });
-			if (!user)
-				throw new NotFoundException('User not found');
-			
-			const friendStatus = await this._prismaService.friendship.findFirst({
-				where: {
-					OR: [
-						{ AND: [{ senderId: id }, { receiverId: target }] },
-						{ AND: [{ senderId: target }, { receiverId: id }] }
-					],
-				},
-				select: {
-					accepted: true
-				}
-			});
-
-			return {
-				user,
-				isFriend: friendStatus ? friendStatus.accepted : false
-			}
-		} catch(err) {
-			if (err instanceof NotFoundException)
-				throw err;
-			throw new InternalServerErrorException('Internal server error');
-		}
-	}
-
-    async getAvatar(
-        id: Prisma.UserWhereUniqueInput['id']
-    ) : Promise<string> {
-        try {
-            const user: User = await this._prismaService.user.findUnique({ where: { id } })
-
-            if (!user)
-                throw new NotFoundException('User not found');
-
-            return user.avatar;
-        } catch(err) {
-            if (err instanceof NotFoundException)
-				throw err;
-            throw new InternalServerErrorException('Internal server error');
-        }
-    }
 
     async setAvatar(
         id: Prisma.UserWhereUniqueInput['id'],
@@ -80,7 +31,6 @@ export class UsersService {
 
             return user;
         } catch(err) {
-			console.log(err);
             if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
@@ -132,55 +82,6 @@ export class UsersService {
                 where: { id },
                 data: { rankPoint: { increment: point } }
             });
-        } catch(err) {
-            if (err instanceof NotFoundException)
-                throw err;
-            throw new InternalServerErrorException('Internal server error');
-        }
-    }
-
-    /* LEADERBOARD */
-
-    async getLeaderboard(
-		params: any
-	) : Promise<{ users: Partial<User>[], usersCount: number }> {
-		try {
-			const options: { skip?: number, take?: number } = {};
-			const order = params.order === 'asc' ? 'asc' : 'desc';
-			const orderBy = params.sort || 'rankPoint';
-			const search = (params.search && params.search.length > 0) ? params.search : undefined;
-
-			if (params.take) options.take = Number(params.take);
-			if (params.page) options.skip = (Number(params.page) - 1) * options.take;
-
-			const users = await this._prismaService.user.findMany({
-				where : {
-					username: { contains: search }
-				},
-				orderBy: {
-					[orderBy]: order
-				},
-				select: {
-					id: true,
-					username: true,
-					rankPoint: true,
-					avatar: true,
-					level: true,
-					experience: true,
-					nextLevel: true,
-					loses: true,
-					wins: true,
-					played: true
-				},
-				...options,
-			});
-
-			const usersCount = await this._prismaService.user.count();
-				
-            return {
-				users,
-				usersCount
-			};
         } catch(err) {
             if (err instanceof NotFoundException)
                 throw err;
@@ -349,8 +250,6 @@ export class UsersService {
         }
     }
 
-    /* CRUD */
-
     async createUser(
         data: Prisma.UserCreateInput
     ) : Promise<User> {
@@ -361,40 +260,105 @@ export class UsersService {
 
             return user;
         } catch(err) {
-			console.log(err);
             throw new ConflictException("User already exist");
         }
     }
 
-    async getUser(
-        where: Prisma.UserWhereUniqueInput
-    ) : Promise<User | null> {
+	async getUserWithRelationship(
+		id: Prisma.UserWhereUniqueInput['id'],
+		target: Prisma.UserWhereUniqueInput['id'],
+		selected?: string
+	) : Promise<{user: Partial<User>, isFriend: boolean}> {
+		const select: Prisma.UserSelect = selected?.split(',').reduce((acc, curr) => {
+			acc[curr] = true;
+			return acc;
+		}, {});
+
         try {
-            const user: (User | null) = await this._prismaService.user.findUnique({ where });
+            const user: (Partial<User> | null) = await this._prismaService.user.findUnique({
+				where: { id },
+				select: (selected && selected.length > 0) ? select : undefined
+			});
+
+			const friendStatus = await this._prismaService.friendship.findFirst({
+				where: {
+					OR: [
+						{ senderId: id, receiverId: target },
+						{ senderId: target, receiverId: id }
+					]
+				}
+			});
+
 			if (!user)
-				return null;
-
+				throw new NotFoundException('User not found');
+			
 			delete user.password;
+			return { user, isFriend: friendStatus ? friendStatus.accepted : false};
+        } catch(err) {
+			if (err instanceof NotFoundException)
+				throw err;
+            throw new InternalServerErrorException("Internal server error");
+        }
+	}
 
+    async getUser(
+		where: Prisma.UserWhereUniqueInput,
+		selected?: string,
+    ) : Promise<Partial<User> | null> {
+		const select: Prisma.UserSelect = selected?.split(',').reduce((acc, curr) => {
+			acc[curr] = true;
+			return acc;
+		}, {});
+
+        try {
+            const user: (Partial<User> | null) = await this._prismaService.user.findUnique({
+				where,
+				select: (selected && selected.length > 0) ? select : undefined
+			});
+
+			if (!user) return null;
+			
+			delete user.password;
 			return user;
         } catch(err) {
             throw new InternalServerErrorException("Internal server error");
         }
     }
 
-    async getAllUsers(
-        where: Prisma.UserWhereInput
-    ) : Promise<User[] | null> {
-        try {
-            const users: (User[] | null) = await this._prismaService.user.findMany({ where });
+	async getUsers(
+		search?: string,
+		take?: number,
+		page?: number,
+		sort?: string,
+		order?: string,
+		skip?: number,
+		selected?: string,
+	) : Promise<{ users: Partial<User>[], count: number }> {
+		try {
+			const select: Prisma.UserSelect = selected?.split(',').reduce((acc, curr) => {
+				acc[curr] = true;
+				return acc;
+			}, {});
+
+			const users: Partial<User>[] = await this._prismaService.user.findMany({
+				where: { username: { contains: search } },
+				skip: skip || (page - 1) * take || undefined,
+				take: take || 12,
+				orderBy: { [sort || "username"]: order === 'asc' ? 'asc' : 'desc' },
+				select: (selected && selected.length > 0) ? select : undefined
+			});
 
 			users.map(user => delete user.password);
 
-            return users;
-        } catch(err) {
-            throw new InternalServerErrorException("Internal server error");
-        }
-    }
+			const count = await this._prismaService.user.count({
+				where: { username: { contains: search } }
+			});
+
+			return { users, count };
+		} catch(err) {
+			throw new InternalServerErrorException("Internal server error");
+		}
+	}
 
     async updateUser(
         where: Prisma.UserWhereUniqueInput,

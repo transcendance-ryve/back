@@ -64,19 +64,24 @@ export class UsersController {
 	}
 	
     @Get()
-    async getAll(): Promise<User[]> {
-        return this._usersService.getAllUsers({});
-    }
-
-	@Get('leaderboard')
-    async getLeaderboard(
+	async getAll(
 		@Query('search') search: string,
-		@Query('page') page: number,
-		@Query('take') take: number,
+		@Query('page') page: string,
+		@Query('take') take: string,
 		@Query('sort') sort: string,
 		@Query('order') order: string,
-    ): Promise<{ users: Partial<User>[], usersCount: number }> {
-		return this._usersService.getLeaderboard({ search, take, page, sort, order });
+		@Query('skip') skip: string,
+		@Query('select') select: string
+	): Promise<{ users: Partial<User>[], count: number }>  {
+        return this._usersService.getUsers(
+			search,
+			Number(take) || undefined,
+			Number(page) || undefined,
+			sort,
+			order,
+			Number(skip) || undefined,
+			select
+		);
     }
 
 	@Get(':id')
@@ -101,9 +106,10 @@ export class UsersController {
 	@Get('profile/:id')
 	async getProfile(
 		@GetUser() user: User,
-		@Param('id') target: Prisma.UserWhereUniqueInput['id']
+		@Param('id') target: Prisma.UserWhereUniqueInput['id'],
+		@Query('select') select: string
 	): Promise<any> {
-		return this._usersService.getProfile(user.id, target);
+		return this._usersService.getUserWithRelationship(user.id, target, select);
 	}
 	
 	/* Avatar request */

@@ -15,8 +15,7 @@ import { LocalStrategy } from './strategy/local.strategy';
         UsersModule,
         PassportModule,
         JwtModule.register({
-            secret: 'wartek',
-            signOptions: { expiresIn: '1h'}
+            secret: 'wartek'
         }),
         MailerModule.forRoot({
             transport: {

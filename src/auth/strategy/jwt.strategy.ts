@@ -13,7 +13,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
                 (req: Request) => {
 					const { cookies } = req;
                     if (cookies && cookies.access_token && cookies.access_token.length) {
-						console.log(cookies.access_token);
                         return cookies.access_token;
 					}
                     else {
