@@ -56,6 +56,15 @@ export class UsersController {
         return this._usersService.declineFriendRequest(user.id, friendId);
     }
 
+	@Get('friends/:id')
+	async getUserWithRelationship(
+		@GetUser() user: User,
+		@Param('id') friendId: string,
+		@Query('select') select: string
+	): Promise<{user: Partial<User>, isFriend: boolean}> {
+		return this._usersService.getUserWithRelationship(user.id, friendId, select);
+	}
+
 	@Get('me')
 	getMe(
 		@GetUser() user: User
@@ -86,9 +95,10 @@ export class UsersController {
 
 	@Get(':id')
 	async getUserByID(
-		@Param('id') id: string
+		@Param('id') id: string,
+		@Query('select') select: string
 	): Promise<any> {
-		return this._usersService.getUser({ id });
+		return this._usersService.getUser({ id }, select);
 	}
 
 	@Delete()

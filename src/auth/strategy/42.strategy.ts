@@ -6,17 +6,18 @@ import { Strategy, Profile } from 'passport-42';
 export class FortyTwoStrategy extends PassportStrategy(Strategy, '42') {
     constructor() {
         super({
-            clientID: 'u-s4t2ud-0be07deda32efaa9ac4f060716bd7ee5addaadf80d64008efd9ad3b0b10e8407',
-            clientSecret: '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',
+            clientID: 'u-s4t2ud-96e81e964ec1bbf6c9cc5132c99cf7c642332b3b808821f174ef3178e381153e',
+            clientSecret: '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',
             callbackURL: 'http://localhost:3000/auth/42/redirect',
-        });
+			scope: ['public']
+		});
     }
 
     async validate(
         accessToken: string,
         refreshToken: string,
         profile: Profile
-    ): Promise<{ email: string, username: string, password: string, avatarURL: string}> {        
+    ): Promise<{ email: string, username: string, password: string, avatarURL: string}> {
         const {
             username,
             emails,
