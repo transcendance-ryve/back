@@ -1,9 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Prisma, User, Friendship } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
-import { LeaderboardDto } from './dto/leaderboard-dto';
-import { send } from 'process';
+import * as bcrypt from 'bcrypt';
+
 
 @Injectable()
 export class UsersService {
@@ -174,6 +174,31 @@ export class UsersService {
             throw new InternalServerErrorException('Internal server error');
 		}
     }
+
+	async updatePassword(
+		id: string,
+		oldPassword: string,
+		newPassword: string
+	) : Promise<User> {
+		try {
+			const user = await this._prismaService.user.findUnique({ where: { id } });
+			if (!user)
+				throw new NotFoundException('User not found');
+
+			const isPasswordCorrect = await bcrypt.compare(oldPassword, user.password);
+			if (!isPasswordCorrect)
+				throw new UnauthorizedException('Wrong password');
+
+			const hashedPassword = await bcrypt.hash(newPassword, 10);
+			return this.updateUser({ id }, { password: hashedPassword });
+		} catch(err) {
+			if (err instanceof UnauthorizedException)
+				throw err;
+			if (err instanceof NotFoundException)
+				throw err;
+			throw new InternalServerErrorException('Internal server error');
+		}
+	}
 
     async getFriends(
         id: Prisma.UserWhereUniqueInput['id'],

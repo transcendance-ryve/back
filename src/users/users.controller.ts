@@ -160,6 +160,16 @@ export class UsersController {
         return this._usersService.updateUser({ id: user.id }, { username });
     }
 
+	@Put('password')
+	async setPassword(
+		@GetUser() user: User,
+		@Body('old_password') oldPassword: string,
+		@Body('password') password: string
+	): Promise<Partial<User>> {
+		return this._usersService.updatePassword(user.id, oldPassword, password);
+	}
+
+
     @Put('experience/:id')
     async setExperience(
         @Param('id') id: Prisma.UserWhereUniqueInput['id'],
