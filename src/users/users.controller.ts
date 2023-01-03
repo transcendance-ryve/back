@@ -112,15 +112,6 @@ export class UsersController {
 
         return user;
     }
-
-	@Get('profile/:id')
-	async getProfile(
-		@GetUser() user: User,
-		@Param('id') target: Prisma.UserWhereUniqueInput['id'],
-		@Query('select') select: string
-	): Promise<any> {
-		return this._usersService.getUserWithRelationship(user.id, target, select);
-	}
 	
 	/* Avatar request */
 

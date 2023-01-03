@@ -26,11 +26,15 @@ export class AuthController {
 	): Promise<void> {
 		const { username, password, email, avatarURL } = user;
 		
-		let token = await this._authService.login(email, password, true);
-		if (!token)
-			token = await this._authService.register({password, username, email, isAuth: true, avatarURL });
+		try {
+			let token = await this._authService.login(email, password, true);
+			if (!token)
+				token = await this._authService.register({password, username, email, isAuth: true, avatarURL });
 
-		res.cookie('access_token', token, { httpOnly: true }).redirect('http://localhost:5173');
+			res.cookie('access_token', token, { httpOnly: true }).redirect('http://localhost:5173');
+		} catch(err) {
+			res.redirect('http://localhost:5173');
+		}
 	}
 
 	@Get('reset-password/:token')

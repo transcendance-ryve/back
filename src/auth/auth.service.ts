@@ -35,12 +35,12 @@ export class AuthService {
                 return null;
 
             if (!isAuth) {
-                if (!user.isAuth) {
-                    if (!await bcrypt.compare(password, user.password)) {
+                if (!user.isAuth)
+                    if (!await bcrypt.compare(password, user.password))
 						throw new UnauthorizedException("Wrong password");
-                    }
-                } else throw new UnauthorizedException("Unauthorized to login without OAuth");
-            }
+                else throw new UnauthorizedException("Unauthorized to login without OAuth");
+            } else if (isAuth && !user.isAuth)
+				throw new UnauthorizedException("Unauthorized to login with OAuth");
 
 			return this.createToken(user);
 		}
