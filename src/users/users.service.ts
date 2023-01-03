@@ -276,7 +276,7 @@ export class UsersService {
 
         try {
             const user: (Partial<User> | null) = await this._prismaService.user.findUnique({
-				where: { id },
+				where: { id: target },
 				select: (selected && selected.length > 0) ? select : undefined
 			});
 

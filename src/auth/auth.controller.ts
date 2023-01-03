@@ -16,8 +16,7 @@ export class AuthController {
 
 	@UseGuards(FortyTwoGuard)
 	@Get('42')
-	fortyTwoAuth(@Req() req, @Res({ passthrough: true }) res: Response) : void {
-	}
+	fortyTwoAuth() : void {}
 
 	@Get('42/redirect')
 	@UseGuards(FortyTwoGuard)
@@ -31,7 +30,7 @@ export class AuthController {
 		if (!token)
 			token = await this._authService.register({password, username, email, isAuth: true, avatarURL });
 
-		res.cookie('access_token', token, { httpOnly: true }).redirect(`http://localhost:5173`)
+		res.cookie('access_token', token, { httpOnly: true }).redirect('http://localhost:5173');
 	}
 
 	@Get('reset-password/:token')
