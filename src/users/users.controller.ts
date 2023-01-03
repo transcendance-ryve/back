@@ -141,6 +141,7 @@ export class UsersController {
             },
             fileFilter: (_, file, cb) => {
                 const allowedMimes = [
+                    'image/jpg',
                     'image/jpeg',
                     'image/png',
                     'image/gif',
