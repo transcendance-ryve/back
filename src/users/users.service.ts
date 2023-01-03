@@ -3,6 +3,9 @@ import { Prisma, User, Friendship } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as bcrypt from 'bcrypt';
+import * as fs from 'fs';
+import { generateRandomFilenameWithExtension } from 'src/utils';
+import { join } from 'path';
 
 
 @Injectable()
@@ -24,13 +27,17 @@ export class UsersService {
                 throw new NotFoundException('Avatar not found');
 
 			const staticPath = "http://localhost:3000/";
-            const user: (User | null) = await this._prismaService.user.update({
-                where: { id },
-                data: { avatar: `${staticPath}${avatar.filename}` }
-            });
 
-            return user;
+			const user: User = await this._prismaService.user.findUnique({ where: { id } });
+			if (user.avatar !== `${staticPath}default.png`)
+				fs.unlinkSync(join(process.cwd(), 'data/avatars/', user.avatar.split('/').pop()));
+
+            return this.updateUser(
+                { id },
+                { avatar: `${staticPath}${avatar.filename}` }
+            );
         } catch(err) {
+			console.log(err);
             if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
@@ -187,12 +194,12 @@ export class UsersService {
 
 			const isPasswordCorrect = await bcrypt.compare(oldPassword, user.password);
 			if (!isPasswordCorrect)
-				throw new UnauthorizedException('Wrong password');
+				throw new ConflictException('Wrong password');
 
 			const hashedPassword = await bcrypt.hash(newPassword, 10);
 			return this.updateUser({ id }, { password: hashedPassword });
 		} catch(err) {
-			if (err instanceof UnauthorizedException)
+			if (err instanceof ConflictException)
 				throw err;
 			if (err instanceof NotFoundException)
 				throw err;
