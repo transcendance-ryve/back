@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Body, Req, Get, Param, Res, Delete, Put, Query } from "@nestjs/common";
+import { Controller, Post, UseGuards, Body, Req, Get, Param, Res, Delete, Put, Query, InternalServerErrorException } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { FortyTwoGuard } from "./guard/42-auth.guards";
 import { LocalAuthGuard } from "./guard/local-auth.guards";
@@ -14,11 +14,13 @@ export class AuthController {
 
 	/* GET */
 
-	@UseGuards(FortyTwoGuard)
-	@Get('42')
-	fortyTwoAuth() : void {}
-
 	@Get('42/redirect')
+	// @UseGuards(FortyTwoGuard)
+	fortyTwoAuth() : string {
+		return "https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-0be07deda32efaa9ac4f060716bd7ee5addaadf80d64008efd9ad3b0b10e8407&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Faccounts%2Flogin&response_type=code"
+	}
+
+	@Get('42/callback')
 	@UseGuards(FortyTwoGuard)
 	async fortyTwoRedirect(
 		@GetUser() user: any,
@@ -30,10 +32,11 @@ export class AuthController {
 			let token = await this._authService.login(email, password, true);
 			if (!token)
 				token = await this._authService.register({password, username, email, isAuth: true, avatarURL });
-
-			res.cookie('access_token', token, { httpOnly: true }).redirect('http://localhost:5173');
+			
+			res.cookie('access_token', token, { httpOnly: true });
+			return token;
 		} catch(err) {
-			res.redirect('http://localhost:5173');
+			throw new InternalServerErrorException('Internal server error');
 		}
 	}
 

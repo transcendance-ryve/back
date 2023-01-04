@@ -31,6 +31,7 @@ model User {
 
 	token	        Token?
 
+	tfa_token		String?
 	tfa_secret		String?
 	tfa_enabled		Boolean			@default(false)
 
