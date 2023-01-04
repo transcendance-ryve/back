@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import { generateRandomFilenameWithExtension } from 'src/utils';
 import { join } from 'path';
+import { authenticator } from 'otplib';
 
 
 @Injectable()
@@ -265,7 +266,7 @@ export class UsersService {
                     accepted: false
                 },
                 select: {
-                    receiver: {
+                    sender: {
                         select: {
                             id: true,
                             username: true,
@@ -276,7 +277,7 @@ export class UsersService {
                 },
             })
 
-            return friends.map(friend => friend.receiver);
+            return friends.map(friend => friend.sender);
         } catch(err) {
             throw new InternalServerErrorException('Internal server error');
         }
@@ -420,4 +421,38 @@ export class UsersService {
             throw new InternalServerErrorException('Internal server error');
         }
     }
+
+	/* TFA */
+
+	async setTFA(id: string, enable: boolean) : Promise<User> {
+		try {
+			return this.updateUser({ id }, { tfa_enabled: enable });
+		} catch(err) {
+			throw new InternalServerErrorException("Internal server error");
+		}
+	}
+
+	async generateTFA(user: User) : Promise<string> {
+		const secret: string = authenticator.generateSecret();
+		const qrCode: string = authenticator.keyuri(user.username, 'Ryve', secret);
+
+		await this.updateUser({ id: user.id }, { tfa_secret: secret });
+		
+		return qrCode;
+	}
+
+	verifyTFA(secret: string, token: string) : boolean {
+		const result = authenticator.verify({ secret: "MABGAWJCAB5AAPQS", token });
+		console.log(result);
+		return result;
+	}
+
+	async resetTFA(user: User) : Promise<string> {
+		try {
+			await this.updateUser({ id: user.id }, { tfa_secret: null });
+			return this.generateTFA(user);
+		} catch(err) {
+			throw new InternalServerErrorException("Internal server error");
+		}
+	}
 }

@@ -9,6 +9,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { downloadImageAndSave } from 'src/utils';
+import { authenticator } from 'otplib';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,8 @@ export class AuthService {
         private readonly _mailerService: MailerService,
     ) {}
 
+	
+
 	async createToken(data: any) : Promise<string> {
 		return this._jwtService.signAsync({ email: data.email, id: data.id }).then((token) => {
 			return token;
@@ -26,7 +29,8 @@ export class AuthService {
 			return err.message;
 		});
     }
-    
+
+
     async login(email: string, password: string, isAuth: boolean): Promise<any> {
         try {
             const user: (User | null) = await this._prismaService.user.findUnique({ where: { email } });

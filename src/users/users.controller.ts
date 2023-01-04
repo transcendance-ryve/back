@@ -1,15 +1,13 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, Req, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Prisma, User, Friendship } from '@prisma/client';
 import { Response } from 'express';
-import { createReadStream, ReadStream } from 'fs';
 import { diskStorage } from 'multer';
 import { extname, resolve } from 'path';
 import { GetUser } from 'src/decorators/user.decorator';
-import { LeaderboardDto } from './dto/leaderboard-dto';
 import { JwtAuthGuard } from './guard/jwt.guard';
 import { UsersService } from './users.service';
-
+import { toDataURL } from 'qrcode';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -20,7 +18,8 @@ export class UsersController {
 
     @Get('friends')
     async getFriends(
-        @GetUser() user: User
+        @GetUser() user: User,
+		@Query('search') search: string
     ): Promise<User[]> {
         return this._usersService.getFriends(user.id);
     }
@@ -92,6 +91,29 @@ export class UsersController {
 			select
 		);
     }
+
+	/* TFA */
+
+	@Get('tfa')
+	async tfa(
+		@GetUser() user: User,
+		@Res() res: Response
+	): Promise<any> {
+		console.log(1);
+		const otpURL: string = await this._usersService.generateTFA(user);
+		
+		const qrCode = await toDataURL(otpURL);
+
+		return res.json({ qrCode });
+	}
+
+	@Get('tfa/verify')
+	async tfaVerify(
+		@GetUser() user: User,
+		@Query('code') code: string
+	): Promise<any> {
+		return this._usersService.verifyTFA(user.id, code);
+	}
 
 	@Get(':id')
 	async getUserByID(
@@ -179,4 +201,17 @@ export class UsersController {
     ): Promise<User> {
         return this._usersService.addExperience(id, point);
     }
+
+
+	
+
+	// @Put('tfa')
+	// async setTFA(
+	// 	@GetUser() user: User,
+	// 	@Query('tfa') tfa: boolean
+	// ): Promise<Partial<User>> {
+	// 	return this._usersService.setTFA(user.id, tfa);
+	// }
+
+
 }
