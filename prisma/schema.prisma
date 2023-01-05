@@ -15,7 +15,7 @@ model User {
 	username		String			@unique
 	email			String			@unique
 	password		String
-	isAuth			Boolean			@default(false)
+	auth			Boolean			@default(false)
 	
 	avatar			String			@default("http://localhost:3000/default.png")
 
@@ -23,56 +23,33 @@ model User {
 
 	level			Int			    @default(0)
 	experience		Int			    @default(0)
-	nextLevel		Int			    @default(100)
-	rankPoint       Int             @default(0)
+	next_level		Int			    @default(100)
+	rank_point      Int             @default(0)
     wins            Int             @default(0)
     loses           Int             @default(0)
     played          Int             @default(0)
-
-	token	        Token?
 
 	tfa_token		String?
 	tfa_secret		String?
 	tfa_enabled		Boolean			@default(false)
 
 	friends			Friendship[]	@relation("friends")
-	friendsRequests	Friendship[]	@relation("friendsRequests")
+	friends_request	Friendship[]	@relation("friendsRequests")
 
 	@@map("users")
 }
 
-model Token {
-	id				String			@id	@default(cuid())
-	token			String			@unique
-	user			User			@relation(fields: [userId], references: [id], onDelete: Cascade)
-	userId			String			@unique
-
-	@@map("tokens")
-}
-
 model Friendship {
 	id              String          @id @default(cuid())
-	sender          User           	@relation("friends", fields: [senderId], references: [id], onDelete: Cascade)
-	senderId        String
-	receiver        User            @relation("friendsRequests", fields: [receiverId], references: [id], onDelete: Cascade)
-	receiverId      String  
+	sender          User           	@relation("friends", fields: [sender_id], references: [id], onDelete: Cascade)
+	sender_id        String
+	receiver        User            @relation("friendsRequests", fields: [receiver_id], references: [id], onDelete: Cascade)
+	receiver_id      String  
 	accepted        Boolean         @default(false)
 
-	@@unique([senderId, receiverId])
+	@@unique([sender_id, receiver_id])
 	@@map("friendships")
 }
-
-// model MatchHistory {
-// 	id              String          @id @default(cuid())
-// 	player1         User            @relation(fields: [player1Id], references: [id], onDelete: Cascade)
-// 	player1Id       String
-// 	player2         User            @relation(fields: [player2Id], references: [id], onDelete: Cascade)
-// 	player2Id       String
-// 	winner          User            @relation(fields: [winnerId], references: [id], onDelete: Cascade)
-// 	winnerId        String
-
-// 	@@map("match_history")
-// }
 
 enum Status {
 	OFFLINE @map("offline")

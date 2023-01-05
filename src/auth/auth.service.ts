@@ -1,51 +1,58 @@
 import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
-import { Token, User } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { User } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from 'src/prisma.service';
-import { MailerService } from '@nestjs-modules/mailer';
-import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { downloadImageAndSave } from 'src/utils';
 import { authenticator } from 'otplib';
+import { JwtPayloadDto } from './dto/jwt-payload.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
     constructor(
         private readonly _usersService: UsersService,
         private readonly _jwtService: JwtService,
-        private readonly _prismaService: PrismaService,
-        private readonly _mailerService: MailerService,
+        private readonly _prismaService: PrismaService
     ) {}
 
-	
+	private _staticPath = "http://localhost:3000/";
 
-	async createToken(data: any) : Promise<string> {
-		return this._jwtService.signAsync({ email: data.email, id: data.id }).then((token) => {
+	async createToken(data: JwtPayloadDto) : Promise<string> {
+		return this._jwtService.signAsync({
+			id: data.id,
+			tfa_secret: data.tfa_secret,
+			tfa_enabled: data.tfa_enabled,
+		}).then((token) => {
 			return token;
 		}).catch((err) => {
 			return err.message;
 		});
     }
 
-
-    async login(email: string, password: string, isAuth: boolean): Promise<any> {
+    async login(
+		email: string,
+		password: string,
+		auth: boolean
+	): Promise<Partial<User>> {
         try {
             const user: (User | null) = await this._prismaService.user.findUnique({ where: { email } });
 
             if (!user)
                 return null;
 
-            if (!isAuth) {
-                if (!user.isAuth) {
+            if (!auth) {
+                if (!user.auth) {
                     if (!await bcrypt.compare(password, user.password))
 						throw new UnauthorizedException("Wrong password");
 				} else throw new UnauthorizedException("Unauthorized to login without OAuth");
-            } else if (isAuth && !user.isAuth)
+            } else if (auth && !user.auth)
 				throw new UnauthorizedException("Unauthorized to login with OAuth");
-			return this.createToken(user);
+
+			delete user.password;
+			return user;
 		}
         catch(err) {
             if (err instanceof UnauthorizedException)
@@ -53,95 +60,92 @@ export class AuthService {
         }
     }
 
-    async register(userCreateInput: CreateUserDto) : Promise<string> {
-        const { password, isAuth, avatarURL } = userCreateInput;
-
+    async register(
+		username: string,
+		email: string,
+		password: string,
+		avatarURL?: string,
+		auth?: boolean
+	) : Promise<Partial<User>> {
         try {
-            let user: User;
+			if (auth) {
+				const avatar = await downloadImageAndSave(avatarURL);
 
-            if (!isAuth) {
-                const hash: string = await bcrypt.hash(password, 10);
-                user = await this._usersService.createUser({ ...userCreateInput, password: hash});
-            } else {
-				delete userCreateInput.avatarURL;
-                user = await this._usersService.createUser(userCreateInput);
-				const avatar = await downloadImageAndSave(avatarURL, user.id);
-				const staticPath = "http://localhost:3000/";
-				await this._usersService.updateUser(
-					{ id: user.id },
-					{ avatar: `${staticPath}${avatar}` }
-				);
+				return this._usersService.createUser({
+					username,
+					email,
+					password: null,
+					avatar: `${this._staticPath}${avatar}`,
+					auth
+				});
+
+			} else {
+				const hashedPassword = await bcrypt.hash(password, 10);
+
+				return this._usersService.createUser({
+					username,
+					email,
+					password: hashedPassword,
+					auth
+				});
 			}
-            
-            return this.createToken(user);
         } catch(err) {
             throw new UnauthorizedException("User already exist");
         }
     }
 
-    async forgotPassword(email: string) : Promise<string> {
-        try {
-            const user: (Partial<User> | null) = await this._usersService.getUser({ email });
-            if (!user)
-                throw new NotFoundException("User not found");
-  
-            let token: (Token | null) = await this._prismaService.token.findUnique({ where: { userId: user.id } });
-			if (!token) {
-                token = await this._prismaService.token.create({
-                    data: {
-						token: randomBytes(20).toString('hex'), user: { connect: { id: user.id } }
-					} 
-                });
-            }
+	/* Two factor authentication */
 
-			await this._mailerService.sendMail({
-                to: email,
-                from: '',
-                subject: 'Reset password',
-                text: 'Reset Password',
-                html: `<h1>Reset Password</h1>
-                <p>Hello,</p>
-                <p>You have requested to reset your password. To reset your password, click on the following link:</p>
-                <p><a href="http://localhost:8080/reset-password?token=${token.token}">Reset my password</a></p>
-                <p>If you did not request a password reset, please ignore this email.</p>
-                <p>Best regards,</p>
-                <p>The support team</p>`,
-            });
+	async createTFAToken(id: string) : Promise<string> {
+		try {
+			const token = randomBytes(20).toString('hex');
+			await this._usersService.updateUser({ id }, { tfa_token: token });
 
-			return token.token;
-        } catch (err) {
-            if (err instanceof PrismaClientKnownRequestError) {
-                if (err.code === 'P2014')
-                   throw new NotFoundException("User not found");
-            }
-            if (err instanceof NotFoundException)
-                throw err;
-            throw new InternalServerErrorException("Internal server error");
-        }
-    }
+			return token;
+		} catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === 'P2014')
+				   throw new NotFoundException("User not found");
 
-    async resetPassword(token: string, password: string) : Promise<string> {
-        try {
-            const tokenData: (Token | null) = await this._prismaService.token.findUnique({ where: { token } });
-    
-            if (!tokenData)
-                throw new NotFoundException("Token not found");
-            
-            const user: (User | null) = await this._usersService.updateUser(
-                { id: tokenData.userId },
-                { password: await bcrypt.hash(password, 10) }
-            );
-    
-            if (!user)
-                throw new NotFoundException("User not found");
-    
-            await this._prismaService.token.delete({ where: { token } });
-    
-            return this.createToken(user);
-        } catch(err) {
-            if (err instanceof NotFoundException)
-                throw err;
-            throw new InternalServerErrorException("Internal server error");
-        }
-    }
+			throw new InternalServerErrorException("Internal server error");
+		}
+	}
+
+	async deleteTFAToken(id: string) : Promise<void> {
+		try {
+			await this._usersService.updateUser({ id }, { tfa_token: null });
+		} catch(err) {
+			if (err instanceof NotFoundException)
+				throw err;
+
+			throw new InternalServerErrorException("Internal server error");
+		}
+	}
+	
+	async toggleTFA(payload: JwtPayloadDto, token: string) : Promise<User> {
+		try {
+			this.verifyTFA(payload.tfa_secret, token);
+			return this._usersService.updateUser({ id: payload.id }, { tfa_enabled: !payload.tfa_enabled });
+		} catch(err) {
+			throw err;
+		}
+	}
+			
+	async generateTFA(payload: JwtPayloadDto) : Promise<string> {
+		const secret: string = authenticator.generateSecret();
+		const qrCode: string = authenticator.keyuri(payload.id, 'Ryve', secret);
+
+		await this._usersService.updateUser({ id: payload.id }, { tfa_secret: secret });
+		
+		return qrCode;
+	}
+
+	verifyTFA(secret: string, token: string) : boolean {
+		const authorize = authenticator.verify({ secret, token });
+		
+		if (!authorize)
+			throw new UnauthorizedException("Invalid code");
+
+		return authorize;
+	}
 }

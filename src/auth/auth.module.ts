@@ -16,17 +16,7 @@ import { LocalStrategy } from './strategy/local.strategy';
         PassportModule,
         JwtModule.register({
             secret: 'wartek'
-        }),
-        MailerModule.forRoot({
-            transport: {
-                host: 'smtp.mailtrap.io',
-                port: 2525,
-                auth: {
-                    user: 'f009c6be1a075e',
-                    pass: 'b96b964ff5ca99',
-                },
-            }
-        }),
+        })
     ],
     controllers: [AuthController],
     providers: [AuthService, LocalStrategy, JwtStrategy, FortyTwoStrategy, PrismaService],

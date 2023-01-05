@@ -1,12 +1,10 @@
-import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma, User, Friendship } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
-import { generateRandomFilenameWithExtension } from 'src/utils';
 import { join } from 'path';
-import { authenticator } from 'otplib';
 
 
 @Injectable()
@@ -57,13 +55,13 @@ export class UsersService {
 
             const newExperience: number = user.experience + (this._experienceGain * point);
 
-            if (newExperience >= user.nextLevel) {
+            if (newExperience >= user.next_level) {
                 return this._prismaService.user.update({
                     where: { id },
                     data: {
-                        experience: newExperience - user.nextLevel,
+                        experience: newExperience - user.next_level,
                         level: { increment: 1 },
-                        nextLevel: { multiply: this._nextLevelPourcentage }
+                        next_level: { multiply: this._nextLevelPourcentage }
                     }
                 });
             } else {
@@ -88,7 +86,7 @@ export class UsersService {
 
             return this._prismaService.user.update({
                 where: { id },
-                data: { rankPoint: { increment: point } }
+                data: { rank_point: { increment: point } }
             });
         } catch(err) {
             if (err instanceof NotFoundException)
@@ -111,9 +109,9 @@ export class UsersService {
 			try {
 				const friendship = await this._prismaService.friendship.update({
 					where: {
-						senderId_receiverId: {
-							senderId: receiverID,
-							receiverId: senderID
+						sender_id_receiver_id: {
+							sender_id: receiverID,
+							receiver_id: senderID
 						}
 					},
 					data: { accepted: true }
@@ -146,9 +144,9 @@ export class UsersService {
         try {
             const friend = await this._prismaService.friendship.update({
                 where: {
-                    senderId_receiverId: {
-                        senderId: receiverID,
-                        receiverId: senderID
+					sender_id_receiver_id: {
+                        sender_id: receiverID,
+                        receiver_id: senderID
                     }
                 },
                 data: { accepted: true }
@@ -170,9 +168,9 @@ export class UsersService {
         try {
             const friendship = await this._prismaService.friendship.delete({
                 where: {
-                    senderId_receiverId: {
-                        senderId: senderID,
-                        receiverId: receiverID
+                    sender_id_receiver_id: {
+                        sender_id: senderID,
+                        receiver_id: receiverID
                     }
                 }
             });
@@ -215,8 +213,8 @@ export class UsersService {
             const friends = await this._prismaService.friendship.findMany({
                 where: {
 					OR: [
-						{ senderId: id },
-						{ receiverId: id }
+						{ sender_id: id },
+						{ receiver_id: id }
 					],
                     accepted: true
                 },
@@ -262,7 +260,7 @@ export class UsersService {
         try {
             const friends = await this._prismaService.friendship.findMany({
                 where: {
-                    receiverId: id,
+                    receiver_id: id,
                     accepted: false
                 },
                 select: {
@@ -316,8 +314,8 @@ export class UsersService {
 			const friendStatus = await this._prismaService.friendship.findFirst({
 				where: {
 					OR: [
-						{ senderId: id, receiverId: target },
-						{ senderId: target, receiverId: id }
+						{ sender_id: id, receiver_id: target },
+						{ sender_id: target, receiver_id: id }
 					]
 				}
 			});
@@ -403,6 +401,9 @@ export class UsersService {
 
             return user;
         } catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === 'P2025')
+					throw new NotFoundException('User not found');
             throw new InternalServerErrorException("Internal server error");
         }
     }
@@ -421,38 +422,4 @@ export class UsersService {
             throw new InternalServerErrorException('Internal server error');
         }
     }
-
-	/* TFA */
-
-	async setTFA(id: string, enable: boolean) : Promise<User> {
-		try {
-			return this.updateUser({ id }, { tfa_enabled: enable });
-		} catch(err) {
-			throw new InternalServerErrorException("Internal server error");
-		}
-	}
-
-	async generateTFA(user: User) : Promise<string> {
-		const secret: string = authenticator.generateSecret();
-		const qrCode: string = authenticator.keyuri(user.username, 'Ryve', secret);
-
-		await this.updateUser({ id: user.id }, { tfa_secret: secret });
-		
-		return qrCode;
-	}
-
-	verifyTFA(secret: string, token: string) : boolean {
-		const result = authenticator.verify({ secret: "MABGAWJCAB5AAPQS", token });
-		console.log(result);
-		return result;
-	}
-
-	async resetTFA(user: User) : Promise<string> {
-		try {
-			await this.updateUser({ id: user.id }, { tfa_secret: null });
-			return this.generateTFA(user);
-		} catch(err) {
-			throw new InternalServerErrorException("Internal server error");
-		}
-	}
 }

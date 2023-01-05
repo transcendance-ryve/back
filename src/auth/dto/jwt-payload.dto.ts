@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsNumber, IsString } from "class-validator";
 
 export class JwtPayloadDto {
     @IsNotEmpty()
@@ -7,5 +7,9 @@ export class JwtPayloadDto {
 
     @IsNotEmpty()
     @IsString()
-    email: string;
+    tfa_secret: string;
+
+	@IsNotEmpty()
+	@IsBoolean()
+	tfa_enabled: boolean;
 }

@@ -7,7 +7,7 @@ export async function generateRandomFilenameWithExtension(extension: string): Pr
 	return `${randomFilename}.${extension}`;
 }
 
-export async function downloadImageAndSave(imageURL: string, filename: string): Promise<string> {
+export async function downloadImageAndSave(imageURL: string): Promise<string> {
     const res = await axios.get(imageURL, { responseType: 'arraybuffer' });
 
     const parsedUrl = url.parse(imageURL);

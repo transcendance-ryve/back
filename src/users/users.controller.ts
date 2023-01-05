@@ -1,13 +1,27 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, Res, StreamableFile, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+	BadRequestException,
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Param,
+	Post,
+	Put,
+	Query,
+	Res,
+	UploadedFile,
+	UseGuards,
+	UseInterceptors
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Prisma, User, Friendship } from '@prisma/client';
 import { Response } from 'express';
 import { diskStorage } from 'multer';
-import { extname, resolve } from 'path';
-import { GetUser } from 'src/decorators/user.decorator';
+import { extname } from 'path';
+import { GetCurrentUser } from 'src/decorators/user.decorator';
 import { JwtAuthGuard } from './guard/jwt.guard';
 import { UsersService } from './users.service';
-import { toDataURL } from 'qrcode';
+import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -18,57 +32,59 @@ export class UsersController {
 
     @Get('friends')
     async getFriends(
-        @GetUser() user: User,
+        @GetCurrentUser() currentUser: JwtPayloadDto,
 		@Query('search') search: string
     ): Promise<User[]> {
-        return this._usersService.getFriends(user.id);
+        return this._usersService.getFriends(currentUser.id);
     }
 
     @Get('friends/request')
     async getFriendRequests(
-        @GetUser() user: User
+        @GetCurrentUser() currentUser: JwtPayloadDto
     ): Promise<Partial<User>[]> {
-        return this._usersService.getFriendRequests(user.id);
+        return this._usersService.getFriendRequests(currentUser.id);
     }
 
     @Post('friends/:id')
     async sendFriendRequest(
-        @GetUser() user: User,
+        @GetCurrentUser() currentUser: JwtPayloadDto,
         @Param('id') friendId: string
     ): Promise<Friendship> {
-        return this._usersService.sendFriendRequest(user.id, friendId);
+        return this._usersService.sendFriendRequest(currentUser.id, friendId);
     }
 
     @Put('friends/:id')
     async acceptFriendRequest(
-        @GetUser() user: User,
+        @GetCurrentUser() currentUser: JwtPayloadDto,
         @Param('id') friendId: string
     ): Promise<Friendship> {
-        return this._usersService.acceptFriendRequest(user.id, friendId);
+        return this._usersService.acceptFriendRequest(currentUser.id, friendId);
     }
 
     @Delete('friends/:id')
     async declineFriendRequest(
-        @GetUser() user: User,
+        @GetCurrentUser() currentUser: JwtPayloadDto,
         @Param('id') friendId: string
     ): Promise<Friendship> {
-        return this._usersService.declineFriendRequest(user.id, friendId);
+        return this._usersService.declineFriendRequest(currentUser.id, friendId);
     }
 
 	@Get('friends/:id')
 	async getUserWithRelationship(
-		@GetUser() user: User,
+		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Param('id') friendId: string,
 		@Query('select') select: string
 	): Promise<{user: Partial<User>, isFriend: boolean}> {
-		return this._usersService.getUserWithRelationship(user.id, friendId, select);
+		return this._usersService.getUserWithRelationship(currentUser.id, friendId, select);
 	}
 
+	/* User */
+
 	@Get('me')
-	getMe(
-		@GetUser() user: User
-	): User {
-		return user;
+	async getMe(
+		@GetCurrentUser() currentUser: JwtPayloadDto
+	): Promise<Partial<User>> {
+		return this._usersService.getUser({ id: currentUser.id });;
 	}
 	
     @Get()
@@ -91,30 +107,7 @@ export class UsersController {
 			select
 		);
     }
-
-	/* TFA */
-
-	@Get('tfa')
-	async tfa(
-		@GetUser() user: User,
-		@Res() res: Response
-	): Promise<any> {
-		console.log(1);
-		const otpURL: string = await this._usersService.generateTFA(user);
-		
-		const qrCode = await toDataURL(otpURL);
-
-		return res.json({ qrCode });
-	}
-
-	@Get('tfa/verify')
-	async tfaVerify(
-		@GetUser() user: User,
-		@Query('code') code: string
-	): Promise<any> {
-		return this._usersService.verifyTFA(user.id, code);
-	}
-
+	
 	@Get(':id')
 	async getUserByID(
 		@Param('id') id: string,
@@ -126,16 +119,14 @@ export class UsersController {
 	@Delete()
     async delete(
 		@Res({ passthrough: true }) res: Response,
-		@GetUser() user: User,
+		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Param('id') id: Prisma.UserWhereUniqueInput['id']
-	): Promise<User> {
-		await this._usersService.deleteUser(user.id);
+	): Promise<void> {
+		await this._usersService.deleteUser(currentUser.id);
 		res.clearCookie('acces_token');
-
-        return user;
     }
-	
-	/* Avatar request */
+
+	/* Avatar */
 
 	@Put('avatar')
     @UseInterceptors(
@@ -169,49 +160,30 @@ export class UsersController {
         }),
     )
     async setAvatar(
-        @GetUser() user: User,
+        @GetCurrentUser() currentUser: JwtPayloadDto,
         @UploadedFile() avatar: Express.Multer.File,
     ): Promise<Partial<User>> {
-        return this._usersService.setAvatar(user.id, avatar);    
+        return this._usersService.setAvatar(currentUser.id, avatar);    
     }
-
 	
+	/* Username */
+
     @Put("username")
     async setUsername(
-        @GetUser() user: User,
+        @GetCurrentUser() currentUser: JwtPayloadDto,
         @Body('username') username: string
     ): Promise<Partial<User>> {
-        return this._usersService.updateUser({ id: user.id }, { username });
+        return this._usersService.updateUser({ id: currentUser.id }, { username });
     }
+
+	/* Password */
 
 	@Put('password')
 	async setPassword(
-		@GetUser() user: User,
+		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Body('old_password') oldPassword: string,
 		@Body('password') password: string
 	): Promise<Partial<User>> {
-		return this._usersService.updatePassword(user.id, oldPassword, password);
+		return this._usersService.updatePassword(currentUser.id, oldPassword, password);
 	}
-
-
-    @Put('experience/:id')
-    async setExperience(
-        @Param('id') id: Prisma.UserWhereUniqueInput['id'],
-        @Body('point') point: number
-    ): Promise<User> {
-        return this._usersService.addExperience(id, point);
-    }
-
-
-	
-
-	// @Put('tfa')
-	// async setTFA(
-	// 	@GetUser() user: User,
-	// 	@Query('tfa') tfa: boolean
-	// ): Promise<Partial<User>> {
-	// 	return this._usersService.setTFA(user.id, tfa);
-	// }
-
-
 }
