@@ -8,6 +8,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { downloadImageAndSave } from 'src/utils';
 import { authenticator } from 'otplib';
 import { JwtPayloadDto } from './dto/jwt-payload.dto';
+import { toDataURL } from 'qrcode';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -125,20 +126,32 @@ export class AuthService {
 	async toggleTFA(payload: JwtPayloadDto, token: string) : Promise<User> {
 		try {
 			this.verifyTFA(payload.tfa_secret, token);
+
 			return this._usersService.updateUser({ id: payload.id }, { tfa_enabled: !payload.tfa_enabled });
 		} catch(err) {
 			throw err;
 		}
 	}
 			
-	async generateTFA(payload: JwtPayloadDto) : Promise<string> {
+	async generateTFA(payload: JwtPayloadDto) : Promise<{ qrCode: string, secret: string }> {
 		const secret: string = authenticator.generateSecret();
 		const qrCode: string = authenticator.keyuri(payload.id, 'Ryve', secret);
 
 		await this._usersService.updateUser({ id: payload.id }, { tfa_secret: secret });
 		
-		return qrCode;
+		return {
+			qrCode,
+			secret
+		};
 	}
+
+	getTFAQrCode(payload: JwtPayloadDto) : string {
+		if (!payload.tfa_secret)
+			throw new UnauthorizedException("Please generate a secret first");
+
+		return authenticator.keyuri(payload.id, 'Ryve', payload.tfa_secret);
+	}
+
 
 	verifyTFA(secret: string, token: string) : boolean {
 		const authorize = authenticator.verify({ secret, token });

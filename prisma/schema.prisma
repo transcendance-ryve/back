@@ -36,19 +36,39 @@ model User {
 	friends			Friendship[]	@relation("friends")
 	friends_request	Friendship[]	@relation("friendsRequests")
 
+	games			Game[]			@relation("games")
+	gamesRequest	Game[]			@relation("gamesRequests")
+
 	@@map("users")
 }
 
 model Friendship {
-	id              String          @id @default(cuid())
-	sender          User           	@relation("friends", fields: [sender_id], references: [id], onDelete: Cascade)
-	sender_id        String
-	receiver        User            @relation("friendsRequests", fields: [receiver_id], references: [id], onDelete: Cascade)
-	receiver_id      String  
-	accepted        Boolean         @default(false)
+	id				String          @id @default(cuid())
+	
+	sender			User           	@relation("friends", fields: [sender_id], references: [id], onDelete: Cascade)
+	sender_id		String
+	
+	receiver		User            @relation("friendsRequests", fields: [receiver_id], references: [id], onDelete: Cascade)
+	receiver_id		String  
+	
+	accepted		Boolean         @default(false)
 
 	@@unique([sender_id, receiver_id])
 	@@map("friendships")
+}
+
+model Game {
+	id			  		String          @id @default(cuid())
+
+	player_one			User            @relation("games", fields: [player_one_id], references: [id], onDelete: Cascade)
+	player_one_id		String
+	player_one_score	Int
+
+	player_two	  		User            @relation("gamesRequests", fields: [player_two_id], references: [id], onDelete: Cascade)
+	player_two_id 		String
+	player_two_score 	Int
+
+	@@map("games")
 }
 
 enum Status {

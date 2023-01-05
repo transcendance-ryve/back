@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Body, Req, Get, Param, Res, Delete, Put, Query, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
+import { Controller, Post, UseGuards, Body, Get, Res, Delete, Put, Query, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { FortyTwoGuard } from "./guard/42-auth.guards";
 import { LocalAuthGuard } from "./guard/local-auth.guards";
@@ -8,7 +8,7 @@ import { GetCurrentUser } from "src/decorators/user.decorator";
 import { User } from "@prisma/client";
 import { UsersService } from "src/users/users.service";
 import { LoginDto } from "./dto/login-user.dto";
-import { toDataURL, toFileStream } from 'qrcode';
+import { toFileStream } from 'qrcode';
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { JwtPayloadDto } from "./dto/jwt-payload.dto";
 import { RegisterFortyTwoDto } from "./dto/register-forty-two.dto";
@@ -35,13 +35,15 @@ export class AuthController {
 	async fortyTwoRedirect(
 		@GetCurrentUser() currentUser: RegisterFortyTwoDto,
 		@Res({ passthrough: true }) res: Response
-	): Promise<Partial<User>> {
+	): Promise<Partial<User> | void> {
 		const { username, email, avatarURL } = currentUser;
 		
 		let user: Partial<User> = await this._authService.login(email, null, true);
 		if (!user)
 			user = await this._authService.register(username, email, null, avatarURL, true);			
-		
+		else if (user && user.tfa_enabled) 
+			return res.redirect(`${this._loginURL}${this._authService.createTFAToken(user.id)}&id=${user.id}`);
+
 		this._authService.createToken({
 			id: user.id,
 			tfa_enabled: false,
@@ -65,8 +67,8 @@ export class AuthController {
 		
 		const token = await this._authService.createToken({
 			id: user.id,
-			tfa_enabled: false,
-			tfa_secret: null
+			tfa_enabled: user.tfa_enabled,
+			tfa_secret: user.tfa_secret
 		});
 		res.cookie('access_token', token, { httpOnly: true });
 		
@@ -108,16 +110,36 @@ export class AuthController {
 		@Res() res: Response
 	): Promise<any> {
 		try {
-			const otpURL: string = await this._authService.generateTFA(currentUser);
-			await toDataURL(otpURL);
+			const { qrCode, secret }: {qrCode: string, secret: string } = await this._authService.generateTFA(currentUser);
+
 			res.setHeader('Content-Type', 'image/png');
 
-			return await toFileStream(res, otpURL);		
+			const token = await this._authService.createToken({
+				id: currentUser.id,
+				tfa_enabled: currentUser.tfa_enabled,
+				tfa_secret: secret
+			});
+			res.cookie('access_token', token, { httpOnly: true });
+	
+			return await toFileStream(res, qrCode);		
 		} catch(err) {
 			throw new InternalServerErrorException('An error occured while generating TFA');
 		}
 	}
 
+	@Get('tfa/qrcode')
+	@UseGuards(JwtAuthGuard)
+	async getTFA(
+		@GetCurrentUser() currentUser: JwtPayloadDto,
+		@Res() res: Response
+	): Promise<any> {
+		const qrCode: string = this._authService.getTFAQrCode(currentUser);
+
+		res.setHeader('Content-Type', 'image/png');
+
+		return toFileStream(res, qrCode);	
+	}
+		
 	@Post('tfa/callback')
 	async callbackTFA(
 		@Body('id') id: string,
