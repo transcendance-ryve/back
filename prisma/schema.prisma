@@ -37,7 +37,7 @@ model User {
 	friends_request	Friendship[]	@relation("friendsRequests")
 
 	games			Game[]			@relation("games")
-	gamesRequest	Game[]			@relation("gamesRequests")
+	games_request	Game[]			@relation("gamesRequests")
 
 	@@map("users")
 }

@@ -24,6 +24,7 @@ export class AuthService {
 	async createToken(data: JwtPayloadDto) : Promise<string> {
 		return this._jwtService.signAsync({
 			id: data.id,
+			username: data.username,
 			tfa_secret: data.tfa_secret,
 			tfa_enabled: data.tfa_enabled,
 		}).then((token) => {
@@ -65,8 +66,9 @@ export class AuthService {
 		username: string,
 		email: string,
 		password: string,
+		tfa_secret?: string,
 		avatarURL?: string,
-		auth?: boolean
+		auth?: boolean,
 	) : Promise<Partial<User>> {
         try {
 			if (auth) {
@@ -75,11 +77,11 @@ export class AuthService {
 				return this._usersService.createUser({
 					username,
 					email,
-					password: null,
+					password: '',
 					avatar: `${this._staticPath}${avatar}`,
-					auth
+					auth,
+					tfa_secret
 				});
-
 			} else {
 				const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -87,7 +89,8 @@ export class AuthService {
 					username,
 					email,
 					password: hashedPassword,
-					auth
+					auth,
+					tfa_secret
 				});
 			}
         } catch(err) {
@@ -123,7 +126,7 @@ export class AuthService {
 		}
 	}
 	
-	async toggleTFA(payload: JwtPayloadDto, token: string) : Promise<User> {
+	async toggleTFA(payload: JwtPayloadDto, token: string) : Promise<Partial<User>> {
 		try {
 			this.verifyTFA(payload.tfa_secret, token);
 
@@ -133,11 +136,9 @@ export class AuthService {
 		}
 	}
 			
-	async generateTFA(payload: JwtPayloadDto) : Promise<{ qrCode: string, secret: string }> {
+	async generateTFA(username: string) : Promise<{ qrCode: string, secret: string }> {
 		const secret: string = authenticator.generateSecret();
-		const qrCode: string = authenticator.keyuri(payload.id, 'Ryve', secret);
-
-		await this._usersService.updateUser({ id: payload.id }, { tfa_secret: secret });
+		const qrCode: string = authenticator.keyuri(username, 'Ryve', secret);
 		
 		return {
 			qrCode,

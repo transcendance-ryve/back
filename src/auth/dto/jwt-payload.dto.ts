@@ -5,6 +5,10 @@ export class JwtPayloadDto {
     @IsNumber()
     id: string;
 
+	@IsNotEmpty()
+	@IsString()
+	username: string;
+
     @IsNotEmpty()
     @IsString()
     tfa_secret: string;

@@ -20,7 +20,7 @@ export class AuthController {
 		private readonly _usersService: UsersService
 	) {}
 
-	private _loginURL = "http://localhost:5173/accounts/login";
+	private _loginURL = "http://localhost:5173/accounts/login/tfa";
 	private _apiURL = "https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-0be07deda32efaa9ac4f060716bd7ee5addaadf80d64008efd9ad3b0b10e8407&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Faccounts%2Flogin&response_type=code";
 
 	/* Login, register and disconnect */
@@ -37,18 +37,23 @@ export class AuthController {
 		@Res({ passthrough: true }) res: Response
 	): Promise<Partial<User> | void> {
 		const { username, email, avatarURL } = currentUser;
-		
 		let user: Partial<User> = await this._authService.login(email, null, true);
-		if (!user)
-			user = await this._authService.register(username, email, null, avatarURL, true);			
-		else if (user && user.tfa_enabled) 
-			return res.redirect(`${this._loginURL}${this._authService.createTFAToken(user.id)}&id=${user.id}`);
 
-		this._authService.createToken({
+		if (!user) {
+			const { secret } = await this._authService.generateTFA(username);
+			user = await this._authService.register(username, email, null, secret, avatarURL, true);
+		} else if (user && user.tfa_enabled) {
+			const token = await this._authService.createTFAToken(user.id);
+			return res.redirect(`${this._loginURL}?code=${token}&id=${user.id}`);
+		}
+
+		const token = await this._authService.createToken({
 			id: user.id,
+			username: user.username,
 			tfa_enabled: false,
-			tfa_secret: null
-		}).then(token => res.cookie('access_token', token, { httpOnly: true }));
+			tfa_secret: user.tfa_secret
+		});
+		res.cookie('access_token', token, { httpOnly: true });
 
 		return user;
 	}
@@ -62,11 +67,17 @@ export class AuthController {
 		const { email, password } = currentUser;
 
 		const user: Partial<User> = await this._authService.login(email, password, false);
-		if (user.tfa_enabled)
-			return res.redirect(`${this._loginURL}${this._authService.createTFAToken(user.id)}&id=${user.id}`);
+
+		if (!user)
+			throw new UnauthorizedException('Invalid credentials');
+		else if (user && user.tfa_enabled) {
+			const token = await this._authService.createTFAToken(user.id);
+			return res.redirect(`${this._loginURL}?code=${token}&id=${user.id}`);
+		}
 		
 		const token = await this._authService.createToken({
 			id: user.id,
+			username: user.username,
 			tfa_enabled: user.tfa_enabled,
 			tfa_secret: user.tfa_secret
 		});
@@ -82,12 +93,14 @@ export class AuthController {
 	): Promise<Partial<User>> {
 		const { email, password, username } = registerInput;
 
-		const user = await this._authService.register(username, email, password);
+		const { secret }: { qrCode: string, secret: string } = await this._authService.generateTFA(username);
+		const user: Partial<User> = await this._authService.register(username, email, password, secret);
 
 		const token = await this._authService.createToken({
 			id: user.id,
+			username: user.username,
 			tfa_enabled: false,
-			tfa_secret: null
+			tfa_secret: secret
 		});
 		res.cookie('access_token', token);
 
@@ -110,12 +123,13 @@ export class AuthController {
 		@Res() res: Response
 	): Promise<any> {
 		try {
-			const { qrCode, secret }: {qrCode: string, secret: string } = await this._authService.generateTFA(currentUser);
+			const { qrCode, secret }: {qrCode: string, secret: string } = await this._authService.generateTFA(currentUser.username);
 
 			res.setHeader('Content-Type', 'image/png');
 
 			const token = await this._authService.createToken({
 				id: currentUser.id,
+				username: currentUser.username,
 				tfa_enabled: currentUser.tfa_enabled,
 				tfa_secret: secret
 			});
@@ -147,16 +161,22 @@ export class AuthController {
 		@Body('code') code: string,
 		@Res({ passthrough: true }) res: Response
 	): Promise<Partial<User>> {
-		await this._authService.deleteTFAToken(id);
-
 		const user = await this._usersService.getUser({ id });
-		if (!user) {
+		if (!user)
 			throw new UnauthorizedException('Invalid user');
-		}
-
+		
+		if (secret !== user.tfa_token)
+			throw new UnauthorizedException('Invalid token');
+		await this._authService.deleteTFAToken(id);
+		
 		this._authService.verifyTFA(user.tfa_secret, code);
 
-		const token = await this._authService.createToken({ id: user.id, tfa_enabled: true, tfa_secret: user.tfa_secret });
+		const token = await this._authService.createToken({
+			id: user.id,
+			username: user.username,
+			tfa_enabled: true,
+			tfa_secret: user.tfa_secret
+		});
 		res.cookie('access_token', token, { httpOnly: true });
 
 		return user;
@@ -182,6 +202,7 @@ export class AuthController {
 
 		const token = await this._authService.createToken({
 			id: user.id,
+			username: user.username,
 			tfa_enabled: user.tfa_enabled,
 			tfa_secret: user.tfa_secret
 		});

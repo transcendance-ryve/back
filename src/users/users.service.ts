@@ -20,7 +20,7 @@ export class UsersService {
     async setAvatar(
         id: Prisma.UserWhereUniqueInput['id'],
         avatar: Express.Multer.File
-    ) : Promise<User> {
+    ) : Promise<Partial<User>> {
         try {
             if (!avatar)
                 throw new NotFoundException('Avatar not found');
@@ -185,7 +185,7 @@ export class UsersService {
 		id: string,
 		oldPassword: string,
 		newPassword: string
-	) : Promise<User> {
+	) : Promise<Partial<User>> {
 		try {
 			const user = await this._prismaService.user.findUnique({ where: { id } });
 			if (!user)
@@ -291,6 +291,7 @@ export class UsersService {
 
             return user;
         } catch(err) {
+			console.log(err);
             throw new ConflictException("User already exist");
         }
     }
@@ -394,7 +395,7 @@ export class UsersService {
     async updateUser(
         where: Prisma.UserWhereUniqueInput,
         data: Prisma.UserUpdateInput
-    ) : Promise<User> {
+    ) : Promise<Partial<User>> {
         try {
             const user = await this._prismaService.user.update({ where, data });
 			delete user.password;

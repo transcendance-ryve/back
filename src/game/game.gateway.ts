@@ -1,26 +1,47 @@
-import { SubscribeMessage, WebSocketGateway } from "@nestjs/websockets";
+import { SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { Socket } from 'socket.io';
+import { JwtPayloadDto } from "src/auth/dto/jwt-payload.dto";
+import { GameService } from "./game.service";
+
+
 
 @WebSocketGateway()
 export class GameGateway {
-	constructor() {}
+	constructor(
+		private readonly _gameService: GameService,
+	) {}
 
-	@SubscribeMessage("create_game")
-	handleCreateGame(client: any) {
+	@WebSocketServer()
+	private _server: Socket;
+
+	@SubscribeMessage("join_matchmaking")
+	async handleJoinMatchmaking(socket: Socket, payload: JwtPayloadDto): Promise<string> {
+		const { id } = payload;
+
+		// this._gameService.joinMatchmaking(socket);
+
+		this._gameService.findOpponent();
+
+
+		return "joined matchmaking";
 	}
 
-	@SubscribeMessage("join_game")
-	handleJoinGame(client: any) {
+	@SubscribeMessage("leave_matchmaking")
+	handleLeaveMatchmaking(payload: any): string {
+		
+		return "left matchmaking";
 	}
 
-	@SubscribeMessage("leave_game")
-	handleLeaveGame(client: any) {
+
+	@SubscribeMessage("accept_game")
+	handleAcceptGame(client: any, payload: any): void {
+		
 	}
 
-	@SubscribeMessage("watch_game")
-	handleWatchGame(client: any) {
-	}
+	@SubscribeMessage("decline_game")
+	handleDeclineGame(socket: Socket, payload: any): void {
+		const { id } = payload;
 
-	@SubscribeMessage("unwatch_game")
-	handleUnwatchGame(client: any) {
+		// this._gameService.declineGame(id);
 	}
 }

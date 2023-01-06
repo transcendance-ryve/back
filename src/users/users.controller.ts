@@ -22,11 +22,15 @@ import { GetCurrentUser } from 'src/decorators/user.decorator';
 import { JwtAuthGuard } from './guard/jwt.guard';
 import { UsersService } from './users.service';
 import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
+import { AuthService } from 'src/auth/auth.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-    constructor(private readonly _usersService: UsersService) {}
+    constructor(
+		private readonly _usersService: UsersService,
+		private readonly _authService: AuthService
+	) {}
 
 	/* Friends request */
 
@@ -171,9 +175,20 @@ export class UsersController {
     @Put("username")
     async setUsername(
         @GetCurrentUser() currentUser: JwtPayloadDto,
-        @Body('username') username: string
+        @Body('username') username: string,
+		@Res({ passthrough: true }) res: Response
     ): Promise<Partial<User>> {
-        return this._usersService.updateUser({ id: currentUser.id }, { username });
+		const user: Partial<User> = await this._usersService.updateUser({ id: currentUser.id }, { username });
+
+		const token = await this._authService.createToken({
+			id: user.id,
+			username: user.username,
+			tfa_enabled: user.tfa_enabled,
+			tfa_secret: user.tfa_secret
+		});
+		res.cookie('access_token', token, { httpOnly: true });
+
+        return user; 
     }
 
 	/* Password */
