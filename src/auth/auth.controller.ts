@@ -8,7 +8,7 @@ import { GetCurrentUser } from "src/decorators/user.decorator";
 import { User } from "@prisma/client";
 import { UsersService } from "src/users/users.service";
 import { LoginDto } from "./dto/login-user.dto";
-import { toFileStream } from 'qrcode';
+import { toFileStream, toDataURL } from 'qrcode';
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { JwtPayloadDto } from "./dto/jwt-payload.dto";
 import { RegisterFortyTwoDto } from "./dto/register-forty-two.dto";
@@ -120,12 +120,11 @@ export class AuthController {
 	@UseGuards(JwtAuthGuard)
 	async generateTFA(
 		@GetCurrentUser() currentUser: JwtPayloadDto,
-		@Res() res: Response
+		@Res({ passthrough: true }) res: Response
 	): Promise<any> {
 		try {
 			const { qrCode, secret }: {qrCode: string, secret: string } = await this._authService.generateTFA(currentUser.username);
 
-			res.setHeader('Content-Type', 'image/png');
 
 			const token = await this._authService.createToken({
 				id: currentUser.id,
@@ -135,7 +134,7 @@ export class AuthController {
 			});
 			res.cookie('access_token', token, { httpOnly: true });
 	
-			return await toFileStream(res, qrCode);		
+			return toDataURL(qrCode);		
 		} catch(err) {
 			throw new InternalServerErrorException('An error occured while generating TFA');
 		}
@@ -144,14 +143,11 @@ export class AuthController {
 	@Get('tfa/qrcode')
 	@UseGuards(JwtAuthGuard)
 	async getTFA(
-		@GetCurrentUser() currentUser: JwtPayloadDto,
-		@Res() res: Response
+		@GetCurrentUser() currentUser: JwtPayloadDto
 	): Promise<any> {
 		const qrCode: string = this._authService.getTFAQrCode(currentUser);
 
-		res.setHeader('Content-Type', 'image/png');
-
-		return toFileStream(res, qrCode);	
+		return toDataURL(qrCode);	
 	}
 		
 	@Post('tfa/callback')
