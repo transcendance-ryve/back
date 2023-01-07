@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { User } from '@prisma/client';
@@ -158,7 +158,7 @@ export class AuthService {
 		const authorize = authenticator.verify({ secret, token });
 		
 		if (!authorize)
-			throw new UnauthorizedException("Invalid code");
+			throw new ConflictException("Invalid code");
 
 		return authorize;
 	}

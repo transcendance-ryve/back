@@ -20,7 +20,7 @@ export class AuthController {
 		private readonly _usersService: UsersService
 	) {}
 
-	private _loginURL = "http://localhost:5173/accounts/login/tfa";
+	private _loginURL = "http://localhost:5173/accounts/login";
 	private _apiURL = "https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-0be07deda32efaa9ac4f060716bd7ee5addaadf80d64008efd9ad3b0b10e8407&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Faccounts%2Flogin&response_type=code";
 
 	/* Login, register and disconnect */
@@ -125,11 +125,12 @@ export class AuthController {
 		try {
 			const { qrCode, secret }: {qrCode: string, secret: string } = await this._authService.generateTFA(currentUser.username);
 
+			await this._usersService.updateUser({ id: currentUser.id }, { tfa_enabled: false, tfa_secret: secret });
 
 			const token = await this._authService.createToken({
 				id: currentUser.id,
 				username: currentUser.username,
-				tfa_enabled: currentUser.tfa_enabled,
+				tfa_enabled: false,
 				tfa_secret: secret
 			});
 			res.cookie('access_token', token, { httpOnly: true });

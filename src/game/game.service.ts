@@ -21,17 +21,21 @@ export class GameService {
 	private _pendingGame: PendingGame[] = [];
 
 	joinMatchmaking(socket: Socket): void {
-		this._matchmakingQueue.push(socket);
-	}
-
-	findOpponent() {
 		const usersInQueue = this._matchmakingQueue.length;
 
 		if (usersInQueue < 2)
 			return;
 
+			
+
+		this._matchmakingQueue.push(socket);
+
+	}
+
+	findOpponent() {
 		
 
+		
 	}
 
 	// acceptGame(id: string) : void {

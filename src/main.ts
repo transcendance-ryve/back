@@ -13,6 +13,7 @@ async function bootstrap() {
 		},
 	});
 
+	app.enableCors();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     app.use(cookieParser());
     await app.listen(3000);
