@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Body, Get, Res, Delete, Put, Query, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
+import { Controller, Post, UseGuards, Body, Get, Res, Delete, Put, Query, InternalServerErrorException, UnauthorizedException, HttpStatus } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { FortyTwoGuard } from "./guard/42-auth.guards";
 import { LocalAuthGuard } from "./guard/local-auth.guards";
@@ -8,10 +8,11 @@ import { GetCurrentUser } from "src/decorators/user.decorator";
 import { User } from "@prisma/client";
 import { UsersService } from "src/users/users.service";
 import { LoginDto } from "./dto/login-user.dto";
-import { toFileStream, toDataURL } from 'qrcode';
+import { toDataURL } from 'qrcode';
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { JwtPayloadDto } from "./dto/jwt-payload.dto";
 import { RegisterFortyTwoDto } from "./dto/register-forty-two.dto";
+import { HttpStatusCode } from "axios";
 
 @Controller("auth")
 export class AuthController {
@@ -20,7 +21,7 @@ export class AuthController {
 		private readonly _usersService: UsersService
 	) {}
 
-	private _loginURL = "http://localhost:5173/accounts/login";
+	private _loginURL = "http://localhost:5173/accounts/login/tfa";
 	private _apiURL = "https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-0be07deda32efaa9ac4f060716bd7ee5addaadf80d64008efd9ad3b0b10e8407&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Faccounts%2Flogin&response_type=code";
 
 	/* Login, register and disconnect */
@@ -35,7 +36,7 @@ export class AuthController {
 	async fortyTwoRedirect(
 		@GetCurrentUser() currentUser: RegisterFortyTwoDto,
 		@Res({ passthrough: true }) res: Response
-	): Promise<Partial<User> | void> {
+	): Promise<Partial<User> |  { tfa: boolean, token: string, id: string }> {
 		const { username, email, avatarURL } = currentUser;
 		let user: Partial<User> = await this._authService.login(email, null, true);
 
@@ -44,7 +45,8 @@ export class AuthController {
 			user = await this._authService.register(username, email, null, secret, avatarURL, true);
 		} else if (user && user.tfa_enabled) {
 			const token = await this._authService.createTFAToken(user.id);
-			return res.redirect(`${this._loginURL}?code=${token}&id=${user.id}`);
+			
+			return { tfa: true, token, id: user.id }
 		}
 
 		const token = await this._authService.createToken({
@@ -63,7 +65,7 @@ export class AuthController {
 	async login(
 		@GetCurrentUser() currentUser: LoginDto,
 		@Res({ passthrough: true }) res: Response
-	): Promise<Partial<User> | void> {
+	): Promise<Partial<User> | { tfa: boolean, token: string, id: string }> {
 		const { email, password } = currentUser;
 
 		const user: Partial<User> = await this._authService.login(email, password, false);
@@ -72,7 +74,7 @@ export class AuthController {
 			throw new UnauthorizedException('Invalid credentials');
 		else if (user && user.tfa_enabled) {
 			const token = await this._authService.createTFAToken(user.id);
-			return res.redirect(`${this._loginURL}?code=${token}&id=${user.id}`);
+			return { tfa: true, token, id: user.id }
 		}
 		
 		const token = await this._authService.createToken({
@@ -82,7 +84,7 @@ export class AuthController {
 			tfa_secret: user.tfa_secret
 		});
 		res.cookie('access_token', token, { httpOnly: true });
-		
+
 		return user;
 	}
 
