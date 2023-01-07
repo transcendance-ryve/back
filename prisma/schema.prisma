@@ -39,6 +39,12 @@ model User {
 	games			Game[]			@relation("games")
 	games_request	Game[]			@relation("gamesRequests")
 
+	messagesSent		Message[]		@relation("messagesSender")
+	channelsOn			ChannelUser[]	@relation("channelUsers")
+	chanActionSender	ChannelAction[]	@relation("channelActionsSender")
+	chanActionTarget	ChannelAction[]	@relation("channelActionsTarget")
+	chanInvitations		Channel[]		@relation("channelInvites")
+
 	@@map("users")
 }
 
@@ -69,6 +75,93 @@ model Game {
 	player_two_score 	Int
 
 	@@map("games")
+}
+
+model Channel {
+	id			String			@id @default(cuid())
+	name		String			@unique
+	type		ChannelType		@default(PUBLIC)
+	password	String?
+	usersCount	Int				@default(1)
+
+	createdAt	DateTime		@default(now())
+	updatedAt	DateTime		@updatedAt
+
+	messages		Message[]			@relation("channelMessages")
+	users			ChannelUser[]		@relation("channelUsers")
+	channelActions	ChannelAction[]		@relation("channelActions")
+	invites			User[]				@relation("channelInvites")
+
+	@@map("channels")
+}
+
+model Message {
+	id 		String          @id @default(cuid())
+	content String
+
+	createdAt	DateTime		@default(now())
+	updatedAt	DateTime		@updatedAt
+
+	sender		User			@relation("messagesSender", fields: [senderId], references: [id], onDelete: Cascade)
+	senderId	String
+
+	channel		Channel			@relation("channelMessages", fields: [channelId], references: [id], onDelete: Cascade)
+	channelId	String
+
+	@@map("messages")
+}
+
+model ChannelUser {
+	user		User			@relation("channelUsers", fields: [userId], references: [id], onDelete: Cascade)
+	userId		String
+	channel		Channel			@relation("channelUsers", fields: [channelId], references: [id], onDelete: Cascade)
+	channelId	String
+
+	role		ChannelRole		@default(MEMBER)
+	createAt	DateTime		@default(now())
+	updatedAt	DateTime		@updatedAt
+
+	@@id([userId, channelId])
+	@@map("channel_users")
+}
+
+model ChannelAction {
+	channelActionSender			User 		@relation("channelActionsSender", fields: [channelActionSenderId], references: [id], onDelete: Cascade)
+	channelActionSenderId		String
+	
+	channelActionTarget			User 		@relation("channelActionsTarget", fields: [channelActionTargetId], references: [id], onDelete: Cascade)
+	channelActionTargetId		String
+
+	channelActionOnChan			Channel		@relation("channelActions", fields: [channelActionOnChanId], references: [id], onDelete: Cascade)
+	channelActionOnChanId		String
+
+	channelActionTime			DateTime
+	type						ChannelActionType
+
+	created					DateTime	@default(now())
+	updatedAt				DateTime	@updatedAt
+
+	@@id([channelActionSenderId, channelActionTargetId, channelActionOnChanId, type])
+	@@unique([channelActionOnChanId, channelActionTargetId, type])
+	@@map("channel_actions")
+}
+
+enum ChannelType {
+	PUBLIC			@map("public")
+	PRIVATE			@map("private")
+	PROTECTED		@map("protected")
+	DIRECTMESSAGE	@map("directmessage")
+}
+
+enum ChannelRole {
+	OWNER		@map("owner")
+	ADMIN		@map("admin")
+	MEMBER		@map("member")
+}
+
+enum ChannelActionType {
+	BAN		@map("ban")
+	MUTE	@map("mute")
 }
 
 enum Status {

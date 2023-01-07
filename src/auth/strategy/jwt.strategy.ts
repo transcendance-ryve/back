@@ -5,12 +5,29 @@ import { UsersService } from "src/users/users.service";
 import { JwtPayloadDto } from "../dto/jwt-payload.dto";
 import { Request } from "express";
 
+interface HandshakeRequest extends Request {
+	handshake?: { headers: { cookie: string } };
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     constructor(private readonly _userService: UsersService) {
         super({
             jwtFromRequest: ExtractJwt.fromExtractors([
-                (req: Request) => {
+                (req: HandshakeRequest) => {
+					if (
+						req.handshake?.headers.cookie &&
+						req.handshake.headers.cookie.length > 0
+						) {
+							const JWToken = req.handshake.headers.cookie.split('=').pop();
+							if (JWToken) {
+								return JWToken;
+							} else {
+								return null;
+							}
+						}
+				},
+				(req: Request) => {
 					const { cookies } = req;
                     if (cookies && cookies.access_token && cookies.access_token.length) {
                         return cookies.access_token;
@@ -18,7 +35,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
                     else {
                         return null;
 					}
-                }
+                },
+				ExtractJwt.fromAuthHeaderAsBearerToken(),
             ]),
             ignoreExpiration: false,
             secretOrKey: 'wartek',
