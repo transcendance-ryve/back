@@ -9,10 +9,13 @@ import {
 	LeaveChannelDto,
 	InviteToChannelDto,
 	InvitationDto,
+	UpdateRoleDto,
+	EditChannelDto,
 } from './dto';
 import { Socket } from 'socket.io';
 import * as bcrypt from 'bcrypt';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
+import { SubscribeMessage } from '@nestjs/websockets';
 
 
 
@@ -102,7 +105,7 @@ export class ChannelService {
 		}
 	}
 
-	async getChannelInvites(userId: string) {
+	async getChannelInvitesByUser(userId: string) {
 		try {
 			const invites: {
 				channel: {
@@ -131,6 +134,58 @@ export class ChannelService {
 			return invites;
 		} catch (error) {
 			console.log(error);
+			return error;
+		}
+	}
+
+	async getChannelInvitesByChannel(channelId: string) {
+		try {
+			await this.isChannel(channelId);
+			const invites: {
+				invitedUser: {
+					id: string;
+					username: string;
+				};
+				id: string;
+			}[] = await this.prisma.channelInvitation.findMany({
+				where: {
+					channelId: channelId,
+				},
+				select: {
+					id: true,
+					invitedUser: {
+						select: {
+							id: true,
+							username: true,
+						},
+					},
+				},
+			});
+			return invites;
+		} catch (error) {
+			console.log(error);
+			return error;
+		}
+	}
+
+	async getRoleOfUserOnChannel(userId: string, channelId: string) {
+		try {
+			await this.isChannel(channelId);
+			const role: {
+				role: string;
+			} = await this.prisma.channelUser.findUnique({
+				where: {
+					userId_channelId: {
+						userId: userId,
+						channelId: channelId,
+					},
+				},
+				select: {
+					role: true,
+				},
+			});
+			return role.role;
+		} catch (error) {
 			return error;
 		}
 	}
@@ -326,6 +381,7 @@ export class ChannelService {
 		messageInfo: IncomingMessageDto,
 	) {
 		try {
+			await this.isChannel(messageInfo.channelId);
 			const messageObj: { messages: Message[] } =
 				await this.prisma.channel.update({
 					where: {
@@ -356,6 +412,7 @@ export class ChannelService {
 		dto: LeaveChannelDto
 	) {
 		try {	
+			await this.isChannel(dto.channelId);
 			//remove user from channel users
 			let leavingUser = await this.prisma.channelUser.delete({
 				where: {
@@ -415,7 +472,8 @@ export class ChannelService {
 			});
 			if (user == null)
 				throw new Error('User not found');
-			//Check if user is already in channel
+				await this.isChannel(dto.channelId);
+				//Check if user is already in channel
 			const channelUser: ChannelUser | null =
 				await this.prisma.channelUser.findUnique({
 					where: {
@@ -469,6 +527,7 @@ export class ChannelService {
 				});
 			if (invitation == null)
 				throw new Error('Invitation not found');
+			await this.isChannel(invitation.channelId);
 			//Check if user is already in channel
 			const channelUser: ChannelUser | null =
 				await this.prisma.channelUser.findUnique({
@@ -548,6 +607,82 @@ export class ChannelService {
 		}
 	}
 
+	async updateRole(
+		userId: string,
+		dto: UpdateRoleDto,
+	) {
+		try {
+			//Check if user exists
+			const senderRole: string | null = 
+			await this.getRoleOfUserOnChannel(userId, dto.channelId);
+			if (senderRole === 'MEMBER')
+				throw new Error('User dont have permission to update role');
+			//Check if user exists and is not owner or admin
+			const targetRole: string | null =
+			await this.getRoleOfUserOnChannel(dto.userId, dto.channelId);
+			if (targetRole === 'OWNER' || targetRole === 'ADMIN')
+				throw new Error('User is owner or admin');
+
+			const updatedChannelUser: ChannelUser | null =
+			await this.prisma.channelUser.update({
+				where: {
+					userId_channelId: {
+						userId: dto.userId,
+						channelId: dto.channelId,
+					},
+				},
+				data: {
+					role: "ADMIN",
+				},
+			});
+			if (updatedChannelUser == null)
+				throw new Error('User not found');
+			return updatedChannelUser;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error updating role';
+		}
+			
+	}
+
+	async editChannel(
+		userId: string,
+		dto: EditChannelDto,
+	) {
+		try {
+			const senderRole: string | null =
+			await this.getRoleOfUserOnChannel(userId, dto.channelId);
+			if (senderRole != 'OWNER')
+				throw new Error('User dont have permission to edit channel');
+			if (dto.type === 'PROTECTED')
+			{
+				if (dto.password == null)
+					throw new Error('Password is required');
+				dto.password = await bcrypt.hash(dto.password, 10);
+			}
+			else if (dto.type === 'PUBLIC' || dto.type === 'PRIVATE')
+				dto.password = null;
+			const updatedChannel: Channel | null =
+			await this.prisma.channel.update({
+				where: {
+					id: dto.channelId,
+				},
+				data: {
+					name: dto.name,
+					type: dto.type,
+					password: dto.password,
+				},
+			});
+			if (updatedChannel == null)
+				throw new Error('Channel not found');
+			return updatedChannel;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error editing channel';
+		}
+	}
 	// utils
 
 	async isChannel(channelId: string) {

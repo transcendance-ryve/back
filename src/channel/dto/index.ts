@@ -5,3 +5,5 @@ export * from './LeaveChannel.dto';
 export * from './DirectMessage.dto';
 export * from './InviteToChannel.dto';
 export * from './Invitation.dto';
+export * from './UpdateRole.dto';
+export * from './EditChannel.dto';

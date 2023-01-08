@@ -40,7 +40,11 @@ export class ChannelController {
 
 	@Get('invitesByUserId/:id')
 	getChannelInvites(@Param('id') id: string) {
-		return this.channelService.getChannelInvites(id);
+		return this.channelService.getChannelInvitesByUser(id);
 	}
 
+	@Get('inviteByChannelId/:id')
+	getChannelInvitesByChannelId(@Param('id') id: string) {
+		return this.channelService.getChannelInvitesByChannel(id);
+	}
 }

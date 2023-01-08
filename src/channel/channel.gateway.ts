@@ -8,6 +8,8 @@ import {
 	LeaveChannelDto,
 	InviteToChannelDto,
 	InvitationDto,
+	UpdateRoleDto,
+	EditChannelDto,
 } from './dto';
 import {
 	WebSocketGateway,
@@ -213,4 +215,39 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this.server.to(clientSocket.id).emit('invitationDeclined', channelInvite);
 		}
 	}
+
+	@SubscribeMessage('updateRole')
+	async updateRole(
+		@GetCurrentUserId() userId: string,
+		@MessageBody('roleInfo') roleInfo: UpdateRoleDto,
+		@ConnectedSocket() clientSocket: Socket,
+	) {
+		const roleUpdated = await this.channelService.updateRole(
+			userId,
+			roleInfo,
+		);
+		if (typeof roleUpdated === 'string' || !roleUpdated) {
+			this.server.to(clientSocket.id).emit('updateRoleFailed', roleUpdated);
+		} else {
+			this.server.to(clientSocket.id).emit('roleUpdated');
+		}
+	}
+
+	@SubscribeMessage('editRoom')
+	async editChannel(
+		@GetCurrentUserId() userId: string,
+		@MessageBody('editInfo') editInfo: EditChannelDto,
+		@ConnectedSocket() clientSocket: Socket,
+	) {
+		const channelEdited = await this.channelService.editChannel(
+			userId,
+			editInfo,
+		);
+		if (typeof channelEdited === 'string' || !channelEdited) {
+			this.server.to(clientSocket.id).emit('editRoomFailed', channelEdited);
+		} else {
+			this.server.to(clientSocket.id).emit('roomEdited');
+		}
+	}
+
 }
