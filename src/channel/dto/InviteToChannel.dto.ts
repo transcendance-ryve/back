@@ -1,8 +1,11 @@
-import { ChannelType } from "@prisma/client";
 import { IsNotEmpty, IsString } from "class-validator";
 
-export class LeaveChannelDto {
+export class InviteToChannelDto {
 	@IsNotEmpty()
 	@IsString()
 	channelId: string;
+
+	@IsNotEmpty()
+	@IsString()
+	friendId: string;
 }

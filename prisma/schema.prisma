@@ -11,39 +11,39 @@ datasource db {
 }
 
 model User {
-	id				String			@id @default(cuid())
-	username		String			@unique
-	email			String			@unique
+	id				String					@id @default(cuid())
+	username		String					@unique
+	email			String					@unique
 	password		String
-	auth			Boolean			@default(false)
+	auth			Boolean					@default(false)
 	
-	avatar			String			@default("http://localhost:3000/default.png")
+	avatar			String					@default("http://localhost:3000/default.png")
 
-	status          Status          @default(OFFLINE)
+	status          Status          		@default(OFFLINE)
 
-	level			Int			    @default(0)
-	experience		Int			    @default(0)
-	next_level		Int			    @default(100)
-	rank_point      Int             @default(0)
-    wins            Int             @default(0)
-    loses           Int             @default(0)
-    played          Int             @default(0)
+	level			Int			    		@default(0)
+	experience		Int			    		@default(0)
+	next_level		Int			    		@default(100)
+	rank_point      Int             		@default(0)
+    wins            Int             		@default(0)
+    loses           Int             		@default(0)
+    played          Int             		@default(0)
 
 	tfa_token		String?
 	tfa_secret		String?
-	tfa_enabled		Boolean			@default(false)
+	tfa_enabled		Boolean					@default(false)
 
-	friends			Friendship[]	@relation("friends")
-	friends_request	Friendship[]	@relation("friendsRequests")
+	friends			Friendship[]			@relation("friends")
+	friends_request	Friendship[]			@relation("friendsRequests")
 
-	games			Game[]			@relation("games")
-	games_request	Game[]			@relation("gamesRequests")
+	games			Game[]					@relation("games")
+	games_request	Game[]					@relation("gamesRequests")
 
-	messagesSent		Message[]		@relation("messagesSender")
-	channelsOn			ChannelUser[]	@relation("channelUsers")
-	chanActionSender	ChannelAction[]	@relation("channelActionsSender")
-	chanActionTarget	ChannelAction[]	@relation("channelActionsTarget")
-	chanInvitations		Channel[]		@relation("channelInvites")
+	messagesSent		Message[]			@relation("messagesSender")
+	channelsOn			ChannelUser[]		@relation("channelUsers")
+	chanActionSender	ChannelAction[]		@relation("channelActionsSender")
+	chanActionTarget	ChannelAction[]		@relation("channelActionsTarget")
+	chanInvitations		ChannelInvitation[]	@relation("userInvites")
 
 	@@map("users")
 }
@@ -90,9 +90,26 @@ model Channel {
 	messages		Message[]			@relation("channelMessages")
 	users			ChannelUser[]		@relation("channelUsers")
 	channelActions	ChannelAction[]		@relation("channelActions")
-	invites			User[]				@relation("channelInvites")
+	invites			ChannelInvitation[]	@relation("channelInvites")
 
 	@@map("channels")
+}
+
+model ChannelInvitation {
+	id				String			@id @default(cuid())
+	createdAt		DateTime		@default(now())
+	updatedAt		DateTime		@updatedAt
+	senderId		String
+	status			InviteStatus	@default(PENDING)
+
+	channel			Channel		@relation("channelInvites", fields: [channelId], references: [id], onDelete: Cascade)
+	channelId		String
+
+	invitedUser		User		@relation("userInvites", fields: [invitedUserId], references: [id], onDelete: Cascade)
+	invitedUserId	String
+
+	@@unique([channelId, invitedUserId])
+	@@map("channel_invites")
 }
 
 model Message {
@@ -170,4 +187,10 @@ enum Status {
 	INGAME  @map("ingame")
 
 	@@map("_status")
+}
+
+enum InviteStatus {
+	PENDING		@map("pending")
+	ACCEPTED	@map("accepted")
+	DECLINED	@map("declined")
 }

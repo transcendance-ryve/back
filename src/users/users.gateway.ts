@@ -4,7 +4,7 @@ import { Status, User } from "@prisma/client";
 import { Server, Socket } from 'socket.io';
 import { JwtAuthGuard } from "./guard/jwt.guard";
 import { UsersService } from "./users.service";
-
+import { UserIdToSockets } from "./userIdToSockets.service";
 import { JwtService } from "@nestjs/jwt";
 
 @WebSocketGateway({
@@ -20,12 +20,12 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	) {}
 
 	@WebSocketServer() private _server: Server;
-	private _sockets: Map<string, Socket> = new Map()
+	//private _sockets: Map<string, Socket> = new Map()
 
 	private _emitToFriends(id: string, event: string, data: any) {
 		this._userService.getFriends(id).then((friends: Partial<User>[]) => {
 			friends.forEach((friend: Partial<User>) => {
-				const friendSocket = this._sockets.get(friend.id);
+				const friendSocket = UserIdToSockets.get(friend.id);
 				if (friendSocket) {
 					friendSocket.emit(event, data);
 				}
@@ -41,7 +41,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			const user = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
 			await this._userService.updateUser({ id: user.id }, { status: Status.ONLINE });
 			
-			this._sockets.set(user.id, socket);
+			UserIdToSockets.set(user.id, socket);
 			this._emitToFriends(user.id, 'user_connected', user.id);
 	
 			socket.data.id = user.id;

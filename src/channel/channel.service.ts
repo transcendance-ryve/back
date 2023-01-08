@@ -1,11 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { Channel, ChannelUser, User, Message, ChannelType } from '@prisma/client';
-import { ChannelActionType } from '@prisma/client';
-import { CreateChannelDto, IncomingMessageDto, JoinChannelDto, LeaveChannelDto } from './dto';
+import { Channel, ChannelUser, User, Message, ChannelType, ChannelInvitation } from '@prisma/client';
+import {
+	CreateChannelDto,
+	DirectMessageDto,
+	IncomingMessageDto,
+	JoinChannelDto,
+	LeaveChannelDto,
+	InviteToChannelDto,
+	InvitationDto,
+} from './dto';
 import { Socket } from 'socket.io';
 import * as bcrypt from 'bcrypt';
-import { ChannelListener } from 'diagnostics_channel';
+import { UserIdToSockets } from 'src/users/userIdToSockets.service';
+
+
 
 @Injectable()
 export class ChannelService {
@@ -93,6 +102,39 @@ export class ChannelService {
 		}
 	}
 
+	async getChannelInvites(userId: string) {
+		try {
+			const invites: {
+				channel: {
+					id: string;
+					name: string;
+					type: ChannelType;
+				};
+				senderId: string;
+				id: string;
+			}[] = await this.prisma.channelInvitation.findMany({
+				where: {
+					invitedUserId: userId,
+				},
+				select: {
+					id: true,
+					senderId: true,
+					channel: {
+						select: {
+							id: true,
+							name: true,
+							type: true,
+						},
+					},
+				},
+			});
+			return invites;
+		} catch (error) {
+			console.log(error);
+			return error;
+		}
+	}
+
 	//Actions
 	async connectToChannel(
 		userId: string,
@@ -142,7 +184,6 @@ export class ChannelService {
 			await clientSocket.join(createdChannel.id);
 			return createdChannel;
 		} catch (err) {
-			//if prisma return P2002 error
 			if (err.code === 'P2002')
 				return 'Channel name already exists';
 			if (err === 'string' && err == 'Error: WrongData')
@@ -154,13 +195,13 @@ export class ChannelService {
 
 	async createDMChannelWS(
 		userId: string,
-		friendid: string,
+		dto: DirectMessageDto,
 		clientSocket: Socket,
 	) {
 		try {
 			const newDMChannel: Channel = await this.prisma.channel.create({
 				data: {
-					name: userId + friendid,
+					name: userId + dto.friendId,
 					type: 'DIRECTMESSAGE',
 					users: {
 						create: [
@@ -168,7 +209,7 @@ export class ChannelService {
 								userId: userId,
 							},
 							{
-								userId: friendid,
+								userId: dto.friendId,
 							},
 						],
 					},
@@ -176,8 +217,13 @@ export class ChannelService {
 				},
 			});
 			await clientSocket.join(newDMChannel.id);
+			const friendSocket = UserIdToSockets.get(dto.friendId);
+			if (friendSocket) {
+				await friendSocket.join(newDMChannel.id);
+			}
 			return newDMChannel;
 		} catch (err) {
+			console.log(err);
 			if (err.code === 'P2002')
 				return 'Channel name already exists';
 			return 'Internal server error: error creating channel';
@@ -190,8 +236,21 @@ export class ChannelService {
 		clientSocket: Socket,
 	) {
 		try {
-			//Check if private channel -> todo
-			if (channelDto.type === 'PROTECTED') {
+			if (channelDto.type === 'PRIVATE') {
+				const isInvited: ChannelInvitation | null = await this.prisma.channelInvitation.findFirst({
+					where: {
+						invitedUserId: userId,
+					},
+				});
+				if (isInvited == null)
+					throw new Error('Error: Not invited in private channel');
+				await this.prisma.channelInvitation.delete({
+					where: {
+						id: isInvited.id,
+					},
+				});
+			}
+			else if (channelDto.type === 'PROTECTED') {
 				if (!channelDto.password)
 					throw new Error('Password is required');
 				const channel: {
@@ -218,10 +277,26 @@ export class ChannelService {
 						throw new Error('WrongPassword');
 				}
 			}
+			const chan : {
+				type: ChannelType;
+			} | null = await this.prisma.channel.findFirst({
+				where: {
+					id: channelDto.channelId,
+					name: channelDto.name,
+				},
+				select: {
+					type: true,
+				},
+			});
+			if (chan == null)
+				throw new Error('channel not found');
+			if (chan.type != channelDto.type)
+				throw new Error('WrongData');
 			//Join the channel
 			const joinedChannel: Channel = await this.prisma.channel.update({
 				where: {
 					id: channelDto.channelId,
+					name: channelDto.name,
 				},
 				data: {
 					users: {
@@ -239,6 +314,8 @@ export class ChannelService {
 			return joinedChannel;
 		} catch (err) {
 			console.log("err", err);
+			if (err)
+				return (err.message as string);
 			return 'Internal server error: error joining channel';
 		}
 	}
@@ -266,6 +343,7 @@ export class ChannelService {
 						messages: true,
 					},
 				});
+				console.log(messageInfo.content);
 			return messageObj.messages[messageObj.messages.length - 1];
 		} catch (err) {
 			console.log("err", err);
@@ -324,7 +402,154 @@ export class ChannelService {
 		}
 	}
 
+	async inviteToChannelWS(
+		userId: string,
+		dto: InviteToChannelDto,
+	) {
+		try {
+			//Check if user exists
+			const user: User | null = await this.prisma.user.findUnique({
+				where: {
+					id: dto.friendId,
+				},
+			});
+			if (user == null)
+				throw new Error('User not found');
+			//Check if user is already in channel
+			const channelUser: ChannelUser | null =
+				await this.prisma.channelUser.findUnique({
+					where: {
+						userId_channelId: {
+							userId: dto.friendId,
+							channelId: dto.channelId,
+						},
+					},
+				});
+			if (channelUser != null)
+				throw new Error('User already in channel');
+			//Check if channel exists
+			const channel: Channel | null = await this.prisma.channel.findUnique({
+				where: {
+					id: dto.channelId,
+				},
+			});
+			if (channel == null)
+				throw new Error('Channel not found');
+			const channelInvite: ChannelInvitation | null =
+				await this.prisma.channelInvitation.create({
+					data: {
+						senderId: userId,
+						invitedUserId: dto.friendId,
+						channelId: dto.channelId,
+					},
+				});
+			return channelInvite;
+		} catch (err) {
+			console.log("err", err);
+			if (err.code === 'P2002')
+				return 'User already invited to channel';
+			if (typeof err === 'string')
+				return err;
+			return 'Internal server error: error inviting user to channel';
+		}
+	}
+
+	async acceptChanInvitation(
+		userId: string,
+		dto: InvitationDto,
+		clientSocket: Socket,
+	) {
+		try {
+			//Check if invitation exists
+			const invitation: ChannelInvitation | null =
+				await this.prisma.channelInvitation.findUnique({
+					where: {
+						id: dto.id,
+					},
+				});
+			if (invitation == null)
+				throw new Error('Invitation not found');
+			//Check if user is already in channel
+			const channelUser: ChannelUser | null =
+				await this.prisma.channelUser.findUnique({
+					where: {
+						userId_channelId: {
+							userId: userId,
+							channelId: invitation.channelId,
+						},
+					},
+				});
+			if (channelUser != null)
+				throw new Error('User already in channel');
+			//Check if channel exists
+			const channel: Channel | null = await this.prisma.channel.findUnique({
+				where: {
+					id: invitation.channelId,
+				},
+			});
+			if (channel == null)
+				throw new Error('Channel not found');
+			//Add user to channel
+			const joinedChannel: Channel = await this.prisma.channel.update({
+				where: {
+					id: invitation.channelId,
+				},
+				data: {
+					usersCount: {
+						increment: 1,
+					},
+					users: {
+						create: {
+							userId: userId,
+						},
+					},
+				},
+			});
+			//Delete invitation
+			await this.prisma.channelInvitation.delete({
+				where: {
+					id: invitation.id,
+				},
+			});
+			await clientSocket.join(invitation.channelId);
+			joinedChannel.password = '';
+			return joinedChannel;
+		} catch (err) {
+			console.log("err", err);
+			if (err)
+				return err;
+			return 'Internal server error: error accepting invitation';
+		}
+	}
+
+	async declineChanInvitation(
+		userId: string,
+		dto: InvitationDto,
+	) {
+		try {
+			//Check if invitation exists
+			const invitation: ChannelInvitation | null =
+			await this.prisma.channelInvitation.findUnique({
+				where: {
+					id: dto.id,
+				},
+			});
+			if (invitation == null)
+				throw new Error('Invitation not found');
+			//Delete invitation
+			await this.prisma.channelInvitation.delete({
+				where: {
+					id: invitation.id,
+				},
+			});
+			return true;
+		} catch (err) {
+			return "Internal server error: error declining invitation"
+		}
+	}
+
 	// utils
+
 	async isChannel(channelId: string) {
 		const channel: Channel | null = await this.prisma.channel.findUnique({
 			where: {

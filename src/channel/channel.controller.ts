@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/comm
 import { JwtAuthGuard } from '../users/guard/jwt.guard';
 import { ChannelActionType } from '@prisma/client';
 import { ChannelService } from './channel.service';
+import { GetCurrentUserId } from 'src/decorators/user.decorator';
 
 
 @UseGuards(JwtAuthGuard)
@@ -14,17 +15,20 @@ export class ChannelController {
 		return this.channelService.getChannels();
 	}
 
+	//return a channel by id
 	@Get(':id')
 	getChannelById(@Param('id') id: string) {
 		return this.channelService.getChannelById(id);
 	}
 
+	//Return all the members of a channel
 	@Get('users/:channelId')
 	getUsersOfChannel(@Param('channelId') channelId: string) {
 		return this.channelService.getUsersOfChannel(channelId);
 	}
 
-	@Get(':userId')
+	//Return all the channels of a user
+	@Get('byUser/:userId')
 	getChannelsOfUser(@Param('userId') userId: string) {
 		return this.channelService.getChannelsByUserId(userId);
 	}
@@ -33,4 +37,10 @@ export class ChannelController {
 	getMessagesOfChannel(@Param('channelId') channelId: string) {
 		return this.channelService.getMessagesOfChannel(channelId);
 	}
+
+	@Get('invitesByUserId/:id')
+	getChannelInvites(@Param('id') id: string) {
+		return this.channelService.getChannelInvites(id);
+	}
+
 }
