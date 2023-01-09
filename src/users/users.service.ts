@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { Prisma, User, Friendship } from '@prisma/client';
+import { Prisma, User, Friendship, InviteStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as bcrypt from 'bcrypt';
@@ -114,7 +114,7 @@ export class UsersService {
 							receiver_id: senderID
 						}
 					},
-					data: { accepted: true }
+					data: { status: InviteStatus.PENDING }
 				})
 
 				return friendship;
@@ -149,7 +149,7 @@ export class UsersService {
                         receiver_id: senderID
                     }
                 },
-                data: { accepted: true }
+                data: { status: InviteStatus.ACCEPTED }
             });
 
             return friend;
@@ -216,7 +216,7 @@ export class UsersService {
 						{ sender_id: id },
 						{ receiver_id: id }
 					],
-                    accepted: true
+                    status: InviteStatus.ACCEPTED
                 },
                 select: {
 					sender: {
@@ -261,7 +261,7 @@ export class UsersService {
             const friends = await this._prismaService.friendship.findMany({
                 where: {
                     receiver_id: id,
-                    accepted: false
+                    status: InviteStatus.PENDING
                 },
                 select: {
                     sender: {
@@ -300,7 +300,7 @@ export class UsersService {
 		id: Prisma.UserWhereUniqueInput['id'],
 		target: Prisma.UserWhereUniqueInput['id'],
 		selected?: string
-	) : Promise<{user: Partial<User>, isFriend: boolean}> {
+	) : Promise<{user: Partial<User>, status: InviteStatus}> {
 		const select: Prisma.UserSelect = selected?.split(',').reduce((acc, curr) => {
 			acc[curr] = true;
 			return acc;
@@ -325,12 +325,89 @@ export class UsersService {
 				throw new NotFoundException('User not found');
 			
 			delete user.password;
-			return { user, isFriend: friendStatus ? friendStatus.accepted : false};
+			return { user, status: friendStatus ? friendStatus.status : InviteStatus.NONE };
         } catch(err) {
 			if (err instanceof NotFoundException)
 				throw err;
             throw new InternalServerErrorException("Internal server error");
         }
+	}
+
+	async getUsersWithRelationship(
+		id: Prisma.UserWhereUniqueInput['id'],
+		search?: string,
+		selected?: string
+	) : Promise<{ users: { user: Partial<User>, status: InviteStatus }[], count: number }> {
+		const select: Prisma.UserSelect = selected?.split(',').reduce((acc, curr) => {
+			acc[curr] = true;
+			return acc;
+		}, {});
+
+		try {
+			const users: Partial<User>[] = await this._prismaService.user.findMany({
+				where: {
+					AND: [
+						{ username: { contains: search } },
+						{ id: { not: id }}
+					]
+				},
+				select: (selected && selected.length > 0) ? select : undefined
+			});
+
+			const count = await this._prismaService.user.count({
+				where: {
+					OR: [
+						{ username: { contains: search } },
+						{ email: { contains: search } }
+					]
+				}
+			});
+
+			const friends = await this._prismaService.friendship.findMany({
+				where: {
+					OR: [
+						{ sender
+							: { id },
+							receiver: { id: { in: users.map(user => user.id) } }
+						},
+						{ sender
+							: { id: { in: users.map(user => user.id) } },
+							receiver: { id }
+						}
+					]
+				},
+				select: {
+					sender: {
+						select: {
+							id: true
+						}
+					},
+					receiver: {
+						select: {
+							id: true
+						}
+					},
+					status: true
+				}
+				
+			});
+
+			const usersWithRelationship = users.map(user => {
+				const friendStatus = friends.find(friend => {
+					if (friend.sender.id === user.id)
+						return friend.receiver.id === id;
+					else
+						return friend.sender.id === id;
+				});
+
+				delete user.password;
+				return { user, status: friendStatus ? friendStatus.status : InviteStatus.NONE };
+			});
+
+			return { users: usersWithRelationship, count };
+		} catch(err) {
+			throw new InternalServerErrorException('Internal server error');
+		}
 	}
 
     async getUser(
@@ -373,7 +450,9 @@ export class UsersService {
 			}, {});
 
 			const users: Partial<User>[] = await this._prismaService.user.findMany({
-				where: { username: { contains: search } },
+				where: {
+					username: { contains: search }
+				},
 				skip: skip || (page - 1) * take || undefined,
 				take: take || 12,
 				orderBy: { [sort || "username"]: order === 'asc' ? 'asc' : 'desc' },

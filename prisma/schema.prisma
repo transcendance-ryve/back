@@ -57,7 +57,7 @@ model Friendship {
 	receiver		User            @relation("friendsRequests", fields: [receiver_id], references: [id], onDelete: Cascade)
 	receiver_id		String  
 	
-	accepted		Boolean         @default(false)
+	status			InviteStatus    @default(PENDING)
 
 	@@unique([sender_id, receiver_id])
 	@@map("friendships")
@@ -193,4 +193,5 @@ enum InviteStatus {
 	PENDING		@map("pending")
 	ACCEPTED	@map("accepted")
 	DECLINED	@map("declined")
+	NONE		@map("none")
 }

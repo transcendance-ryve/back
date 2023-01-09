@@ -14,7 +14,7 @@ import {
 	UseInterceptors
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Prisma, User, Friendship } from '@prisma/client';
+import { Prisma, User, Friendship, InviteStatus } from '@prisma/client';
 import { Response } from 'express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -73,12 +73,25 @@ export class UsersController {
         return this._usersService.declineFriendRequest(currentUser.id, friendId);
     }
 
+	@Get('friends/relationship')
+	async getUsersWithRelationship(
+		@GetCurrentUser() currentUser: JwtPayloadDto,
+		@Query('search') search: string,
+		@Query('select') select: string
+	): Promise<{ users: { user: Partial<User>, status: InviteStatus }[], count: number }> {
+		return this._usersService.getUsersWithRelationship(
+			currentUser.id,
+			search,
+			select
+		);
+	}
+
 	@Get('friends/:id')
 	async getUserWithRelationship(
 		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Param('id') friendId: string,
 		@Query('select') select: string
-	): Promise<{user: Partial<User>, isFriend: boolean}> {
+	): Promise<{user: Partial<User>, status: InviteStatus}> {
 		return this._usersService.getUserWithRelationship(currentUser.id, friendId, select);
 	}
 
