@@ -8,7 +8,7 @@ export class CreateChannelDto {
 
 	@IsString()
 	@IsOptional()
-	type?: ChannelType;
+	status?: ChannelType;
 
 	@IsString()
 	@IsOptional()

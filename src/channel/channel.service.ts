@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { Channel, ChannelUser, User, Message, ChannelType, ChannelInvitation } from '@prisma/client';
+import { Channel, ChannelUser, User, Message, ChannelType, ChannelInvitation, ChannelAction } from '@prisma/client';
 import {
 	CreateChannelDto,
 	DirectMessageDto,
@@ -11,6 +11,7 @@ import {
 	InvitationDto,
 	UpdateRoleDto,
 	EditChannelDto,
+	ModerateUserDto,
 } from './dto';
 import { Socket } from 'socket.io';
 import * as bcrypt from 'bcrypt';
@@ -56,7 +57,7 @@ export class ChannelService {
 		const channels: {
 			id: string;
 			name: string;
-			type: ChannelType;
+			status: ChannelType;
 			usersCount: number;
 		} [] = await this.prisma.channel.findMany({
 			where: {
@@ -69,7 +70,7 @@ export class ChannelService {
 			select: {
 				id: true,
 				name: true,
-				type: true,
+				status: true,
 				usersCount: true,
 			},
 		});
@@ -111,7 +112,7 @@ export class ChannelService {
 				channel: {
 					id: string;
 					name: string;
-					type: ChannelType;
+					status: ChannelType;
 				};
 				senderId: string;
 				id: string;
@@ -126,7 +127,7 @@ export class ChannelService {
 						select: {
 							id: true,
 							name: true,
-							type: true,
+							status: true,
 						},
 					},
 				},
@@ -216,11 +217,11 @@ export class ChannelService {
 	) {
 		//throw error if channel name is empty
 		try {
-			if (dto.type === 'PROTECTED' && !dto.password)
+			if (dto.status === 'PROTECTED' && !dto.password)
 				throw new Error('Password is required');
 			if (!dto.name || dto.name === '')
 				throw new Error('Channel name is required');
-			if (dto.type === 'PROTECTED' && dto.password.length > 0) {
+			if (dto.status === 'PROTECTED' && dto.password.length > 0) {
 				dto.password = await bcrypt.hash(dto.password, 10);
 			}
 			//try to create channel
@@ -257,7 +258,7 @@ export class ChannelService {
 			const newDMChannel: Channel = await this.prisma.channel.create({
 				data: {
 					name: userId + dto.friendId,
-					type: 'DIRECTMESSAGE',
+					status: 'DIRECTMESSAGE',
 					users: {
 						create: [
 							{
@@ -291,7 +292,7 @@ export class ChannelService {
 		clientSocket: Socket,
 	) {
 		try {
-			if (channelDto.type === 'PRIVATE') {
+			if (channelDto.status === 'PRIVATE') {
 				const isInvited: ChannelInvitation | null = await this.prisma.channelInvitation.findFirst({
 					where: {
 						invitedUserId: userId,
@@ -305,19 +306,19 @@ export class ChannelService {
 					},
 				});
 			}
-			else if (channelDto.type === 'PROTECTED') {
+			else if (channelDto.status === 'PROTECTED') {
 				if (!channelDto.password)
 					throw new Error('Password is required');
 				const channel: {
-					type: ChannelType;
+					status: ChannelType;
 					password: string | null;
 				} | null = await this.prisma.channel.findFirst({
 					where: {
 						id: channelDto.channelId,
-						type: 'PROTECTED',
+						status: 'PROTECTED',
 					},
 					select: {
-						type: true,
+						status: true,
 						password: true,
 					},
 				});
@@ -333,19 +334,19 @@ export class ChannelService {
 				}
 			}
 			const chan : {
-				type: ChannelType;
+				status: ChannelType;
 			} | null = await this.prisma.channel.findFirst({
 				where: {
 					id: channelDto.channelId,
 					name: channelDto.name,
 				},
 				select: {
-					type: true,
+					status: true,
 				},
 			});
 			if (chan == null)
 				throw new Error('channel not found');
-			if (chan.type != channelDto.type)
+			if (chan.status != channelDto.status)
 				throw new Error('WrongData');
 			//Join the channel
 			const joinedChannel: Channel = await this.prisma.channel.update({
@@ -655,13 +656,13 @@ export class ChannelService {
 			await this.getRoleOfUserOnChannel(userId, dto.channelId);
 			if (senderRole != 'OWNER')
 				throw new Error('User dont have permission to edit channel');
-			if (dto.type === 'PROTECTED')
+			if (dto.status === 'PROTECTED')
 			{
 				if (dto.password == null)
 					throw new Error('Password is required');
 				dto.password = await bcrypt.hash(dto.password, 10);
 			}
-			else if (dto.type === 'PUBLIC' || dto.type === 'PRIVATE')
+			else if (dto.status === 'PUBLIC' || dto.status === 'PRIVATE')
 				dto.password = null;
 			const updatedChannel: Channel | null =
 			await this.prisma.channel.update({
@@ -670,7 +671,7 @@ export class ChannelService {
 				},
 				data: {
 					name: dto.name,
-					type: dto.type,
+					status: dto.status,
 					password: dto.password,
 				},
 			});
@@ -683,6 +684,40 @@ export class ChannelService {
 			return 'Internal server error: error editing channel';
 		}
 	}
+
+	/*async muteUser(
+		userId: string,
+		dto: ModerateUserDto,
+	) {
+		try {
+			const check = await this.checkIsValideModeration(userId, dto);
+			if (check != true)
+				throw new Error(check);
+			const isMuted: ChannelAction | null = await this.prisma.channelAction.findFirst({
+				where: {
+					targetId: dto.targetId,
+					type: 'MUTE',
+				},
+			});
+			if (isMuted != null)
+				throw new Error('User is already muted');
+			const mutedUser: ChannelAction | null =
+			await this.prisma.channelAction.create({
+				data: {
+					senderId: userId,
+					targetId: dto.targetId,
+					channelId: dto.channelId,
+					channelActionTime: new Date(),
+					type: 'MUTE',
+				},
+			});
+			return mutedUser;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error muting user';
+		}
+	}*/
 	// utils
 
 	async isChannel(channelId: string) {
@@ -694,4 +729,37 @@ export class ChannelService {
 		if (channel == null)
 			throw new Error('Channel not found');
 	}
+
+	async checkIsValideModeration(
+		userId: string,
+		moderateInfo: ModerateUserDto,
+	) {
+		try {
+			const senderRole: string | null =
+			await this.getRoleOfUserOnChannel(userId, moderateInfo.channelId);
+			if (senderRole != 'OWNER' && senderRole != 'ADMIN')
+				throw new Error('User dont have permission to moderate');
+			const targetRole: string | null =
+			await this.getRoleOfUserOnChannel(moderateInfo.targetId, moderateInfo.channelId);
+			if (targetRole === 'OWNER' || targetRole === 'ADMIN')
+				throw new Error('Target is owner or admin');
+			const targetchannel: Channel | null =
+			await this.prisma.channel.findFirst({
+				where: {
+					id: moderateInfo.channelId,
+				},
+			});
+			if (targetchannel == null)
+				throw new Error('Channel not found');
+			if (targetchannel.status === 'DIRECTMESSAGE')
+				throw new Error('Channel is direct message');
+			return true;
+		} catch (err) {
+			if (err)
+				return (err.message);
+			return ('Internal server error: error moderating user');
+		}
+	}
+
+
 }

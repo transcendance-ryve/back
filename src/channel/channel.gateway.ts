@@ -10,6 +10,7 @@ import {
 	InvitationDto,
 	UpdateRoleDto,
 	EditChannelDto,
+	ModerateUserDto,
 } from './dto';
 import {
 	WebSocketGateway,
@@ -250,4 +251,20 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		}
 	}
 
+	/*@SubscribeMessage('muteUser')
+	async muteUser(
+		@GetCurrentUserId() userId: string,
+		@MessageBody('muteInfo') muteInfo: ModerateUserDto,
+		@ConnectedSocket() clientSocket: Socket,
+	) {
+		const userMuted = await this.channelService.muteUser(
+			userId,
+			muteInfo,
+		);
+		if (typeof userMuted === 'string' || !userMuted) {
+			this.server.to(clientSocket.id).emit('muteUserFailed', userMuted);
+		} else {
+			this.server.to(clientSocket.id).emit('userMuted');
+		}
+	}*/
 }

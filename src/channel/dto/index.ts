@@ -7,3 +7,4 @@ export * from './InviteToChannel.dto';
 export * from './Invitation.dto';
 export * from './UpdateRole.dto';
 export * from './EditChannel.dto';
+export * from './ModerateUser.dto';

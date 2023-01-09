@@ -80,7 +80,7 @@ model Game {
 model Channel {
 	id			String			@id @default(cuid())
 	name		String			@unique
-	type		ChannelType		@default(PUBLIC)
+	status		ChannelType		@default(PUBLIC)
 	password	String?
 	usersCount	Int				@default(1)
 

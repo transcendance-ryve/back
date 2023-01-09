@@ -12,7 +12,7 @@ export class JoinChannelDto {
 
 	@IsString()
 	@IsNotEmpty()
-	type: ChannelType;
+	status: ChannelType;
 
 	@IsString()
 	@IsOptional()

@@ -12,7 +12,7 @@ export class EditChannelDto {
 
 	@IsString()
 	@IsOptional()
-	type?: ChannelType;
+	status?: ChannelType;
 
 	@IsString()
 	@IsOptional()
