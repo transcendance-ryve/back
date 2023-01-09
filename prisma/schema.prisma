@@ -45,6 +45,8 @@ model User {
 	chanActionTarget	ChannelAction[]		@relation("channelActionsTarget")
 	chanInvitations		ChannelInvitation[]	@relation("userInvites")
 
+	userBlocked			blockedUser[]			@relation("blockedUsers")
+	userBlockedBy		blockedUser[]			@relation("blockedBy")
 	@@map("users")
 }
 
@@ -61,6 +63,19 @@ model Friendship {
 
 	@@unique([sender_id, receiver_id])
 	@@map("friendships")
+}
+
+model blockedUser {
+	id				String          @id @default(cuid())
+	
+	user			User           	@relation("blockedUsers", fields: [userId], references: [id], onDelete: Cascade)
+	userId			String
+	
+	blocked			User            @relation("blockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+	blockedId		String  
+	
+	@@unique([userId, blockedId])
+	@@map("blocked_users")
 }
 
 model Game {

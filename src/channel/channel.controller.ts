@@ -25,6 +25,12 @@ export class ChannelController {
 		return this.channelService.getChannelsByUserId(currentUser.id);
 	}
 
+	@Get('blockedUser')
+	getBlockedUsers(
+		@GetCurrentUser() currentUser: JwtPayloadDto
+	) {
+		return this.channelService.getBlockedUsers(currentUser.id);
+	}
 	//return a channel by id
 	@Get(':id')
 	getChannelById(@Param('id') id: string) {

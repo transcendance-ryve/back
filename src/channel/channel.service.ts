@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { Channel, ChannelUser, User, Message, ChannelType, ChannelInvitation, ChannelAction } from '@prisma/client';
+import {
+	Channel,
+	ChannelUser,
+	User,
+	Message,
+	ChannelType,
+	ChannelInvitation,
+	ChannelAction,
+	blockedUser,
+} from '@prisma/client';
 import {
 	CreateChannelDto,
 	DirectMessageDto,
@@ -218,6 +227,32 @@ export class ChannelService {
 			return error.message;
 		}
 	}
+
+	async getBlockedUsers(userId: string) {
+		try {
+			const blockedUsers: {
+				blocked: {
+					id: string;
+					username: string;
+				};
+			}[] = await this.prisma.blockedUser.findMany({
+				where: {
+					userId: userId,
+				},
+				select: {
+					blocked: {
+						select: {
+							id: true,
+							username: true,
+						},
+					},
+				},
+			});
+			return blockedUsers;
+		} catch (error) {
+			return error.message;
+		}
+	}
 	//Actions
 	async connectToChannel(
 		userId: string,
@@ -312,6 +347,10 @@ export class ChannelService {
 		clientSocket: Socket,
 	) {
 		try {
+			const isBlocked : boolean = await this.isBlocked(dto.friendId, userId);
+			if (isBlocked) {
+				throw new Error('You are blocked by this user');
+			}
 			const newDMChannel: Channel = await this.prisma.channel.create({
 				data: {
 					name: userId + dto.friendId,
@@ -339,6 +378,8 @@ export class ChannelService {
 			console.log(err);
 			if (err.code === 'P2002')
 				return 'Channel name already exists';
+			else if(err)
+				return err.message;
 			return 'Internal server error: error creating channel';
 		}
 	}
@@ -898,8 +939,62 @@ export class ChannelService {
 			return 'Internal server error: error unbanning user';
 		}
 	}
-	// utils
 
+	async blockUser(
+		userId: string,
+		blockedUserId: string,
+	) {
+		try {
+			const isBlocked: blockedUser | null = await this.prisma.blockedUser.findFirst({
+				where: {
+					userId: userId,
+					blockedId: blockedUserId,
+				},
+			});
+			if (isBlocked != null)
+				throw new Error('User is already blocked');
+			const blockedUser: blockedUser | null =
+			await this.prisma.blockedUser.create({
+				data: {
+					userId: userId,
+					blockedId: blockedUserId,
+				},
+			});
+			return blockedUser;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error blocking user';
+		}
+	}
+
+	async unblockUser(
+		userId: string,
+		blockedUserId: string,
+	) {
+		try {
+			const isBlocked: blockedUser | null = await this.prisma.blockedUser.findFirst({
+				where: {
+					userId: userId,
+					blockedId: blockedUserId,
+				},
+			});
+			if (isBlocked == null)
+				throw new Error('User is not blocked');
+			const unblockedUser: blockedUser | null =
+			await this.prisma.blockedUser.delete({
+				where: {
+					id: isBlocked.id,
+				},
+			});
+			return unblockedUser;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error unblocking user';
+		}
+	}
+	// utils
 	async isChannel(channelId: string) {
 		const channel: Channel | null = await this.prisma.channel.findUnique({
 			where: {
@@ -979,6 +1074,21 @@ export class ChannelService {
 			},
 		});
 		if (isBanned != null)
+			return true;
+		return false;
+	}
+
+	async isBlocked(
+		userId: string,
+		blockedUserId: string,
+	) {
+		const isBlocked: blockedUser | null = await this.prisma.blockedUser.findFirst({
+			where: {
+				userId: userId,
+				blockedId: blockedUserId,
+			},
+		});
+		if (isBlocked != null)
 			return true;
 		return false;
 	}
