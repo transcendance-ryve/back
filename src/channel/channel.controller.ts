@@ -30,12 +30,12 @@ export class ChannelController {
 	}
 
 	//Return all the channels of a user
-	@Get('ofUser')
+	@Get('of/User')
 	getChannelsOfUser(
 		@GetCurrentUser() currentUser: JwtPayloadDto
 	) {
-		console.log("sa marche?");
-		console.log(currentUser.id);
+		//console.log("sa marche?");
+		//console.log(currentUser.id);
 		return this.channelService.getChannelsByUserId(currentUser.id);
 	}
 
