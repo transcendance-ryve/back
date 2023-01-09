@@ -300,7 +300,7 @@ export class UsersService {
 		id: Prisma.UserWhereUniqueInput['id'],
 		target: Prisma.UserWhereUniqueInput['id'],
 		selected?: string
-	) : Promise<{user: Partial<User>, status: InviteStatus}> {
+	) : Promise<{ user: Partial<User>, status: InviteStatus, sender: string }> {
 		const select: Prisma.UserSelect = selected?.split(',').reduce((acc, curr) => {
 			acc[curr] = true;
 			return acc;
@@ -325,7 +325,7 @@ export class UsersService {
 				throw new NotFoundException('User not found');
 			
 			delete user.password;
-			return { user, status: friendStatus ? friendStatus.status : InviteStatus.NONE };
+			return { user, status: friendStatus ? friendStatus.status : InviteStatus.NONE, sender: friendStatus?.sender_id || undefined };
         } catch(err) {
 			if (err instanceof NotFoundException)
 				throw err;
@@ -337,7 +337,7 @@ export class UsersService {
 		id: Prisma.UserWhereUniqueInput['id'],
 		search?: string,
 		selected?: string
-	) : Promise<{ users: { user: Partial<User>, status: InviteStatus }[], count: number }> {
+	) : Promise<{ users: { user: Partial<User>, status: InviteStatus, sender: string }[], count: number }> {
 		const select: Prisma.UserSelect = selected?.split(',').reduce((acc, curr) => {
 			acc[curr] = true;
 			return acc;
@@ -356,37 +356,26 @@ export class UsersService {
 
 			const count = await this._prismaService.user.count({
 				where: {
-					OR: [
-						{ username: { contains: search } },
-						{ email: { contains: search } }
-					]
+					username: { contains: search }
 				}
 			});
 
 			const friends = await this._prismaService.friendship.findMany({
 				where: {
 					OR: [
-						{ sender
-							: { id },
+						{
+							sender: { id },
 							receiver: { id: { in: users.map(user => user.id) } }
 						},
-						{ sender
-							: { id: { in: users.map(user => user.id) } },
+						{
+							sender: { id: { in: users.map(user => user.id) } },
 							receiver: { id }
 						}
 					]
 				},
 				select: {
-					sender: {
-						select: {
-							id: true
-						}
-					},
-					receiver: {
-						select: {
-							id: true
-						}
-					},
+					sender: { select: { id: true } },
+					receiver: { select: { id: true } },
 					status: true
 				}
 				
@@ -401,10 +390,10 @@ export class UsersService {
 				});
 
 				delete user.password;
-				return { user, status: friendStatus ? friendStatus.status : InviteStatus.NONE };
+				return { user, status: (friendStatus ? friendStatus.status : InviteStatus.NONE), sender: (friendStatus?.sender.id || undefined) };
 			});
 
-			return { users: usersWithRelationship, count };
+			return { users: usersWithRelationship, count: (count - 1) };
 		} catch(err) {
 			throw new InternalServerErrorException('Internal server error');
 		}

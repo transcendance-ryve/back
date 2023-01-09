@@ -1,6 +1,6 @@
 _type: export
 __export_format: 4
-__export_date: 2023-01-05T23:04:21.092Z
+__export_date: 2023-01-09T08:57:05.752Z
 __export_source: insomnia.desktop.app:v2022.7.0
 resources:
   - _id: req_2d23e598e37a461ba0263549f02bdfba
@@ -44,7 +44,7 @@ resources:
     _type: workspace
   - _id: req_661c97bef27545b782dd231d7b991c1d
     parentId: fld_8a52976aeed343eeba5fb204193d5b2f
-    modified: 1672938459358
+    modified: 1673018777132
     created: 1672932326386
     url: "{{ _.base_url }}{{ _.auth }}/{{ _.tfa }}/verify"
     name: Verify
@@ -54,7 +54,7 @@ resources:
     parameters:
       - id: pair_ac9735efbe9f4f1c9f6631303a17039f
         name: code
-        value: "792413"
+        value: "792005"
         description: ""
     headers: []
     authentication: {}
@@ -90,7 +90,7 @@ resources:
     _type: request
   - _id: req_1e26423a64034b5488784acf59ae7837
     parentId: fld_8a52976aeed343eeba5fb204193d5b2f
-    modified: 1672938512973
+    modified: 1673018781071
     created: 1672932358162
     url: "{{ _.base_url }}{{ _.auth }}/{{ _.tfa }}/toggle"
     name: Toggle
@@ -100,7 +100,7 @@ resources:
     parameters:
       - id: pair_63274c8ef5fe4f4f95fe59742a950b12
         name: code
-        value: "942471"
+        value: "792005"
         description: ""
     headers: []
     authentication: {}
@@ -115,15 +115,28 @@ resources:
     _type: request
   - _id: req_d4b0c735dde04886ab53ec7e53575a30
     parentId: fld_8a52976aeed343eeba5fb204193d5b2f
-    modified: 1672932435533
+    modified: 1673019613010
     created: 1672932382023
     url: "{{ _.base_url }}{{ _.auth }}/{{ _.tfa }}/callback"
     name: Callback
     description: ""
     method: POST
-    body: {}
-    parameters: []
-    headers: []
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"id": "clckoklhi0000vhohivbcmh7m",
+        	"token": "69848331e98a160051b29b90d74855ccb9ec0b56",
+        	"code": "915404"
+        }
+    parameters:
+      - id: pair_605a29f30e144a1692adf6b0db6610fb
+        name: ""
+        value: ""
+        description: ""
+    headers:
+      - name: Content-Type
+        value: application/json
     authentication: {}
     metaSortKey: -1672931692708
     isPrivate: false
@@ -134,23 +147,19 @@ resources:
     settingRebuildPath: true
     settingFollowRedirects: global
     _type: request
-  - _id: req_89cb17641bee4dce914c262aefd73aaa
+  - _id: req_2036b5fe2e194dfd9eaa05be960de678
     parentId: fld_d1c90e81bedb4e909532f55d79e28ffd
-    modified: 1672934428679
-    created: 1672701062569
-    url: "{{ _.base_url }}{{ _.users }}/{{ _.friends }}/clcj9ujuo0002vhexinucgnwu"
-    name: Get user with relationship
+    modified: 1673254550723
+    created: 1673254517292
+    url: "{{ _.base_url }}{{ _.users }}/friends/clcojxfq00006vhclk2n1cse9"
+    name: Decline friend request
     description: ""
-    method: GET
+    method: DELETE
     body: {}
-    parameters:
-      - id: pair_b087149f3cbd461286d72deb4c20b924
-        name: select
-        value: username
-        description: ""
+    parameters: []
     headers: []
     authentication: {}
-    metaSortKey: -1671304285154
+    metaSortKey: -1673254517292
     isPrivate: false
     settingStoreCookies: true
     settingSendCookies: true
@@ -169,6 +178,57 @@ resources:
     environmentPropertyOrder: null
     metaSortKey: -1672244024544
     _type: request_group
+  - _id: req_fb25c72505d14c5ca2df3ec3e99a9fdc
+    parentId: fld_d1c90e81bedb4e909532f55d79e28ffd
+    modified: 1673253631194
+    created: 1673219063146
+    url: "{{ _.base_url }}{{ _.users }}/{{ _.friends }}/relationship"
+    name: Get users with relationship
+    description: ""
+    method: GET
+    body: {}
+    parameters:
+      - id: pair_ddd31695d6dd4445985ccd80f9314308
+        name: select
+        value: ""
+        description: ""
+        disabled: false
+    headers: []
+    authentication: {}
+    metaSortKey: -1673219063146
+    isPrivate: false
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
+  - _id: req_89cb17641bee4dce914c262aefd73aaa
+    parentId: fld_d1c90e81bedb4e909532f55d79e28ffd
+    modified: 1673254503873
+    created: 1672701062569
+    url: "{{ _.base_url }}{{ _.users }}/{{ _.friends }}/clcojw8hi0000vhcl7f7u0jk6"
+    name: Get user with relationship
+    description: ""
+    method: GET
+    body: {}
+    parameters:
+      - id: pair_b087149f3cbd461286d72deb4c20b924
+        name: select
+        value: username,id
+        description: ""
+    headers: []
+    authentication: {}
+    metaSortKey: -1671304285154
+    isPrivate: false
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
   - _id: req_f48897bef2c74b8c8d85aa23d00cbe25
     parentId: fld_d1c90e81bedb4e909532f55d79e28ffd
     modified: 1672931760602
@@ -215,9 +275,9 @@ resources:
     _type: request
   - _id: req_2b3ec5247bfb45e28db313384371fb8c
     parentId: fld_d1c90e81bedb4e909532f55d79e28ffd
-    modified: 1672934414960
+    modified: 1673253481798
     created: 1671549142886
-    url: "{{ _.base_url }}{{ _.users }}/{{ _.friends }}/clcj9ujuo0002vhexinucgnwu"
+    url: "{{ _.base_url }}{{ _.users }}/{{ _.friends }}/clcojwdxl0002vhclurbjxiz9"
     name: Accept friend request
     description: ""
     method: PUT
@@ -236,9 +296,9 @@ resources:
     _type: request
   - _id: req_6ba560e59fe942d68a2fd0b18f57fcc4
     parentId: fld_d1c90e81bedb4e909532f55d79e28ffd
-    modified: 1672934242806
+    modified: 1673254298043
     created: 1671549130794
-    url: "{{ _.base_url }}{{ _.users }}/{{ _.friends }}/clcj93stc0000vhex9evn8ta6"
+    url: "{{ _.base_url }}{{ _.users }}/{{ _.friends }}/clcojxfq00006vhclk2n1cse9"
     name: Send friend request
     description: ""
     method: POST
@@ -545,7 +605,7 @@ resources:
     _type: request_group
   - _id: req_1526856f178248c1812e37482d68c39d
     parentId: fld_104ff99ef6774d619e7d7ddae67c122a
-    modified: 1672938308949
+    modified: 1673253493628
     created: 1671222584721
     url: "{{ _.base_url }}{{ _.auth }}/register"
     name: Register
@@ -555,9 +615,9 @@ resources:
       mimeType: application/json
       text: |-
         {
-        	"email": "a@gmail.com",
+        	"email": "c@gmail.com",
         	"password": "azerty",
-        	"username": "a"
+        	"username": "c"
         }
     parameters: []
     headers:
@@ -575,7 +635,7 @@ resources:
     _type: request
   - _id: req_8072debfd5594bbd990f3190c969f5fa
     parentId: fld_104ff99ef6774d619e7d7ddae67c122a
-    modified: 1672938532009
+    modified: 1673253475391
     created: 1671222557039
     url: "{{ _.base_url }}{{ _.auth }}/login"
     name: Login
@@ -585,7 +645,7 @@ resources:
       mimeType: application/json
       text: |-
         {
-        	"email": "a@gmail.com",
+        	"email": "b@gmail.com",
         	"password": "azerty"
         }
     parameters: []
@@ -626,18 +686,19 @@ resources:
     _type: environment
   - _id: jar_6b74bc9c74ca229714d7c1a23db9a4a6890ee1fc
     parentId: wrk_88b3850fec4d45189f45450731522424
-    modified: 1672938518701
+    modified: 1673253510678
     created: 1671197542004
     name: Default Jar
     cookies:
       - key: access_token
-        expires: 1970-01-01T00:00:00.000Z
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNsY29qdzhoaTAwMDB2aGNsN2Y3dTBqazYiLCJ1c2VybmFtZSI6ImIiLCJ0ZmFfc2VjcmV0IjoiRkFWWENXWkdKVTNSTUFZRiIsInRmYV9lbmFibGVkIjpmYWxzZSwiaWF0IjoxNjczMjUzNTEwfQ.54FxqrPZ3PpC69KBc5xXaksTxtFankzxgXYfpU_F_Kk
         domain: localhost
         path: /
+        httpOnly: true
         hostOnly: true
         creation: 2023-01-05T16:57:57.452Z
-        lastAccessed: 2023-01-05T17:08:38.700Z
-        id: "5247284597085518"
+        lastAccessed: 2023-01-09T08:38:30.678Z
+        id: "775089326351232"
     _type: cookie_jar
   - _id: spc_56bad5bc73444d968610752238a41764
     parentId: wrk_88b3850fec4d45189f45450731522424
