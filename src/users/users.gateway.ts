@@ -10,8 +10,8 @@ import { JwtService } from "@nestjs/jwt";
 @WebSocketGateway({
 	cors: {
 		origin: 'http://localhost:5173',
+		credentials: true,
 	},
-	credentials: true,
 })
 export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	constructor(

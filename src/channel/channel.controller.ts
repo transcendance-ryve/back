@@ -1,8 +1,10 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../users/guard/jwt.guard';
-import { ChannelActionType } from '@prisma/client';
+import { ChannelActionType, ChannelType } from '@prisma/client';
 import { ChannelService } from './channel.service';
 import { GetCurrentUserId } from 'src/decorators/user.decorator';
+import { GetCurrentUser } from 'src/decorators/user.decorator';
+import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
 
 
 @UseGuards(JwtAuthGuard)
@@ -10,7 +12,7 @@ import { GetCurrentUserId } from 'src/decorators/user.decorator';
 export class ChannelController {
 	constructor(private readonly channelService: ChannelService) {}
 
-	@Get()
+	@Get('list')
 	getChannels() {
 		return this.channelService.getChannels();
 	}
@@ -28,9 +30,13 @@ export class ChannelController {
 	}
 
 	//Return all the channels of a user
-	@Get('byUser/:userId')
-	getChannelsOfUser(@Param('userId') userId: string) {
-		return this.channelService.getChannelsByUserId(userId);
+	@Get('ofUser')
+	getChannelsOfUser(
+		@GetCurrentUser() currentUser: JwtPayloadDto
+	) {
+		console.log("sa marche?");
+		console.log(currentUser.id);
+		return this.channelService.getChannelsByUserId(currentUser.id);
 	}
 
 	@Get("messages/:channelId")

@@ -30,8 +30,8 @@ import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 @WebSocketGateway({
 	cors: {
 		origin: '*',
+		credentials: true,
 	},
-	credentials: true,
 })
 @UseGuards(JwtAuthGuard)
 export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
