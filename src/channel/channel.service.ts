@@ -191,6 +191,33 @@ export class ChannelService {
 		}
 	}
 
+	async getMutedUsersOfChannel(channelId: string) {
+		try {
+			await this.isChannel(channelId);
+			const mutedUsers: {
+				target: {
+					id: string;
+					username: string;
+				};
+			}[] = await this.prisma.channelAction.findMany({
+				where: {
+					channelId: channelId,
+					type: 'MUTE',
+				},
+				select: {
+					target: {
+						select: {
+							id: true,
+							username: true,
+						},
+					},
+				},
+			});
+			return mutedUsers;
+		} catch (error) {
+			return error.message;
+		}
+	}
 	//Actions
 	async connectToChannel(
 		userId: string,
@@ -413,6 +440,9 @@ export class ChannelService {
 	) {
 		try {
 			await this.isChannel(messageInfo.channelId);
+			const isMuted : boolean = await this.isMute(userId, messageInfo.channelId);
+			if (isMuted === true)
+				throw new Error('You are muted');
 			const messageObj: { messages: Message[] } =
 				await this.prisma.channel.update({
 					where: {
@@ -431,9 +461,11 @@ export class ChannelService {
 					},
 				});
 				console.log(messageInfo.content);
-			return messageObj.messages[messageObj.messages.length - 1];
+			return messageObj.messages;
 		} catch (err) {
-			console.log("err", err);
+			//console.log("err", err);
+			if (err)
+				return (err.message as string);
 			return 'Internal server error: error storing message';
 		}
 	}
@@ -715,7 +747,7 @@ export class ChannelService {
 		}
 	}
 
-	/*async muteUser(
+	async muteUser(
 		userId: string,
 		dto: ModerateUserDto,
 	) {
@@ -731,13 +763,15 @@ export class ChannelService {
 			});
 			if (isMuted != null)
 				throw new Error('User is already muted');
+			const MueDurationInMs = 600 * 1000;
+			const MuteExpiration = new Date(Date.now() + MueDurationInMs);
 			const mutedUser: ChannelAction | null =
 			await this.prisma.channelAction.create({
 				data: {
 					senderId: userId,
 					targetId: dto.targetId,
 					channelId: dto.channelId,
-					channelActionTime: new Date(),
+					channelActionTime: MuteExpiration,
 					type: 'MUTE',
 				},
 			});
@@ -747,7 +781,7 @@ export class ChannelService {
 				return err.message;
 			return 'Internal server error: error muting user';
 		}
-	}*/
+	}
 	// utils
 
 	async isChannel(channelId: string) {
@@ -791,5 +825,30 @@ export class ChannelService {
 		}
 	}
 
+	async isMute(
+		userId: string,
+		channelId: string,
+	) {
+		const isMuted: ChannelAction | null = await this.prisma.channelAction.findFirst({
+			where: {
+				targetId: userId,
+				channelId: channelId,
+				type: 'MUTE',
+			},
+		});
+		if (isMuted != null && isMuted.channelActionTime <= new Date(Date.now()))
+		{
+			await this.prisma.channelAction.delete({
+				where: {
+					id: isMuted.id,
+				},
+			});
+			return false;
+		}
+
+		if (isMuted != null)
+			return true;
+		return false;
+	}
 
 }

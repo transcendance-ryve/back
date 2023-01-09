@@ -12,9 +12,17 @@ import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
 export class ChannelController {
 	constructor(private readonly channelService: ChannelService) {}
 
-	@Get('list')
+	@Get()
 	getChannels() {
 		return this.channelService.getChannels();
+	}
+
+	//Return all the channels of a user
+	@Get('ofUser')
+	getChannelsOfUser(
+		@GetCurrentUser() currentUser: JwtPayloadDto
+	) {
+		return this.channelService.getChannelsByUserId(currentUser.id);
 	}
 
 	//return a channel by id
@@ -29,16 +37,6 @@ export class ChannelController {
 		return this.channelService.getUsersOfChannel(channelId);
 	}
 
-	//Return all the channels of a user
-	@Get('of/User')
-	getChannelsOfUser(
-		@GetCurrentUser() currentUser: JwtPayloadDto
-	) {
-		//console.log("sa marche?");
-		//console.log(currentUser.id);
-		return this.channelService.getChannelsByUserId(currentUser.id);
-	}
-
 	@Get("messages/:channelId")
 	getMessagesOfChannel(@Param('channelId') channelId: string) {
 		return this.channelService.getMessagesOfChannel(channelId);
@@ -50,7 +48,12 @@ export class ChannelController {
 	}
 
 	@Get('inviteByChannelId/:id')
-	getChannelInvitesByChannelId(@Param('id') id: string) {
-		return this.channelService.getChannelInvitesByChannel(id);
+	getChannelInvitesByChannelId(@Param('id') channelId: string) {
+		return this.channelService.getChannelInvitesByChannel(channelId);
+	}
+
+	@Get('muted/:id')
+	getMutedUsers(@Param('id') channelId: string) {
+		return this.channelService.getMutedUsersOfChannel(channelId);
 	}
 }

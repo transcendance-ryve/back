@@ -138,8 +138,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			messageInfo,
 		);
 
-		if (messageSaved === null) {
-			this.server.to(clientSocket.id).emit('messageRoomFailed');
+		if (typeof messageSaved === 'string' || !messageSaved) {
+			this.server.to(clientSocket.id).emit('messageRoomFailed', messageSaved);
 			return false;
 		} else {
 			clientSocket.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
@@ -258,7 +258,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		}
 	}
 
-	/*@SubscribeMessage('muteUser')
+	@SubscribeMessage('muteUser')
 	async muteUser(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('muteInfo') muteInfo: ModerateUserDto,
@@ -273,5 +273,5 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		} else {
 			this.server.to(clientSocket.id).emit('userMuted');
 		}
-	}*/
+	}
 }
