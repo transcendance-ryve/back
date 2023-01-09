@@ -78,7 +78,7 @@ export class UsersController {
 		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Query('search') search: string,
 		@Query('select') select: string
-	): Promise<{ users: { user: Partial<User>, status: InviteStatus }[], count: number }> {
+	): Promise<{ users: { user: Partial<User>, status: InviteStatus, sender: string }[], count: number }> {
 		return this._usersService.getUsersWithRelationship(
 			currentUser.id,
 			search,
@@ -91,7 +91,7 @@ export class UsersController {
 		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Param('id') friendId: string,
 		@Query('select') select: string
-	): Promise<{user: Partial<User>, status: InviteStatus}> {
+	): Promise<{ user: Partial<User>, status: InviteStatus, sender: string }> {
 		return this._usersService.getUserWithRelationship(currentUser.id, friendId, select);
 	}
 
