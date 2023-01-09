@@ -47,6 +47,11 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		console.log('user disconnected');
 	}
 
+	@SubscribeMessage('ping')
+	async ping(@ConnectedSocket() clientSocket: Socket) {
+		this.server.to(clientSocket.id).emit('pong');
+	}
+
 	@SubscribeMessage('connectToRoom')
 	async connectToChannel(
 		@GetCurrentUserId() userId: string,

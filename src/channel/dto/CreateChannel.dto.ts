@@ -12,9 +12,5 @@ export class CreateChannelDto {
 
 	@IsString()
 	@IsOptional()
-	userId?: string;
-
-	@IsString()
-	@IsOptional()
 	password?: string;
 }
