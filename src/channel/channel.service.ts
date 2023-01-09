@@ -782,6 +782,38 @@ export class ChannelService {
 			return 'Internal server error: error muting user';
 		}
 	}
+
+	async unmuteUser(
+		userId: string,
+		dto: ModerateUserDto,
+	) {
+		try {
+			const check = await this.checkIsValideModeration(userId, dto);
+			if (check != true)
+				throw new Error(check);
+			const isMuted: ChannelAction | null = await this.prisma.channelAction.findFirst({
+				where: {
+					targetId: dto.targetId,
+					channelId: dto.channelId,
+					type: 'MUTE',
+				},
+			});
+			if (isMuted == null)
+				throw new Error('User is not muted');
+			const unmutedUser: ChannelAction | null =
+			await this.prisma.channelAction.delete({
+				where: {
+					id: isMuted.id,
+				},
+			});
+			return unmutedUser;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error unmuting user';
+		}
+	}
+
 	// utils
 
 	async isChannel(channelId: string) {

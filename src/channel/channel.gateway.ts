@@ -274,4 +274,21 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this.server.to(clientSocket.id).emit('userMuted');
 		}
 	}
+
+	@SubscribeMessage('unmuteUser')
+	async unmuteUser(
+		@GetCurrentUserId() userId: string,
+		@MessageBody('muteInfo') muteInfo: ModerateUserDto,
+		@ConnectedSocket() clientSocket: Socket,
+	) {
+		const userMuted = await this.channelService.unmuteUser(
+			userId,
+			muteInfo,
+		);
+		if (typeof userMuted === 'string' || !userMuted) {
+			this.server.to(clientSocket.id).emit('unmuteUserFailed', userMuted);
+		} else {
+			this.server.to(clientSocket.id).emit('userUnmuted');
+		}
+	}
 }
