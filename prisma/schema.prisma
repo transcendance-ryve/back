@@ -143,21 +143,21 @@ model ChannelUser {
 }
 
 model ChannelAction {
-	id				String				@id @default(cuid())
-	sender			User 				@relation("channelActionsSender", fields: [senderId], references: [id], onDelete: Cascade)
-	senderId		String
-	
-	target			User 				@relation("channelActionsTarget", fields: [targetId], references: [id], onDelete: Cascade)
-	targetId		String
+	id					String				@id @default(cuid())
+	sender				User 				@relation("channelActionsSender", fields: [senderId], references: [id], onDelete: Cascade)
+	senderId			String
 
-	channel			Channel				@relation("channelActions", fields: [channelId], references: [id], onDelete: Cascade)
-	channelId		String
+	target				User 				@relation("channelActionsTarget", fields: [targetId], references: [id], onDelete: Cascade)
+	targetId			String
 
-	channelActionTime					DateTime
-	type								ChannelActionType
+	channel				Channel				@relation("channelActions", fields: [channelId], references: [id], onDelete: Cascade)
+	channelId			String
 
-	created					DateTime	@default(now())
-	updatedAt				DateTime	@updatedAt
+	channelActionTime	DateTime?
+	type				ChannelActionType
+
+	created				DateTime	@default(now())
+	updatedAt			DateTime	@updatedAt
 
 	@@unique([channelId, targetId, type])
 	@@map("channel_actions")

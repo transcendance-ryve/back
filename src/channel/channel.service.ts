@@ -349,6 +349,9 @@ export class ChannelService {
 		clientSocket: Socket,
 	) {
 		try {
+			const isBanned: boolean = await this.isBanned(userId, channelDto.channelId);
+			if (isBanned)
+				throw new Error('Error: User is banned');
 			if (channelDto.status === 'PRIVATE') {
 				const isInvited: ChannelInvitation | null = await this.prisma.channelInvitation.findFirst({
 					where: {
@@ -409,7 +412,6 @@ export class ChannelService {
 			const joinedChannel: Channel = await this.prisma.channel.update({
 				where: {
 					id: channelDto.channelId,
-					name: channelDto.name,
 				},
 				data: {
 					users: {
@@ -536,7 +538,7 @@ export class ChannelService {
 			if (user == null)
 				throw new Error('User not found');
 				await this.isChannel(dto.channelId);
-				//Check if user is already in channel
+			//Check if user is already in channel
 			const channelUser: ChannelUser | null =
 				await this.prisma.channelUser.findUnique({
 					where: {
@@ -814,6 +816,88 @@ export class ChannelService {
 		}
 	}
 
+	async banUser(
+		userId: string,
+		dto: ModerateUserDto,
+	) {
+		try {
+			const check = await this.checkIsValideModeration(userId, dto);
+			if (check != true)
+				throw new Error(check);
+			const isBanned: ChannelAction | null = await this.prisma.channelAction.findFirst({
+				where: {
+					targetId: dto.targetId,
+					channelId: dto.channelId,
+					type: 'BAN',
+				},
+			});
+			if (isBanned != null)
+				throw new Error('User is already banned');
+			const bannedUser: ChannelAction | null =
+			await this.prisma.channelAction.create({
+				data: {
+					senderId: userId,
+					targetId: dto.targetId,
+					channelId: dto.channelId,
+					type: 'BAN',
+				},
+			});
+			await this.prisma.channelUser.delete({
+				where: {
+					userId_channelId: {
+						userId: dto.targetId,
+						channelId: dto.channelId,
+					},
+				},
+			});
+			await this.prisma.channel.update({
+				where: {
+					id: dto.channelId,
+				},
+				data: {
+					usersCount: {
+						decrement: 1,
+					},
+				},
+			});
+			return bannedUser;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error banning user';
+		}
+	}
+
+	async unbanUser(
+		userId: string,
+		dto: ModerateUserDto,
+	) {
+		try {
+			const check = await this.checkIsValideModeration(userId, dto);
+			if (check != true)
+				throw new Error(check);
+			const isBanned: ChannelAction | null = await this.prisma.channelAction.findFirst({
+				where: {
+					targetId: dto.targetId,
+					channelId: dto.channelId,
+					type: 'BAN',
+				},
+			});
+			if (isBanned == null)
+				throw new Error('User is not banned');
+			const unbannedUser: ChannelAction | null =
+			await this.prisma.channelAction.delete({
+				where: {
+					id: isBanned.id,
+				},
+			});
+			return unbannedUser;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error unbanning user';
+		}
+	}
 	// utils
 
 	async isChannel(channelId: string) {
@@ -883,4 +967,19 @@ export class ChannelService {
 		return false;
 	}
 
+	async isBanned(
+		userId: string,
+		channelId: string,
+	) {
+		const isBanned: ChannelAction | null = await this.prisma.channelAction.findFirst({
+			where: {
+				targetId: userId,
+				channelId: channelId,
+				type: 'BAN',
+			},
+		});
+		if (isBanned != null)
+			return true;
+		return false;
+	}
 }

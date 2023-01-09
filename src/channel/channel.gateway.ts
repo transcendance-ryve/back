@@ -291,4 +291,38 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this.server.to(clientSocket.id).emit('userUnmuted');
 		}
 	}
+
+	@SubscribeMessage('banUser')
+	async banUser(
+		@GetCurrentUserId() userId: string,
+		@MessageBody('banInfo') banInfo: ModerateUserDto,
+		@ConnectedSocket() clientSocket: Socket,
+	) {
+		const userBanned = await this.channelService.banUser(
+			userId,
+			banInfo,
+		);
+		if (typeof userBanned === 'string' || !userBanned) {
+			this.server.to(clientSocket.id).emit('banUserFailed', userBanned);
+		} else {
+			this.server.to(clientSocket.id).emit('userBanned');
+		}
+	}
+
+	@SubscribeMessage('unbanUser')
+	async unbanUser(
+		@GetCurrentUserId() userId: string,
+		@MessageBody('banInfo') banInfo: ModerateUserDto,
+		@ConnectedSocket() clientSocket: Socket,
+	) {
+		const userBanned = await this.channelService.unbanUser(
+			userId,
+			banInfo,
+		);
+		if (typeof userBanned === 'string' || !userBanned) {
+			this.server.to(clientSocket.id).emit('unbanUserFailed', userBanned);
+		} else {
+			this.server.to(clientSocket.id).emit('userUnbanned');
+		}
+	}
 }
