@@ -286,13 +286,7 @@ export class ChannelService {
 			if (dto.status === 'PROTECTED' && dto.password.length > 0) {
 				dto.password = await bcrypt.hash(dto.password, 10);
 			}
-			const users: User[]  | null = await this.prisma.user.findMany({
-				where: {
-					id: {
-						in: dto.users.id,
-					},
-				},
-			});
+
 			//try to create channel
 			const createdChannel: Channel = await this.prisma.channel.create({
 				data: {
@@ -305,27 +299,37 @@ export class ChannelService {
 					},
 				},
 			});
-			if(users != null)
-			{
-				//add users to channel
-				for (const user of users) {
-					await this.prisma.channelUser.create({
-						data: {
-							userId: user.id,
-							channelId: createdChannel.id,
-							role: 'MEMBER',
+			if (dto.users != null) {
+				//check if users exist
+				const users: User[]  | null = await this.prisma.user.findMany({
+					where: {
+						id: {
+							in: dto.users.id,
 						},
-					});
-					await this.prisma.channel.update({
-						where: {
-							id: createdChannel.id,
-						},
-						data: {
-							usersCount: {
-								increment: 1,
+					},
+				});
+				if(users != null)
+				{
+					//add users to channel
+					for (const user of users) {
+						await this.prisma.channelUser.create({
+							data: {
+								userId: user.id,
+								channelId: createdChannel.id,
+								role: 'MEMBER',
 							},
-						},
-					});
+						});
+						await this.prisma.channel.update({
+							where: {
+								id: createdChannel.id,
+							},
+							data: {
+								usersCount: {
+									increment: 1,
+								},
+							},
+						});
+					}
 				}
 			}
 			createdChannel.password = '';
