@@ -13,4 +13,8 @@ export class CreateChannelDto {
 	@IsString()
 	@IsOptional()
 	password?: string;
+
+	@IsString()
+	@IsOptional()
+	users?: { id: string[] };
 }
