@@ -35,6 +35,7 @@ import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { type } from 'os';
 
 
 @WebSocketGateway({
@@ -220,11 +221,10 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			userId,
 			inviteInfo,
 		);
-		console.log(channelInvite)
-		if (channelInvite != true) {
+		if (typeof channelInvite === 'string' || !channelInvite) {
 			this._server.to(clientSocket.id).emit('declineInvitationFailed');
 		} else {
-			this._server.to(clientSocket.id).emit('invitationDeclined', channelInvite);
+			this._server.to(clientSocket.id).emit('invitationDeclined', inviteInfo.channelId);
 		}
 	}
 
