@@ -1,5 +1,5 @@
 import { UseGuards } from "@nestjs/common";
-import { SubscribeMessage, WebSocketGateway } from "@nestjs/websockets";
+import { MessageBody, SubscribeMessage, WebSocketGateway } from "@nestjs/websockets";
 import { GetCurrentUserId } from "src/decorators/user.decorator";
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { MatchmakingService } from "./matchmaking.service";
@@ -15,35 +15,35 @@ export class GameGateway {
 	handleGetUsersInQueue(): number {
 		const usersInQueue = this._matchmakingService.count();
 
-		console.log(usersInQueue);
 		return usersInQueue;
 	}
 
-	@SubscribeMessage("join_matchmaking")
+	@SubscribeMessage("join_queue")
 	handleJoinMatchmaking(
 		@GetCurrentUserId() currentID: string,
 	): void {
 		this._matchmakingService.join(currentID);
 	}
 
-	@SubscribeMessage("leave_matchmaking")
+	@SubscribeMessage("left_queue")
 	handleLeaveMatchmaking(
 		@GetCurrentUserId() currentID: string,
 	): void {
 		this._matchmakingService.leave(currentID);
 	}
 
-	@SubscribeMessage("accept_game")
+	@SubscribeMessage("accept_game_request")
 	handleAcceptGame(
 		@GetCurrentUserId() currentID: string
 	): void {
 		this._matchmakingService.acceptGameRequest(currentID);
 	}
 
-	@SubscribeMessage("decline_game")
+	@SubscribeMessage("decline_game_request")
 	handleDeclineGame(
-		@GetCurrentUserId() currentID: string
+		@GetCurrentUserId() currentID: string,
+		@MessageBody('matchmaking') matchmaking: boolean = true
 	): void {
-		this._matchmakingService.declineGameRequest(currentID, true);
+		this._matchmakingService.declineGameRequest(currentID, matchmaking);
 	}
 }
