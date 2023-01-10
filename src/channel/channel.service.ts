@@ -293,7 +293,6 @@ export class ChannelService {
 		dto: CreateChannelDto,
 		userId: string,
 		clientSocket: Socket,
-		server: Server,
 	) {
 		//throw error if channel name is empty
 		try {
@@ -349,9 +348,8 @@ export class ChannelService {
 									},
 								},
 							});
-							await server
-							.to(UserIdToSockets.get(user.id).id)
-							.emit('roomCreated', createdChannel.id);
+							let userSocket: Socket = UserIdToSockets.get(user.id);
+							userSocket.join(createdChannel.id);
 						}
 					}
 				}
