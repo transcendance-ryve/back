@@ -23,7 +23,13 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtAuthGuard } from '../users/guard/jwt.guard';
-import { Req, UseGuards, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import {
+	Req,
+	UseGuards,
+	UploadedFile,
+	UseInterceptors,
+	BadRequestException
+} from '@nestjs/common';
 import { GetCurrentUserId } from '../decorators/user.decorator';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -40,7 +46,7 @@ import { extname } from 'path';
 @UseGuards(JwtAuthGuard)
 export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	@WebSocketServer()
-	server: Server;
+	_server: Server;
 	constructor (private readonly channelService: ChannelService) {}
 
 	async handleConnection(
@@ -57,7 +63,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
 	@SubscribeMessage('ping')
 	async ping(@ConnectedSocket() clientSocket: Socket) {
-		this.server.to(clientSocket.id).emit('pong');
+		this._server.to(clientSocket.id).emit('pong');
 	}
 
 	@SubscribeMessage('connectToRoom')
@@ -72,14 +78,14 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			clientSocket,
 		);
 		if (userOnChannel != null) {
-			this.server.to(clientSocket.id).emit('connectedToRoom', channelId);
+			this._server.to(clientSocket.id).emit('connectedToRoom', channelId);
 		} else {
-			this.server.to(clientSocket.id).emit('connectToRoomFailed');
+			this._server.to(clientSocket.id).emit('connectToRoomFailed');
 		}*/
 		console.log('connectToRoom called');
 	}
 
-	@SubscribeMessage('createRoom')
+	/*@SubscribeMessage('createRoom')
 	@UseInterceptors(
         FileInterceptor('image', {
             storage: diskStorage({
@@ -125,12 +131,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			avatar,
 		);
 		if (typeof channel === 'string' || !channel) {
-			this.server.to(clientSocket.id).emit('createRoomFailed', channel);
+			this._server.to(clientSocket.id).emit('createRoomFailed', channel);
 		} else {
-			//this.server.emit('roomCreated', channel.id);
-			this.server.to(clientSocket.id).emit('roomCreated', channel.id);
+			//this._server.emit('roomCreated', channel.id);
+			this._server.to(clientSocket.id).emit('roomCreated', channel.id);
 		}
-	}
+	}*/
 
 	@SubscribeMessage('DM')
 	async createDirectMessage(
@@ -145,9 +151,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			clientSocket,
 		);
 		if (typeof channel === 'string' || !channel) {
-			this.server.to(clientSocket.id).emit('DMFailed', channel);
+			this._server.to(clientSocket.id).emit('DMFailed', channel);
 		} else {
-			this.server.emit('DMCreated', channel.id, userId);
+			this._server.emit('DMCreated', channel.id, userId);
 		}
 	}
 	
@@ -163,9 +169,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			clientSocket,
 		);
 		if (typeof joinedRoom === 'string' || !joinedRoom) {
-			this.server.to(clientSocket.id).emit('joinRoomFailed', joinedRoom);
+			this._server.to(clientSocket.id).emit('joinRoomFailed', joinedRoom);
 		} else {
-			this.server.to(dto.channelId).emit('roomJoined', joinedRoom.id, userId);
+			this._server.to(dto.channelId).emit('roomJoined', joinedRoom.id, userId);
 		}
 	}
 
@@ -182,11 +188,11 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		);
 
 		if (typeof messageSaved === 'string' || !messageSaved) {
-			this.server.to(clientSocket.id).emit('messageRoomFailed', messageSaved);
+			this._server.to(clientSocket.id).emit('messageRoomFailed', messageSaved);
 			return false;
 		} else {
 			console.log("ici");
-			this.server.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
+			this._server.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
 			return true;
 		}
 	}
@@ -203,10 +209,10 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			channelId,
 		);
 		if (!userLeaving || typeof userLeaving === 'string') {
-			this.server.to(clientSocket.id).emit('leaveRoomFailed', userLeaving);
+			this._server.to(clientSocket.id).emit('leaveRoomFailed', userLeaving);
 		} else {
-			this.server.to(channelId).emit('roomLeft', userId);
-			this.server.to(clientSocket.id).emit('roomLeft');
+			this._server.to(channelId).emit('roomLeft', userId);
+			this._server.to(clientSocket.id).emit('roomLeft');
 			await clientSocket.leave(channelId);
 		}
 	}
@@ -222,10 +228,10 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			inviteInfo,
 		);
 		if (typeof channelInvite === 'string' || !channelInvite) {
-			this.server.to(clientSocket.id).emit('inviteToRoomFailed', channelInvite);
+			this._server.to(clientSocket.id).emit('inviteToRoomFailed', channelInvite);
 		} else {
-			this.server.to(clientSocket.id).emit('invitationSent');
-			this.server
+			this._server.to(clientSocket.id).emit('invitationSent');
+			this._server
 				.to(UserIdToSockets.get(inviteInfo.friendId).id)
 				.emit('chanInvitationReceived', channelInvite);
 		}
@@ -243,9 +249,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			clientSocket,
 		);
 		if (typeof channelInvite === 'string' || !channelInvite) {
-			this.server.to(clientSocket.id).emit('acceptInvitationFailed', channelInvite);
+			this._server.to(clientSocket.id).emit('acceptInvitationFailed', channelInvite);
 		} else {
-			this.server.to(clientSocket.id).emit('invitationAccepted');
+			this._server.to(clientSocket.id).emit('invitationAccepted');
 		}
 	}
 
@@ -260,9 +266,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			inviteInfo,
 		);
 		if (channelInvite != true) {
-			this.server.to(clientSocket.id).emit('declineInvitationFailed');
+			this._server.to(clientSocket.id).emit('declineInvitationFailed');
 		} else {
-			this.server.to(clientSocket.id).emit('invitationDeclined', channelInvite);
+			this._server.to(clientSocket.id).emit('invitationDeclined', channelInvite);
 		}
 	}
 
@@ -277,9 +283,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			roleInfo,
 		);
 		if (typeof roleUpdated === 'string' || !roleUpdated) {
-			this.server.to(clientSocket.id).emit('updateRoleFailed', roleUpdated);
+			this._server.to(clientSocket.id).emit('updateRoleFailed', roleUpdated);
 		} else {
-			this.server.to(clientSocket.id).emit('roleUpdated');
+			this._server.to(clientSocket.id).emit('roleUpdated');
 		}
 	}
 
@@ -294,9 +300,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			editInfo,
 		);
 		if (typeof channelEdited === 'string' || !channelEdited) {
-			this.server.to(clientSocket.id).emit('editRoomFailed', channelEdited);
+			this._server.to(clientSocket.id).emit('editRoomFailed', channelEdited);
 		} else {
-			this.server.to(clientSocket.id).emit('roomEdited');
+			this._server.to(clientSocket.id).emit('roomEdited');
 		}
 	}
 
@@ -311,9 +317,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			muteInfo,
 		);
 		if (typeof userMuted === 'string' || !userMuted) {
-			this.server.to(clientSocket.id).emit('muteUserFailed', userMuted);
+			this._server.to(clientSocket.id).emit('muteUserFailed', userMuted);
 		} else {
-			this.server.to(clientSocket.id).emit('userMuted');
+			this._server.to(clientSocket.id).emit('userMuted');
 		}
 	}
 
@@ -328,9 +334,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			muteInfo,
 		);
 		if (typeof userMuted === 'string' || !userMuted) {
-			this.server.to(clientSocket.id).emit('unmuteUserFailed', userMuted);
+			this._server.to(clientSocket.id).emit('unmuteUserFailed', userMuted);
 		} else {
-			this.server.to(clientSocket.id).emit('userUnmuted');
+			this._server.to(clientSocket.id).emit('userUnmuted');
 		}
 	}
 
@@ -345,9 +351,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			banInfo,
 		);
 		if (typeof userBanned === 'string' || !userBanned) {
-			this.server.to(clientSocket.id).emit('banUserFailed', userBanned);
+			this._server.to(clientSocket.id).emit('banUserFailed', userBanned);
 		} else {
-			this.server.to(clientSocket.id).emit('userBanned');
+			this._server.to(clientSocket.id).emit('userBanned');
 		}
 	}
 
@@ -362,9 +368,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			banInfo,
 		);
 		if (typeof userBanned === 'string' || !userBanned) {
-			this.server.to(clientSocket.id).emit('unbanUserFailed', userBanned);
+			this._server.to(clientSocket.id).emit('unbanUserFailed', userBanned);
 		} else {
-			this.server.to(clientSocket.id).emit('userUnbanned');
+			this._server.to(clientSocket.id).emit('userUnbanned');
 		}
 	}
 
@@ -379,9 +385,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			blockedUserId,
 		);
 		if (typeof userBlocked === 'string' || !userBlocked) {
-			this.server.to(clientSocket.id).emit('blockUserFailed', userBlocked);
+			this._server.to(clientSocket.id).emit('blockUserFailed', userBlocked);
 		} else {
-			this.server.to(clientSocket.id).emit('userBlocked');
+			this._server.to(clientSocket.id).emit('userBlocked');
 		}
 	}
 
@@ -396,11 +402,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			blockedUserId,
 		);
 		if (typeof userBlocked === 'string' || !userBlocked) {
-			this.server.to(clientSocket.id).emit('unblockUserFailed', userBlocked);
+			this._server.to(clientSocket.id).emit('unblockUserFailed', userBlocked);
 		} else {
-			this.server.to(clientSocket.id).emit('userUnblocked');
+			this._server.to(clientSocket.id).emit('userUnblocked');
 		}
 	}
-
-
 }

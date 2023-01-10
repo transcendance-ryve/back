@@ -26,6 +26,8 @@ import { Socket, Server } from 'socket.io';
 import * as bcrypt from 'bcrypt';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { SubscribeMessage } from '@nestjs/websockets';
+import * as fs from 'fs';
+
 
 
 
@@ -317,7 +319,7 @@ export class ChannelService {
 		dto: CreateChannelDto,
 		userId: string,
 		clientSocket: Socket,
-		avatar: Express.Multer.File
+		avatar: Express.Multer.File,
 	) {
 		//throw error if channel name is empty
 		try {
@@ -333,7 +335,7 @@ export class ChannelService {
 			const createdChannel: Channel = await this.prisma.channel.create({
 				data: {
 					...dto,
-					avatar: avatar ? staticPath + avatar.filename : null,
+					avatar: avatar ? staticPath + avatar.filename : staticPath + 'default.png',
 					users: {
 						create:{
 							userId: userId,
