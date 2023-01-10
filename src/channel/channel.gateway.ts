@@ -87,7 +87,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof channel === 'string' || !channel) {
 			this.server.to(clientSocket.id).emit('createRoomFailed', channel);
 		} else {
-			this.server.emit('roomCreated', channel.id);
+			//this.server.emit('roomCreated', channel.id);
 			this.server.to(clientSocket.id).emit('roomCreated', channel.id);
 		}
 	}
