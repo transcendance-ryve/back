@@ -139,21 +139,19 @@ export class ChannelService {
 					id: string;
 					name: string;
 					status: ChannelType;
+					usersCount: number;
 				};
-				senderId: string;
-				id: string;
 			}[] = await this.prisma.channelInvitation.findMany({
 				where: {
 					invitedUserId: userId,
 				},
 				select: {
-					id: true,
-					senderId: true,
 					channel: {
 						select: {
 							id: true,
 							name: true,
 							status: true,
+							usersCount: true,
 						},
 					},
 				},
