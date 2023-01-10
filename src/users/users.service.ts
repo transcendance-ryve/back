@@ -115,7 +115,7 @@ export class UsersService {
 						}
 					},
 					select : {
-						receiver: {
+						sender: {
 							select: {
 								id: true,
 								username: true,
@@ -127,7 +127,7 @@ export class UsersService {
 					data: { status: InviteStatus.ACCEPTED }
 				})
 
-				return friendship.receiver;
+				return friendship.sender;
 			} catch(err) {
 				const friendship = await this._prismaService.friendship.create({
 					data: {
@@ -135,7 +135,7 @@ export class UsersService {
 						receiver: { connect: { id: receiverID } }
 					},
 					select : {
-						receiver: {
+						sender: {
 							select: {
 								id: true,
 								username: true,
@@ -146,7 +146,7 @@ export class UsersService {
 					},
 				});
 
-				return friendship.receiver;
+				return friendship.sender;
 			}
         } catch(err) {
             if (err instanceof PrismaClientKnownRequestError)
@@ -170,7 +170,7 @@ export class UsersService {
                     },
                 },
 				select: {
-                    receiver: {
+                    sender: {
                         select: {
                             id: true,
                             username: true,
@@ -182,7 +182,7 @@ export class UsersService {
                 data: { status: InviteStatus.ACCEPTED }
             });
 
-            return friendship.receiver;
+            return friendship.sender;
         } catch(err) {
 			if (err instanceof PrismaClientKnownRequestError)
 				if (err.code === 'P2025')
@@ -218,7 +218,7 @@ export class UsersService {
 					id: friendshipId.id
 				},
 				select: {
-					receiver: {
+					sender: {
 						select: {
 							id: true,
 							username: true,
@@ -228,7 +228,7 @@ export class UsersService {
 					}
 				},
 			});
-            return friendship.receiver;
+            return friendship.sender;
         } catch(err) {
 			console.log(err.message);
             throw new InternalServerErrorException('Internal server error');
