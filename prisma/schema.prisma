@@ -61,6 +61,7 @@ model Friendship {
 	
 	status			InviteStatus    @default(PENDING)
 
+	DMId			String?
 	@@unique([sender_id, receiver_id])
 	@@map("friendships")
 }
