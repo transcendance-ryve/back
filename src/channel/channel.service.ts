@@ -56,7 +56,24 @@ export class ChannelService {
 					},
 				})
 				.messages();
-			return messages;
+			let res = [];
+			for (const message of messages) {
+				res.push({
+					content: message.content,
+					createdAt: message.createdAt,
+					sender: await this.prisma.user.findFirst({
+							where: {
+								id: message.senderId,
+							},
+							select: {
+								id: true,
+								username: true,
+								avatar: true,
+							},
+						}),
+				});
+			}
+			return res;
 		} catch (error) {
 			return error;
 		}
@@ -312,23 +329,24 @@ export class ChannelService {
 				{
 					//add users to channel
 					for (const user of users) {
-						await this.prisma.channelUser.create({
+						const tmp: ChannelUser | null = await this.prisma.channelUser.create({
 							data: {
 								userId: user.id,
 								channelId: createdChannel.id,
 								role: 'MEMBER',
 							},
 						});
-						await this.prisma.channel.update({
-							where: {
-								id: createdChannel.id,
-							},
-							data: {
-								usersCount: {
-									increment: 1,
+						if (user != null)
+							await this.prisma.channel.update({
+								where: {
+									id: createdChannel.id,
 								},
-							},
-						});
+								data: {
+									usersCount: {
+										increment: 1,
+									},
+								},
+							});
 					}
 				}
 			}
