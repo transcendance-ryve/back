@@ -84,6 +84,7 @@ export class ChannelService {
 			id: string;
 			name: string;
 			status: ChannelType;
+			avatar: string;
 			usersCount: number;
 		} [] = await this.prisma.channel.findMany({
 			where: {
@@ -98,6 +99,7 @@ export class ChannelService {
 				name: true,
 				status: true,
 				usersCount: true,
+				avatar: true,
 			},
 		});
 		return channels;
