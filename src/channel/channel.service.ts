@@ -22,7 +22,7 @@ import {
 	EditChannelDto,
 	ModerateUserDto,
 } from './dto';
-import { Socket } from 'socket.io';
+import { Socket, Server } from 'socket.io';
 import * as bcrypt from 'bcrypt';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { SubscribeMessage } from '@nestjs/websockets';
@@ -293,6 +293,7 @@ export class ChannelService {
 		dto: CreateChannelDto,
 		userId: string,
 		clientSocket: Socket,
+		server: Server,
 	) {
 		//throw error if channel name is empty
 		try {
@@ -337,6 +338,7 @@ export class ChannelService {
 							},
 						});
 						if (user != null)
+						{
 							await this.prisma.channel.update({
 								where: {
 									id: createdChannel.id,
@@ -347,6 +349,10 @@ export class ChannelService {
 									},
 								},
 							});
+							await server
+							.to(UserIdToSockets.get(user.id).id)
+							.emit('roomCreated', createdChannel.id);
+						}
 					}
 				}
 			}
