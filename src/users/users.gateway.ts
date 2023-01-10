@@ -1,11 +1,12 @@
 import { UseGuards } from "@nestjs/common";
-import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Status, User } from "@prisma/client";
 import { Server, Socket } from 'socket.io';
 import { JwtAuthGuard } from "./guard/jwt.guard";
 import { UsersService } from "./users.service";
 import { UserIdToSockets } from "./userIdToSockets.service";
 import { JwtService } from "@nestjs/jwt";
+import { GetCurrentUserId } from "src/decorators/user.decorator";
 
 @WebSocketGateway({
 	cors: {
@@ -13,9 +14,10 @@ import { JwtService } from "@nestjs/jwt";
 		credentials: true,
 	},
 })
+@UseGuards(JwtAuthGuard)
 export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	constructor(
-		private readonly _userService: UsersService,
+		private readonly _usersService: UsersService,
 		private readonly _jwtService: JwtService,	
 	) {}
 
@@ -23,7 +25,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	//private _sockets: Map<string, Socket> = new Map()
 
 	private _emitToFriends(id: string, event: string, data: any) {
-		this._userService.getFriends(id).then((friends: Partial<User>[]) => {
+		this._usersService.getFriends(id).then((friends: Partial<User>[]) => {
 			friends.forEach((friend: Partial<User>) => {
 				const friendSocket = UserIdToSockets.get(friend.id);
 				if (friendSocket) {
@@ -39,7 +41,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		
 		try {
 			const user = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
-			await this._userService.updateUser({ id: user.id }, { status: Status.ONLINE });
+			await this._usersService.updateUser({ id: user.id }, { status: Status.ONLINE });
 			
 			UserIdToSockets.set(user.id, socket);
 			this._emitToFriends(user.id, 'user_connected', user.id);
@@ -52,7 +54,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const { id } = socket.data || {};
 		if (!id) return;
 
-		await this._userService.updateUser({ id }, { status: Status.OFFLINE });
+		await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
 		this._emitToFriends(id, 'user_disconnected', id);
 	}
 
@@ -61,7 +63,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const { id } = socket.data;
 		if (!id) return;
 
-		await this._userService.updateUser({ id }, { status: Status.INGAME });
+		await this._usersService.updateUser({ id }, { status: Status.INGAME });
 		this._emitToFriends(id, 'user_joined_game', id);
 	}
 
@@ -70,7 +72,40 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const { id } = socket.data;
 		if (!id) return;
 
-		await this._userService.updateUser({ id }, { status: Status.ONLINE });
+		await this._usersService.updateUser({ id }, { status: Status.ONLINE });
 		this._emitToFriends(id, 'user_left_game', id);
+	}
+
+	@SubscribeMessage('accept_friend')
+	async handleAcceptFriend(
+		@GetCurrentUserId() id: string,
+		@MessageBody('friendId') friendId: string,
+	) {
+		this._usersService.acceptFriendRequest(id, friendId).then(receiver => {
+			const friendSocket = UserIdToSockets.get(friendId);
+			if (friendSocket) friendSocket.emit('friend_accepted', receiver);
+		});
+	}
+
+	@SubscribeMessage('decline_friend')
+	async handleDeclineFriend(
+		@GetCurrentUserId() id: string,
+		@MessageBody('friendId') friendId: string,
+	) {
+		this._usersService.declineFriendRequest(id, friendId).then(receiver => {
+			const friendSocket = UserIdToSockets.get(friendId);
+			if (friendSocket) friendSocket.emit('friend_declined', receiver);
+		});
+	}
+	
+	@SubscribeMessage('add_friend')
+	async handleAddFriend(
+		@GetCurrentUserId() id: string,
+		@MessageBody('friendId') friendId: string,
+	) {
+		this._usersService.sendFriendRequest(id, friendId).then(receiver => {
+			const friendSocket = UserIdToSockets.get(friendId);
+			if (friendSocket) friendSocket.emit('friend_request', receiver);
+		});
 	}
 }

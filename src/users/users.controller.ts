@@ -53,7 +53,7 @@ export class UsersController {
     async sendFriendRequest(
         @GetCurrentUser() currentUser: JwtPayloadDto,
         @Param('id') friendId: string
-    ): Promise<Friendship> {
+    ): Promise<Partial<User>> {
         return this._usersService.sendFriendRequest(currentUser.id, friendId);
     }
 
@@ -61,7 +61,7 @@ export class UsersController {
     async acceptFriendRequest(
         @GetCurrentUser() currentUser: JwtPayloadDto,
         @Param('id') friendId: string
-    ): Promise<Friendship> {
+    ): Promise<Partial<User>> {
         return this._usersService.acceptFriendRequest(currentUser.id, friendId);
     }
 
@@ -69,7 +69,7 @@ export class UsersController {
     async declineFriendRequest(
         @GetCurrentUser() currentUser: JwtPayloadDto,
         @Param('id') friendId: string
-    ): Promise<Friendship> {
+    ): Promise<Partial<User>> {
         return this._usersService.declineFriendRequest(currentUser.id, friendId);
     }
 
