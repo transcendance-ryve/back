@@ -270,6 +270,7 @@ export class ChannelService {
 			return error.message;
 		}
 	}
+
 	//Actions
 	async connectToChannel(
 		userId: string,
@@ -303,7 +304,6 @@ export class ChannelService {
 			if (dto.status === 'PROTECTED' && dto.password.length > 0) {
 				dto.password = await bcrypt.hash(dto.password, 10);
 			}
-
 			//try to create channel
 			const createdChannel: Channel = await this.prisma.channel.create({
 				data: {
@@ -349,13 +349,14 @@ export class ChannelService {
 								},
 							});
 							let userSocket: Socket = UserIdToSockets.get(user.id);
-							userSocket.join(createdChannel.id);
+							//if (userSocket != null)
+								//await userSocket.join(createdChannel.id);
 						}
 					}
 				}
 			}
 			createdChannel.password = '';
-			await clientSocket.join(createdChannel.id);
+			//await clientSocket.join(createdChannel.id);
 			return createdChannel;
 		} catch (err) {
 			if (err.code === 'P2002')
@@ -541,23 +542,25 @@ export class ChannelService {
 
 	async leaveChannelWS(
 		userId: string,
-		dto: LeaveChannelDto
+		channelId: string,
 	) {
-		try {	
-			await this.isChannel(dto.channelId);
+		try {
+			if (userId === '' || channelId === '' || userId == null || channelId == null)
+				throw new Error('WrongData');
+			await this.isChannel(channelId);
 			//remove user from channel users
 			let leavingUser = await this.prisma.channelUser.delete({
 				where: {
 					userId_channelId: {
 						userId: userId,
-						channelId: dto.channelId,
+						channelId: channelId,
 					},
 				},
 			});
 			const channelUsers: { users: ChannelUser[]} | null =
 				await this.prisma.channel.findUnique({
 					where: {
-						id: dto.channelId,
+						id: channelId,
 					},
 					select: {
 						users: true,
@@ -565,7 +568,7 @@ export class ChannelService {
 				});
 			await this.prisma.channel.update({
 				where: {
-					id: dto.channelId,
+					id: channelId,
 				},
 				data: {
 					usersCount: {
@@ -576,7 +579,7 @@ export class ChannelService {
 			if ( channelUsers.users.length == 0) {
 				await this.prisma.channel.delete({
 					where: {
-						id: dto.channelId,
+						id: channelId,
 					},
 				});
 			}

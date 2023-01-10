@@ -151,20 +151,20 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	@SubscribeMessage('leaveRoom')
 	async deleteRoom(
 		@GetCurrentUserId() userId: string,
-		@MessageBody('leaveInfo') LeaveChannelDto: LeaveChannelDto,
+		@MessageBody('channelId') channelId: string,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
 		console.log('leaveRoom', LeaveChannelDto);
 		const userLeaving = await this.channelService.leaveChannelWS(
 			userId,
-			LeaveChannelDto,
+			channelId,
 		);
 		if (!userLeaving || typeof userLeaving === 'string') {
 			this.server.to(clientSocket.id).emit('leaveRoomFailed', userLeaving);
 		} else {
-			this.server.to(LeaveChannelDto.channelId).emit('roomLeft', userId);
+			this.server.to(channelId).emit('roomLeft', userId);
 			this.server.to(clientSocket.id).emit('roomLeft');
-			await clientSocket.leave(LeaveChannelDto.channelId);
+			await clientSocket.leave(channelId);
 		}
 	}
 
