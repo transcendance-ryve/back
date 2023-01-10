@@ -104,7 +104,7 @@ export class AuthController {
 			tfa_enabled: false,
 			tfa_secret: secret
 		});
-		res.cookie('access_token', token);
+		res.cookie('access_token', token, { httpOnly: true });
 
 		return user;
 	}

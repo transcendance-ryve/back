@@ -27,7 +27,7 @@ export class AuthService {
 			username: data.username,
 			tfa_secret: data.tfa_secret,
 			tfa_enabled: data.tfa_enabled,
-		}).then((token) => {
+		}, { secret: 'wartek' }).then((token) => {
 			return token;
 		}).catch((err) => {
 			return err.message;
