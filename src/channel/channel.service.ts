@@ -377,29 +377,11 @@ export class ChannelService {
 				{
 					//add users to channel
 					for (const user of users) {
-						const tmp: ChannelUser | null = await this.prisma.channelUser.create({
-							data: {
-								userId: user.id,
-								channelId: createdChannel.id,
-								role: 'MEMBER',
-							},
-						});
-						if (user != null)
-						{
-							await this.prisma.channel.update({
-								where: {
-									id: createdChannel.id,
-								},
-								data: {
-									usersCount: {
-										increment: 1,
-									},
-								},
-							});
-							let userSocket: Socket = UserIdToSockets.get(user.id);
-							if (userSocket != null)
-								await userSocket.join(createdChannel.id);
-						}
+						let inviteDto: InviteToChannelDto = {
+							channelId: createdChannel.id,
+							friendId: user.id,
+						};
+						this.inviteToChannelWS(user.id, inviteDto);
 					}
 				}
 			}
