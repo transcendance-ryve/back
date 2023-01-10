@@ -114,6 +114,11 @@ export class ChannelController {
 		return this.channelService.getChannelById(id);
 	}
 
+	@Get('user/:id')
+	getuserById(@Param('id') id: string) {
+		return this.channelService.getUserById(id);
+	}
+
 	//Return all the members of a channel
 	@Get('users/:channelId')
 	getUsersOfChannel(@Param('channelId') channelId: string) {

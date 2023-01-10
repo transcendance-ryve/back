@@ -53,6 +53,7 @@ export class ChannelService {
 			id: string,
 			username: string,
 			avatar: string,
+			status: string,
 		} = await this.prisma.user.findUnique({
 			where: {
 				id: id
@@ -61,6 +62,7 @@ export class ChannelService {
 				id: true,
 				username: true,
 				avatar: true,
+				status: true,
 			},
 		});
 		return res;
