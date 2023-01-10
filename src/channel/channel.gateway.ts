@@ -212,10 +212,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
 	@SubscribeMessage('declineInvitation')
 	async declineInvitation(
+		@GetCurrentUserId() userId: string,
 		@MessageBody('invitationInfo') inviteInfo: InvitationDto,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
 		const channelInvite = await this.channelService.declineChanInvitation(
+			userId,
 			inviteInfo,
 		);
 		console.log(channelInvite)

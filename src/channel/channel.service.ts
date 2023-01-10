@@ -705,7 +705,10 @@ export class ChannelService {
 			const invitation: ChannelInvitation | null =
 				await this.prisma.channelInvitation.findUnique({
 					where: {
-						id: dto.id,
+						channelId_invitedUserId: {
+							channelId: dto.channelId,
+							invitedUserId: userId,
+						},
 					},
 				});
 			if (invitation == null)
@@ -765,14 +768,18 @@ export class ChannelService {
 	}
 
 	async declineChanInvitation(
+		userId: string,
 		dto: InvitationDto,
 	) {
 		try {
 			//Check if invitation exists
 			const invitation: ChannelInvitation | null =
-			await this.prisma.channelInvitation.findFirst({
+			await this.prisma.channelInvitation.findUnique({
 				where: {
-					id: dto.id,
+					channelId_invitedUserId: {
+						channelId: dto.channelId,
+						invitedUserId: userId,
+					},
 				},
 			});
 			if (invitation == null)
