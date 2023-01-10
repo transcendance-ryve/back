@@ -31,6 +31,12 @@ export class ChannelController {
 	) {
 		return this.channelService.getBlockedUsers(currentUser.id);
 	}
+
+	@Get('invites')
+	getChannelInvites(@GetCurrentUser() currentUser: JwtPayloadDto) {
+		return this.channelService.getChannelInvitesByUser(currentUser.id);
+	}
+
 	//return a channel by id
 	@Get(':id')
 	getChannelById(@Param('id') id: string) {
@@ -48,10 +54,7 @@ export class ChannelController {
 		return this.channelService.getMessagesOfChannel(channelId);
 	}
 
-	@Get('invitesByUserId/:id')
-	getChannelInvites(@Param('id') id: string) {
-		return this.channelService.getChannelInvitesByUser(id);
-	}
+
 
 	@Get('inviteByChannelId/:id')
 	getChannelInvitesByChannelId(@Param('id') channelId: string) {
