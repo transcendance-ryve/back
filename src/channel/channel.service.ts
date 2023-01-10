@@ -9,6 +9,7 @@ import {
 	ChannelInvitation,
 	ChannelAction,
 	blockedUser,
+	Friendship,
 } from '@prisma/client';
 import {
 	CreateChannelDto,
@@ -427,6 +428,33 @@ export class ChannelService {
 					usersCount: 2,
 				},
 			});
+			const friendShipId: any | null =
+			await this.prisma.friendship.findFirst({
+				where: {
+					OR: [
+						{
+							sender_id: userId,
+							receiver_id: dto.friendId,
+						},
+						{
+							sender_id: dto.friendId,
+							receiver_id: userId,
+						},
+					]
+				},
+				select: {
+					id: true,
+				},
+			});
+			await this.prisma.friendship.update({
+				where: {
+					id: friendShipId,
+				},
+				data: {
+					DMId: newDMChannel.id,
+				},
+			});
+
 			await clientSocket.join(newDMChannel.id);
 			const friendSocket = UserIdToSockets.get(dto.friendId);
 			if (friendSocket) {

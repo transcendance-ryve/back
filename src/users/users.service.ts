@@ -196,27 +196,38 @@ export class UsersService {
         receiverID: Prisma.UserWhereUniqueInput['id']
     ) : Promise<Partial<User>> {
         try {
-            const friendship = await this._prismaService.friendship.delete({
-                where: {
-                    sender_id_receiver_id: {
-                        sender_id: senderID,
-                        receiver_id: receiverID
-                    }
-                },
+			const friendshipId: any = await this._prismaService.friendship.findFirst({
+				where: {
+					OR:[
+						{
+							sender_id: senderID,
+							receiver_id: receiverID
+						},
+						{
+							sender_id: receiverID,
+							receiver_id: senderID
+						}
+					],
+				},
 				select: {
-                    receiver: {
-                        select: {
-                            id: true,
-                            username: true,
-                            avatar: true,
-                            status: true
-                        }
-                    }
-                },
-            });
-
+					id: true
+				}
+			});
+			const friendship = await this._prismaService.friendship.delete({
+				where: {
+					id: friendshipId.id
+				},
+				select: {
+					receiver: {
+						select: {
+							id: true,
+						}
+					}
+				},
+			});
             return friendship.receiver;
         } catch(err) {
+			console.log(err.message);
             throw new InternalServerErrorException('Internal server error');
 		}
     }
@@ -268,13 +279,14 @@ export class UsersService {
                         }
 					},
                     receiver: {
-                        select: {
+						select: {
                             id: true,
                             username: true,
                             avatar: true,
                             status: true
                         }
-                    }
+                    },
+					DMId: true,
                 },
             })
 
