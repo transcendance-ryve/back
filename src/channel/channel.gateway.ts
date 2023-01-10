@@ -58,7 +58,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@MessageBody('channelId') channelId: string,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
-		const userOnChannel = await this.channelService.connectToChannel(
+		/*const userOnChannel = await this.channelService.connectToChannel(
 			userId,
 			channelId,
 			clientSocket,
@@ -67,7 +67,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this.server.to(clientSocket.id).emit('connectedToRoom', channelId);
 		} else {
 			this.server.to(clientSocket.id).emit('connectToRoomFailed');
-		}
+		}*/
+		console.log('connectToRoom called');
 	}
 
 	@SubscribeMessage('createRoom')
@@ -76,6 +77,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@MessageBody('createInfo') dto: CreateChannelDto,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
+		console.log("createRoom called")
 		let channel: Channel | string | null;
 		channel = await this.channelService.createChannelWS(
 			dto,
@@ -86,6 +88,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this.server.to(clientSocket.id).emit('createRoomFailed', channel);
 		} else {
 			this.server.emit('roomCreated', channel.id);
+			this.server.to(clientSocket.id).emit('roomCreated');
 		}
 	}
 
@@ -143,6 +146,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			return false;
 		} else {
 			//clientSocket.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
+			console.log("ici");
 			this.server.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
 			return true;
 		}

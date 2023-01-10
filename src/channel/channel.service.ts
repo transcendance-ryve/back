@@ -349,14 +349,14 @@ export class ChannelService {
 								},
 							});
 							let userSocket: Socket = UserIdToSockets.get(user.id);
-							//if (userSocket != null)
-								//await userSocket.join(createdChannel.id);
+							if (userSocket != null)
+								await userSocket.join(createdChannel.id);
 						}
 					}
 				}
 			}
 			createdChannel.password = '';
-			//await clientSocket.join(createdChannel.id);
+			await clientSocket.join(createdChannel.id);
 			return createdChannel;
 		} catch (err) {
 			if (err.code === 'P2002')
