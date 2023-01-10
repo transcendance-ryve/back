@@ -185,9 +185,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('invitationSent', target);
 			const friendSocket = UserIdToSockets.get(inviteInfo.friendId);
 			if (friendSocket) {
-			this._server
-				.to(friendSocket.id)
-				.emit('chanInvitationReceived', channelInvite);
+				this._server
+					.to(friendSocket.id)
+					.emit('chanInvitationReceived', channelInvite);
 			}
 		}
 	}

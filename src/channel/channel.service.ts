@@ -165,6 +165,7 @@ export class ChannelService {
 					name: string;
 					status: ChannelType;
 					usersCount: number;
+					avatar: string;
 				};
 			}[] = await this.prisma.channelInvitation.findMany({
 				where: {
@@ -177,6 +178,7 @@ export class ChannelService {
 							name: true,
 							status: true,
 							usersCount: true,
+							avatar: true,
 						},
 					},
 				},
