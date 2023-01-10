@@ -201,7 +201,7 @@ export class UsersController {
 		});
 		res.cookie('access_token', token, { httpOnly: true });
 
-        return user; 
+        return user;
     }
 
 	/* Password */

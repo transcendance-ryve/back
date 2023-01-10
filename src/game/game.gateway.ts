@@ -1,47 +1,49 @@
-import { SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
-import { Socket } from 'socket.io';
-import { JwtPayloadDto } from "src/auth/dto/jwt-payload.dto";
-import { GameService } from "./game.service";
-
-
+import { UseGuards } from "@nestjs/common";
+import { SubscribeMessage, WebSocketGateway } from "@nestjs/websockets";
+import { GetCurrentUserId } from "src/decorators/user.decorator";
+import { JwtAuthGuard } from "src/users/guard/jwt.guard";
+import { MatchmakingService } from "./matchmaking.service";
 
 @WebSocketGateway()
+@UseGuards(JwtAuthGuard)
 export class GameGateway {
 	constructor(
-		private readonly _gameService: GameService,
+		private readonly _matchmakingService: MatchmakingService,
 	) {}
 
-	@WebSocketServer()
-	private _server: Socket;
+	@SubscribeMessage("get_users_in_queue")
+	handleGetUsersInQueue(): number {
+		const usersInQueue = this._matchmakingService.count();
+
+		console.log(usersInQueue);
+		return usersInQueue;
+	}
 
 	@SubscribeMessage("join_matchmaking")
-	async handleJoinMatchmaking(socket: Socket, payload: JwtPayloadDto): Promise<string> {
-		const { id } = payload;
-
-		// this._gameService.joinMatchmaking(socket);
-
-		this._gameService.findOpponent();
-
-
-		return "joined matchmaking";
+	handleJoinMatchmaking(
+		@GetCurrentUserId() currentID: string,
+	): void {
+		this._matchmakingService.join(currentID);
 	}
 
 	@SubscribeMessage("leave_matchmaking")
-	handleLeaveMatchmaking(payload: any): string {
-		
-		return "left matchmaking";
+	handleLeaveMatchmaking(
+		@GetCurrentUserId() currentID: string,
+	): void {
+		this._matchmakingService.leave(currentID);
 	}
 
-
 	@SubscribeMessage("accept_game")
-	handleAcceptGame(client: any, payload: any): void {
-		
+	handleAcceptGame(
+		@GetCurrentUserId() currentID: string
+	): void {
+		this._matchmakingService.acceptGameRequest(currentID);
 	}
 
 	@SubscribeMessage("decline_game")
-	handleDeclineGame(socket: Socket, payload: any): void {
-		const { id } = payload;
-
-		// this._gameService.declineGame(id);
+	handleDeclineGame(
+		@GetCurrentUserId() currentID: string
+	): void {
+		this._matchmakingService.declineGameRequest(currentID, true);
 	}
 }
