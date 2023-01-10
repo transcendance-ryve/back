@@ -132,6 +132,7 @@ export class ChannelService {
 		}
 	}
 
+
 	async getChannelInvitesByUser(userId: string) {
 		try {
 			const invites: {
@@ -156,7 +157,13 @@ export class ChannelService {
 					},
 				},
 			});
-			return invites;
+			let res:{ 
+				id: string;
+				name: string;
+				status: ChannelType;
+				usersCount: number;
+			}[] =  invites.map((invite) => invite.channel);
+			return res;
 		} catch (error) {
 			console.log(error);
 			return error;
