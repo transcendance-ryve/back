@@ -48,6 +48,24 @@ export class ChannelService {
 		});
 	}
 
+	async getUserById(id: string) {
+		const res: {
+			id: string,
+			username: string,
+			avatar: string,
+		} = await this.prisma.user.findUnique({
+			where: {
+				id: id
+			},
+			select: {
+				id: true,
+				username: true,
+				avatar: true,
+			},
+		});
+		return res;
+	}
+
 	async getMessagesOfChannel(channelId: string) {
 		try {
 			await this.isChannel(channelId);
@@ -745,13 +763,12 @@ export class ChannelService {
 	}
 
 	async declineChanInvitation(
-		userId: string,
 		dto: InvitationDto,
 	) {
 		try {
 			//Check if invitation exists
 			const invitation: ChannelInvitation | null =
-			await this.prisma.channelInvitation.findUnique({
+			await this.prisma.channelInvitation.findFirst({
 				where: {
 					id: dto.id,
 				},
@@ -766,6 +783,7 @@ export class ChannelService {
 			});
 			return true;
 		} catch (err) {
+			console.log("err", err.message);
 			return "Internal server error: error declining invitation"
 		}
 	}

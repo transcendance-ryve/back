@@ -1,5 +1,5 @@
 import { ChannelService } from './channel.service';
-import { Channel, ChannelRole, ChannelType } from '@prisma/client';
+import { Channel, ChannelRole, ChannelType, User } from '@prisma/client';
 import {
 	CreateChannelDto,
 	DirectMessageDto,
@@ -84,59 +84,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		}*/
 		console.log('connectToRoom called');
 	}
-
-	/*@SubscribeMessage('createRoom')
-	@UseInterceptors(
-        FileInterceptor('image', {
-            storage: diskStorage({
-                destination: './data/avatars',
-                filename: (req, file, cb) => {
-					const randomName = Array(32)
-						.fill(null)
-						.map(() => Math.round(Math.random() * 16).toString(16))
-						.join('');
-					return cb(null, `${randomName}${extname(file.originalname)}`);
-                }
-            }),
-            limits: {
-                fileSize: 5 * 1024 * 1024,
-                files: 1,
-            },
-            fileFilter: (_, file, cb) => {
-                const allowedMimes = [
-                    'image/jpg',
-                    'image/jpeg',
-                    'image/png',
-                    'image/gif',
-                ];
-                if (allowedMimes.includes(file.mimetype))
-                    cb(null, true);
-                else
-                    cb(new BadRequestException('Invalid file type'), false);
-            }
-        }),
-    )
-	async createChannel(
-		@GetCurrentUserId() userId: string,
-		@MessageBody('createInfo') dto: CreateChannelDto,
-		@UploadedFile() avatar: Express.Multer.File,
-		@ConnectedSocket() clientSocket: Socket,
-	) {
-		console.log("createRoom called")
-		let channel: Channel | string | null;
-		channel = await this.channelService.createChannelWS(
-			dto,
-			userId,
-			clientSocket,
-			avatar,
-		);
-		if (typeof channel === 'string' || !channel) {
-			this._server.to(clientSocket.id).emit('createRoomFailed', channel);
-		} else {
-			//this._server.emit('roomCreated', channel.id);
-			this._server.to(clientSocket.id).emit('roomCreated', channel.id);
-		}
-	}*/
 
 	@SubscribeMessage('DM')
 	async createDirectMessage(
@@ -230,10 +177,18 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof channelInvite === 'string' || !channelInvite) {
 			this._server.to(clientSocket.id).emit('inviteToRoomFailed', channelInvite);
 		} else {
-			this._server.to(clientSocket.id).emit('invitationSent');
+			const target : {
+				id: string,
+				username: string,
+				avatar: string
+			} = await this.channelService.getUserById(inviteInfo.friendId);
+			this._server.to(clientSocket.id).emit('invitationSent', target);
+			const friendSocket = UserIdToSockets.get(inviteInfo.friendId);
+			if (friendSocket) {
 			this._server
-				.to(UserIdToSockets.get(inviteInfo.friendId).id)
+				.to(friendSocket.id)
 				.emit('chanInvitationReceived', channelInvite);
+			}
 		}
 	}
 
@@ -257,14 +212,13 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
 	@SubscribeMessage('declineInvitation')
 	async declineInvitation(
-		@GetCurrentUserId() userId: string,
 		@MessageBody('invitationInfo') inviteInfo: InvitationDto,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
 		const channelInvite = await this.channelService.declineChanInvitation(
-			userId,
 			inviteInfo,
 		);
+		console.log(channelInvite)
 		if (channelInvite != true) {
 			this._server.to(clientSocket.id).emit('declineInvitationFailed');
 		} else {
