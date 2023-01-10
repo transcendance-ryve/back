@@ -347,7 +347,7 @@ export class UsersService {
 			const users: Partial<User>[] = await this._prismaService.user.findMany({
 				where: {
 					AND: [
-						{ username: { contains: search } },
+						{ username: { contains: search, mode: 'insensitive' } },
 						{ id: { not: id }}
 					]
 				},
@@ -356,7 +356,7 @@ export class UsersService {
 
 			const count = await this._prismaService.user.count({
 				where: {
-					username: { contains: search }
+					username: { contains: search, mode: 'insensitive' },
 				}
 			});
 
@@ -440,7 +440,7 @@ export class UsersService {
 
 			const users: Partial<User>[] = await this._prismaService.user.findMany({
 				where: {
-					username: { contains: search }
+					username: { contains: search, mode: 'insensitive' }
 				},
 				skip: skip || (page - 1) * take || undefined,
 				take: take || 12,
@@ -451,7 +451,7 @@ export class UsersService {
 			users.map(user => delete user.password);
 
 			const count = await this._prismaService.user.count({
-				where: { username: { contains: search } }
+				where: { username: { contains: search, mode: 'insensitive' } }
 			});
 
 			return { users, count };

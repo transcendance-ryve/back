@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { PrismaService } from "src/prisma.service";
 import { UsersModule } from "src/users/users.module";
 import { UsersService } from "src/users/users.service";
 import { GameController } from "./game.controller";
@@ -11,7 +12,7 @@ import { MatchmakingService } from "./matchmaking.service";
 		UsersModule
 	],
     controllers: [GameController],
-    providers: [GameService, MatchmakingService, GameGateway],
+    providers: [GameService, MatchmakingService, PrismaService, GameGateway],
 	exports: [GameService],
 })
 export class GameModule {}
