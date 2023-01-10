@@ -23,9 +23,13 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtAuthGuard } from '../users/guard/jwt.guard';
-import { Req, UseGuards } from '@nestjs/common';
+import { Req, UseGuards, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { GetCurrentUserId } from '../decorators/user.decorator';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+
 
 @WebSocketGateway({
 	cors: {
@@ -76,9 +80,40 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	}
 
 	@SubscribeMessage('createRoom')
+	@UseInterceptors(
+        FileInterceptor('image', {
+            storage: diskStorage({
+                destination: './data/avatars',
+                filename: (req, file, cb) => {
+					const randomName = Array(32)
+						.fill(null)
+						.map(() => Math.round(Math.random() * 16).toString(16))
+						.join('');
+					return cb(null, `${randomName}${extname(file.originalname)}`);
+                }
+            }),
+            limits: {
+                fileSize: 5 * 1024 * 1024,
+                files: 1,
+            },
+            fileFilter: (_, file, cb) => {
+                const allowedMimes = [
+                    'image/jpg',
+                    'image/jpeg',
+                    'image/png',
+                    'image/gif',
+                ];
+                if (allowedMimes.includes(file.mimetype))
+                    cb(null, true);
+                else
+                    cb(new BadRequestException('Invalid file type'), false);
+            }
+        }),
+    )
 	async createChannel(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('createInfo') dto: CreateChannelDto,
+		@UploadedFile() avatar: Express.Multer.File,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
 		console.log("createRoom called")
@@ -87,6 +122,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			dto,
 			userId,
 			clientSocket,
+			avatar,
 		);
 		if (typeof channel === 'string' || !channel) {
 			this.server.to(clientSocket.id).emit('createRoomFailed', channel);

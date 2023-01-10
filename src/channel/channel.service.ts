@@ -317,6 +317,7 @@ export class ChannelService {
 		dto: CreateChannelDto,
 		userId: string,
 		clientSocket: Socket,
+		avatar: Express.Multer.File
 	) {
 		//throw error if channel name is empty
 		try {
@@ -328,9 +329,11 @@ export class ChannelService {
 				dto.password = await bcrypt.hash(dto.password, 10);
 			}
 			//try to create channel
+			const staticPath = 'http://localhost:3000/';
 			const createdChannel: Channel = await this.prisma.channel.create({
 				data: {
 					...dto,
+					avatar: avatar ? staticPath + avatar.filename : null,
 					users: {
 						create:{
 							userId: userId,
