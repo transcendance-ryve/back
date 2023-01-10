@@ -110,6 +110,7 @@ export class ChannelService {
 				user: {
 					id: string;
 					username: string;
+					avatar: string;
 				};
 				role: string;
 			}[] = await this.prisma.channelUser.findMany({
@@ -121,6 +122,7 @@ export class ChannelService {
 						select: {
 							id: true,
 							username: true,
+							avatar: true,
 						},
 					},
 					role: true,
@@ -293,6 +295,20 @@ export class ChannelService {
 		if (userOnChannel != null)
 			await clientSocket.join(channelId);
 		return userOnChannel;
+	}
+
+	async connectToMyChannels(
+		userId: string,
+		clientSocket: Socket
+	) {
+		const channels: ChannelUser[] = await this.prisma.channelUser.findMany({
+			where: {
+				userId: userId
+			}
+		});
+		channels.forEach(async (channel) => {
+			await clientSocket.join(channel.channelId);
+		});
 	}
 
 	async createChannelWS(

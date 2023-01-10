@@ -39,8 +39,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	server: Server;
 	constructor (private readonly channelService: ChannelService) {}
 
-	async handleConnection() {
+	async handleConnection(
+		@ConnectedSocket() clientSocket: Socket,
+		@GetCurrentUserId() userId: string,
+	) {
 		console.log('user connected');
+		await this.channelService.connectToMyChannels(userId, clientSocket);
 	}
 
 	async handleDisconnect() {
@@ -145,7 +149,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this.server.to(clientSocket.id).emit('messageRoomFailed', messageSaved);
 			return false;
 		} else {
-			//lclientSocket.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
+			//clientSocket.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
 			console.log("ici");
 			this.server.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
 			return true;
@@ -362,4 +366,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this.server.to(clientSocket.id).emit('userUnblocked');
 		}
 	}
+
+
 }
