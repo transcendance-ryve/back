@@ -1,5 +1,5 @@
 import { UseGuards } from "@nestjs/common";
-import { MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Status, User } from "@prisma/client";
 import { Server, Socket } from 'socket.io';
 import { JwtAuthGuard } from "./guard/jwt.guard";
@@ -22,7 +22,6 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	) {}
 
 	@WebSocketServer() private _server: Server;
-	//private _sockets: Map<string, Socket> = new Map()
 
 	private _emitToFriends(id: string, event: string, data: any) {
 		this._usersService.getFriends(id).then((friends: Partial<User>[]) => {
@@ -80,10 +79,13 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	async handleAcceptFriend(
 		@GetCurrentUserId() id: string,
 		@MessageBody('friendId') friendId: string,
+		@ConnectedSocket() clientSocket: Socket,
 	) {
 		this._usersService.acceptFriendRequest(id, friendId).then(receiver => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			if (friendSocket) friendSocket.emit('friend_accepted', receiver);
+			this._server.to(clientSocket.id).emit('friend_accepted',
+			this._usersService.getUserById(id));
 		});
 	}
 
@@ -91,10 +93,12 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	async handleDeclineFriend(
 		@GetCurrentUserId() id: string,
 		@MessageBody('friendId') friendId: string,
+		@ConnectedSocket() clientSocket: Socket,
 	) {
 		this._usersService.declineFriendRequest(id, friendId).then(receiver => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			if (friendSocket) friendSocket.emit('friend_declined', receiver);
+			this._server.to(clientSocket.id).emit('friend_declined', receiver);
 		});
 	}
 	
@@ -105,7 +109,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	) {
 		this._usersService.sendFriendRequest(id, friendId).then(receiver => {
 			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket) friendSocket.emit('friend_request', receiver);
+			if (friendSocket) friendSocket.emit('friend_request', this._usersService.getUserById(friendId));
 		});
 	}
 }

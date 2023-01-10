@@ -221,6 +221,9 @@ export class UsersService {
 					receiver: {
 						select: {
 							id: true,
+							username: true,
+                            avatar: true,
+                            status: true
 						}
 					}
 				},
@@ -543,4 +546,19 @@ export class UsersService {
             throw new InternalServerErrorException('Internal server error');
         }
     }
+
+	async getUserById(
+		id: string,
+	) : Promise<Partial<User> | null> {
+		try {
+			const user: (Partial<User> | null) = await this._prismaService.user.findUnique({
+				where: { id },
+				select: { id: true, username: true, avatar: true, status: true}
+			});
+			if (!user) return null;
+			return user;
+		} catch(err) {
+			throw new InternalServerErrorException('Internal server error');
+		}
+	}
 }
