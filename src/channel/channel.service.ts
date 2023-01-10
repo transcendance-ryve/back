@@ -48,26 +48,6 @@ export class ChannelService {
 		});
 	}
 
-	async getUserById(id: string) {
-		const res: {
-			id: string,
-			username: string,
-			avatar: string,
-			status: string,
-		} = await this.prisma.user.findUnique({
-			where: {
-				id: id
-			},
-			select: {
-				id: true,
-				username: true,
-				avatar: true,
-				status: true,
-			},
-		});
-		return res;
-	}
-
 	async getMessagesOfChannel(channelId: string) {
 		try {
 			await this.isChannel(channelId);
