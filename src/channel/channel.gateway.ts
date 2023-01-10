@@ -143,7 +143,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			return false;
 		} else {
 			clientSocket.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
-			this.server.to(clientSocket.id).emit('incomingMessage', messageInfo.content);
 			return true;
 		}
 	}
