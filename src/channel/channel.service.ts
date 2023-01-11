@@ -332,6 +332,29 @@ export class ChannelService {
 			return error.message;
 		}
 	}
+
+	async getRole(userId: string, channelId: string):
+	Promise<string>{
+		try {
+			await this.isChannel(channelId);
+			const role: Partial<ChannelUser> =
+			await this.prisma.channelUser.findUnique({
+				where: {
+					userId_channelId: {
+						userId: userId,
+						channelId: channelId,
+					},
+				},
+				select: {
+					role: true,
+				},
+			});
+			return role.role;
+		} catch (error) {
+			return error.message;
+		}
+	}
+
 	//Actions
 	async connectToChannel(
 		userId: string,

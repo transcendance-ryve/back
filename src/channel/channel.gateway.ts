@@ -66,6 +66,16 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		console.log('user disconnected');
 	}
 
+	@SubscribeMessage('getRole')
+	async getRole(
+		@ConnectedSocket() clientSocket: Socket,
+		@MessageBody('channelId') channelId: string,
+		@GetCurrentUserId() userId: string,
+	) {
+		const role = await this.channelService.getRole(userId, channelId);
+		this._server.to(clientSocket.id).emit('role', role);
+	}
+
 	@SubscribeMessage('ping')
 	async ping(@ConnectedSocket() clientSocket: Socket) {
 		this._server.to(clientSocket.id).emit('pong');
