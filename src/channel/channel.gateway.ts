@@ -176,11 +176,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof channelInvite === 'string' || !channelInvite) {
 			this._server.to(clientSocket.id).emit('inviteToRoomFailed', channelInvite);
 		} else {
-			const target : {
-				id: string,
-				username: string,
-				avatar: string
-			} = await this.channelService.getUserById(inviteInfo.friendId);
+			const target : Partial<User>
+			 = await this.channelService.getUserById(inviteInfo.friendId);
 			this._server.to(clientSocket.id).emit('invitationSent', target);
 			const friendSocket = UserIdToSockets.get(inviteInfo.friendId);
 			if (friendSocket) {
