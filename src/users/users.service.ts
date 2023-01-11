@@ -341,9 +341,11 @@ export class UsersService {
 					delete friend.sender;
 				else
 					delete friend.receiver;
+				
+				const message = friend?.channel?.messages[0]?.content || null;
 
-				if (friend.sender) return { ...friend.sender, message: friend?.channel?.messages[0].content };
-				else return { ...friend.receiver, message: friend?.channel?.messages[0].content };
+				if (friend.sender) return { ...friend.sender, message };
+				else return { ...friend.receiver, message };
 			})
 
             return friendsList;
