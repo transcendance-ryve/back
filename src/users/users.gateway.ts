@@ -109,12 +109,14 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	async handleAddFriend(
 		@GetCurrentUserId() id: string,
 		@MessageBody('friendId') friendId: string,
+		@ConnectedSocket() clientSocket: Socket,
 	) {
 		this._usersService.sendFriendRequest(id, friendId).then(receiver => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			this._usersService.getUserById(id).then(receiver => {
 				if (friendSocket) friendSocket.emit('friend_request', receiver);
 			});
+			this._server.to(clientSocket.id).emit('friend_request', receiver);
 		});
 	}
 }

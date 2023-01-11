@@ -124,6 +124,15 @@ export class ChannelService {
 				status: true,
 				usersCount: true,
 				avatar: true,
+				messages: {
+					take: 1,
+					orderBy: {
+						createdAt: 'desc',
+					},
+					select: {
+						content: true,
+					},
+				},
 			},
 		});
 		return channels;
