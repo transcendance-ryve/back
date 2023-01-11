@@ -206,6 +206,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('acceptInvitationFailed', channelInvite);
 		} else {
 			this._server.to(clientSocket.id).emit('invitationAccepted', channelInvite.id);
+			const user : Partial<User> = await this.channelService.getUserById(userId);
+			this._server.to(channelInvite.id).emit('roomJoined', user);
 		}
 	}
 
@@ -223,6 +225,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('declineInvitationFailed');
 		} else {
 			this._server.to(clientSocket.id).emit('invitationDeclined', inviteInfo.channelId);
+			const user : Partial<User> = await this.channelService.getUserById(userId);
+			this._server.to(inviteInfo.channelId).emit('roomDeclined', user);
 		}
 	}
 
