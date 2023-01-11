@@ -414,7 +414,7 @@ export class ChannelService {
 			if (isBlocked) {
 				throw new Error('You are blocked by this user');
 			}
-			const isAlreadyDm: Partial<Friendship> | null =
+			const isAlreadyDm: Friendship | null =
 			await this.prisma.friendship.findFirst({
 				where: {
 					OR: [
@@ -429,6 +429,7 @@ export class ChannelService {
 					],
 				},
 			});
+			console.log(isAlreadyDm.DMId)
 			if (isAlreadyDm.DMId != null) {
 				const dmChannel: Channel | null =
 				await this.prisma.channel.findFirst({
@@ -455,7 +456,7 @@ export class ChannelService {
 					usersCount: 2,
 				},
 			});
-			const friendShipId: any | null =
+			const friendShip: Partial<Friendship> | null =
 			await this.prisma.friendship.findFirst({
 				where: {
 					OR: [
@@ -475,7 +476,7 @@ export class ChannelService {
 			});
 			await this.prisma.friendship.update({
 				where: {
-					id: friendShipId,
+					id: friendShip.id,
 				},
 				data: {
 					DMId: newDMChannel.id,
