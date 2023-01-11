@@ -101,7 +101,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof channel === 'string' || !channel) {
 			this._server.to(clientSocket.id).emit('DMFailed', channel);
 		} else {
-			this._server.emit('DMCreated', channel.id, userId);
+			this._server.emit('DMChan', channel.id);
 		}
 	}
 	

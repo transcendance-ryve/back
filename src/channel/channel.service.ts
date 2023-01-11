@@ -414,6 +414,30 @@ export class ChannelService {
 			if (isBlocked) {
 				throw new Error('You are blocked by this user');
 			}
+			const isAlreadyDm: Partial<Friendship> | null =
+			await this.prisma.friendship.findFirst({
+				where: {
+					OR: [
+						{
+							sender_id: userId,
+							receiver_id: dto.friendId,
+						},
+						{
+							sender_id: dto.friendId,
+							receiver_id: userId,
+						},
+					],
+				},
+			});
+			if (isAlreadyDm.DMId != null) {
+				const dmChannel: Channel | null =
+				await this.prisma.channel.findFirst({
+					where: {
+						id: isAlreadyDm.DMId,
+					},
+				});
+				return dmChannel;
+			}
 			const newDMChannel: Channel = await this.prisma.channel.create({
 				data: {
 					name: userId + dto.friendId,

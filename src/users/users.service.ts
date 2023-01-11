@@ -289,7 +289,6 @@ export class UsersService {
                             status: true
                         }
                     },
-					DMId: true,
                 },
             })
 
