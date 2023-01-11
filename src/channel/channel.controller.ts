@@ -99,11 +99,11 @@ export class ChannelController {
 			userId,
 			clientSocket,
 			avatar,
+			this.channelGateway._server,
 		);
 		if (typeof channel === 'string' || !channel) {
 			this.channelGateway._server.to(clientSocket.id).emit('createRoomFailed', channel);
 		} else {
-			//this._server.emit('roomCreated', channel.id);
 			this.channelGateway._server.to(clientSocket.id).emit('roomCreated', channel.id);
 		}
 	}

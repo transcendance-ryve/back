@@ -343,6 +343,7 @@ export class ChannelService {
 		userId: string,
 		clientSocket: Socket,
 		avatar: Express.Multer.File,
+		_server: Server,
 	) {
 		//throw error if channel name is empty
 		try {
@@ -384,7 +385,9 @@ export class ChannelService {
 							channelId: createdChannel.id,
 							friendId: user.id,
 						};
-						this.inviteToChannelWS(user.id, inviteDto);
+						let chanInvite = await this.inviteToChannelWS(user.id, inviteDto);
+						let userSocket = UserIdToSockets.get(user.id);
+						_server.to(userSocket.id).emit('chanInvitationReceived', chanInvite);
 					}
 				}
 			}
