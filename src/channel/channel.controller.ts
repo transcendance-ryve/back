@@ -4,6 +4,7 @@ import {
 	Get,
 	Param,
 	Post,
+	Put,
 	UseGuards,
 	UseInterceptors,
 	BadRequestException,
@@ -20,7 +21,7 @@ import { ChannelGateway } from './channel.gateway';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { CreateChannelDto } from './dto';
+import { CreateChannelDto, EditChannelDto } from './dto';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 
 @UseGuards(JwtAuthGuard)
@@ -108,6 +109,55 @@ export class ChannelController {
 			this.channelGateway._server.to(clientSocket.id).emit('createRoomFailed', channel);
 		} else {
 			this.channelGateway._server.to(clientSocket.id).emit('roomCreated', channel.id);
+		}
+	}
+
+	@Put('editRoom')
+	@UseInterceptors(
+        FileInterceptor('image', {
+            storage: diskStorage({
+                destination: './data/avatars',
+                filename: (req, file, cb) => {
+					const randomName = Array(32)
+						.fill(null)
+						.map(() => Math.round(Math.random() * 16).toString(16))
+						.join('');
+					return cb(null, `${randomName}${extname(file.originalname)}`);
+                }
+            }),
+            limits: {
+                fileSize: 5 * 1024 * 1024,
+                files: 1,
+            },
+            fileFilter: (_, file, cb) => {
+                const allowedMimes = [
+                    'image/jpg',
+                    'image/jpeg',
+                    'image/png',
+                    'image/gif',
+                ];
+                if (allowedMimes.includes(file.mimetype))
+                    cb(null, true);
+                else
+                    cb(new BadRequestException('Invalid file type'), false);
+            }
+        }),
+    )
+	async editChannel(
+		@GetCurrentUserId() userId: string,
+		@Body('editInfo') editInfo: EditChannelDto,
+		@UploadedFile() avatar: Express.Multer.File,
+	) {
+		const channelEdited = await this.channelService.editChannel(
+			userId,
+			editInfo,
+			avatar,
+		);
+		const clientSocket = UserIdToSockets.get(userId);
+		if (typeof channelEdited === 'string' || !channelEdited) {
+			this.channelGateway._server.to(clientSocket.id).emit('editRoomFailed', channelEdited);
+		} else {
+			this.channelGateway._server.to(clientSocket.id).emit('roomEdited');
 		}
 	}
 

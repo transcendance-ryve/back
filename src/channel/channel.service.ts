@@ -16,7 +16,6 @@ import {
 	DirectMessageDto,
 	IncomingMessageDto,
 	JoinChannelDto,
-	LeaveChannelDto,
 	InviteToChannelDto,
 	InvitationDto,
 	UpdateRoleDto,
@@ -26,8 +25,9 @@ import {
 import { Socket, Server } from 'socket.io';
 import * as bcrypt from 'bcrypt';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
-import { SubscribeMessage } from '@nestjs/websockets';
 import * as fs from 'fs';
+import { join } from 'path';
+
 
 
 
@@ -36,6 +36,7 @@ import * as fs from 'fs';
 export class ChannelService {
 	constructor(private readonly prisma: PrismaService) {}
 
+	private staticPath: string = 'http://localhost:3000/';
 	//Getter
 	getChannels(
 		name: string,
@@ -405,11 +406,10 @@ export class ChannelService {
 				dto.password = await bcrypt.hash(dto.password, 10);
 			}
 			//try to create channel
-			const staticPath = 'http://localhost:3000/';
 			const createdChannel: Channel = await this.prisma.channel.create({
 				data: {
 					...dto,
-					avatar: avatar ? staticPath + avatar.filename : staticPath + 'default.png',
+					avatar: avatar ? this.staticPath + avatar.filename : this.staticPath + 'default.png',
 					users: {
 						create:{
 							userId: userId,
@@ -929,6 +929,7 @@ export class ChannelService {
 	async editChannel(
 		userId: string,
 		dto: EditChannelDto,
+		avatar: Express.Multer.File,
 	) : Promise<Channel | string> {
 		try {
 			const senderRole: string | null =
@@ -943,6 +944,19 @@ export class ChannelService {
 			}
 			else if (dto.status === 'PUBLIC' || dto.status === 'PRIVATE')
 				dto.password = null;
+
+			const chan: Channel | null =
+			await this.prisma.channel.findUnique({
+				where: {
+					id: dto.channelId,
+				},
+			});
+			if (avatar)
+			{
+				if (chan.avatar !== `${this.staticPath}default.png`)
+					fs.unlinkSync(join(process.cwd(), 'data/avatars/', chan.avatar.split('/').pop()));
+			}
+			let tmp: string = chan.avatar;
 			const updatedChannel: Channel | null =
 			await this.prisma.channel.update({
 				where: {
@@ -952,6 +966,7 @@ export class ChannelService {
 					name: dto.name,
 					status: dto.status,
 					password: dto.password,
+					avatar: avatar ? this.staticPath + avatar.filename : tmp,
 				},
 			});
 			if (updatedChannel == null)

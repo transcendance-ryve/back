@@ -239,7 +239,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		}
 	}
 
-	@SubscribeMessage('editRoom')
+	/*@SubscribeMessage('editRoom')
 	async editChannel(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('editInfo') editInfo: EditChannelDto,
@@ -254,7 +254,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		} else {
 			this._server.to(clientSocket.id).emit('roomEdited');
 		}
-	}
+	}*/
 
 	@SubscribeMessage('muteUser')
 	async muteUser(
