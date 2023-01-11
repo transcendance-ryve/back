@@ -317,9 +317,22 @@ export class UsersService {
                             id: true,
                             username: true,
                             avatar: true,
-                            status: true
+                            status: true,
                         }
                     },
+					channel: {
+						select: {
+							messages: {
+								take: 1,
+								orderBy: {
+									createdAt: 'desc'
+								},
+								select: {
+									content: true,
+								}
+							}
+						}
+					}
                 },
             })
 
