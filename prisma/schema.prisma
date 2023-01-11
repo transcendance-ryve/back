@@ -61,7 +61,8 @@ model Friendship {
 	
 	status			InviteStatus    @default(PENDING)
 
-	channel			Channel?		@relation("directMessage")
+	channel			Channel?		@relation("directMessage", fields: [channel_id], references: [id], onDelete: Cascade)
+	channel_id		String?			@unique
 
 	@@unique([sender_id, receiver_id])
 	@@map("friendships")
@@ -112,8 +113,7 @@ model Channel {
 	channelActions	ChannelAction[]		@relation("channelActions")
 	invites			ChannelInvitation[]	@relation("channelInvites")
 
-	friendship		Friendship?			@relation("directMessage", fields: [friendshipId], references: [id], onDelete: Cascade)
-	friendshipId	String?				@unique
+	friendship		Friendship?			@relation("directMessage")
 
 	@@map("channels")
 }
