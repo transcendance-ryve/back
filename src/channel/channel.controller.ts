@@ -140,4 +140,8 @@ export class ChannelController {
 		return this.channelService.getMutedUsersOfChannel(channelId);
 	}
 	
+	@Get('banned/:id')
+	getBannedUsers(@Param('id') channelId: string) {
+		return this.channelService.getBannedUsersOfChannel(channelId);
+	}
 }

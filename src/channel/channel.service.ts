@@ -301,6 +301,37 @@ export class ChannelService {
 		}
 	}
 
+	async getBannedUsersOfChannel(channelId: string):
+	Promise<any>{
+		try {
+			await this.isChannel(channelId);
+			const res: {
+				target: {
+					id: string;
+					username: string;
+					avatar: string;
+				};
+			}[] =
+				await this.prisma.channelAction.findMany({
+				where: {
+					channelId: channelId,
+					type: 'BAN',
+				},
+				select: {
+					target: {
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+						},
+					},
+				},
+			});
+			return res;
+		} catch (error) {
+			return error.message;
+		}
+	}
 	//Actions
 	async connectToChannel(
 		userId: string,
