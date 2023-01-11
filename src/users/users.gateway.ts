@@ -84,8 +84,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		this._usersService.acceptFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			if (friendSocket)
-				this._server.to(friendSocket.id).emit('friend_accepted', friendship.sender);
-			this._server.to(socket.id).emit('friend_accepted_submitted', friendship.receiver);
+				this._server.to(friendSocket.id).emit('friend_accepted', friendship.receiver);
+			this._server.to(socket.id).emit('friend_accepted_submitted', friendship.sender);
 		});
 	}
 
@@ -98,8 +98,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		this._usersService.removeFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			if (friendSocket)
-				this._server.to(friendSocket.id).emit('friend_declined', friendship.sender);
-			this._server.to(socket.id).emit('friend_declined_submitted ', friendship.receiver);
+				this._server.to(friendSocket.id).emit('friend_declined', friendship.receiver);
+			this._server.to(socket.id).emit('friend_declined_submitted', friendship.sender);
 		});
 	}
 	
@@ -126,8 +126,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		this._usersService.removeFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			if (friendSocket)
-				this._server.to(friendSocket.id).emit('friend_removed', friendship.sender);
-			this._server.to(socket.id).emit('friend_removed_submitted', friendship.receiver);
+				this._server.to(friendSocket.id).emit('friend_removed', friendship.receiver);
+			this._server.to(socket.id).emit('friend_removed_submitted', friendship.sender);
 		});
 	}
 
