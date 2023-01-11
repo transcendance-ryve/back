@@ -71,7 +71,7 @@ export class MatchmakingService {
 		const opponent = this._matchmakingQueue.shift();
 
 		this._gamesRequest.push({
-			sender: { id, accept: true },
+			sender: { id, accept: false },
 			receiver: { id: opponent, accept: false },
 			
 			timer: this._gameRequestTimer
