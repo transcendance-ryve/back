@@ -70,7 +70,7 @@ export class UsersController {
         @GetCurrentUser() currentUser: JwtPayloadDto,
         @Param('id') friendId: string
     ): Promise<{sender: Partial<User>, receiver: Partial<User>}> {
-        return this._usersService.declineFriendRequest(currentUser.id, friendId);
+        return this._usersService.removeFriendRequest(currentUser.id, friendId);
     }
 
 	@Get('friends/relationship')

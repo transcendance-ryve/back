@@ -95,7 +95,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@MessageBody('friendId') friendId: string,
 		@ConnectedSocket() socket: Socket,
 	) {
-		this._usersService.declineFriendRequest(id, friendId).then(friendship => {
+		this._usersService.removeFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			if (friendSocket)
 				this._server.to(friendSocket.id).emit('friend_declined', friendship.sender);
@@ -123,7 +123,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@MessageBody('friendId') friendId: string,
 		@ConnectedSocket() socket: Socket,
 	) {
-		this._usersService.declineFriendRequest(id, friendId).then(friendship => {
+		this._usersService.removeFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			if (friendSocket)
 				this._server.to(friendSocket.id).emit('friend_removed', friendship.sender);

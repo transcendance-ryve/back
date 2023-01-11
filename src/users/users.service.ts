@@ -215,7 +215,7 @@ export class UsersService {
         }
     }
 
-    async declineFriendRequest(
+    async removeFriendRequest(
         senderID: Prisma.UserWhereUniqueInput['id'],
         receiverID: Prisma.UserWhereUniqueInput['id']
     ) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
