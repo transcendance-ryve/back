@@ -60,7 +60,7 @@ export class ChannelService {
 		});
 	}
 
-	async getUserById(id: string): Promise<Partial<User>> {
+	/*async getUserById(id: string): Promise<Partial<User>> {
 		const res: Partial<User> = await this.prisma.user.findUnique({
 			where: {
 				id: id
@@ -73,7 +73,7 @@ export class ChannelService {
 			},
 		});
 		return res;
-	}
+	}*/
 
 	async getMessagesOfChannel(channelId: string): Promise<any> {
 		try {
@@ -402,7 +402,7 @@ export class ChannelService {
 					}
 				}
 			}
-			createdChannel.password = '';
+			delete createdChannel.password;
 			await clientSocket.join(createdChannel.id);
 			return createdChannel;
 		} catch (err) {
@@ -436,11 +436,11 @@ export class ChannelService {
 					],
 				},
 			});
-			if (isAlreadyDm.DMId != null) {
+			if (isAlreadyDm && isAlreadyDm.channel_id != undefined) {
 				const dmChannel: Channel | null =
 				await this.prisma.channel.findFirst({
 					where: {
-						id: isAlreadyDm.DMId,
+						id: isAlreadyDm.channel_id,
 					},
 				});
 				return dmChannel;
@@ -484,7 +484,7 @@ export class ChannelService {
 					id: friendShip.id,
 				},
 				data: {
-					DMId: newDMChannel.id,
+					channel_id: newDMChannel.id,
 				},
 			});
 
@@ -582,7 +582,7 @@ export class ChannelService {
 				},
 			});
 			await clientSocket.join(channelDto.channelId);
-			joinedChannel.password = '';
+			delete joinedChannel.password;
 			return joinedChannel;
 		} catch (err) {
 			console.log("err", err);

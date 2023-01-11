@@ -36,6 +36,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { type } from 'os';
+import { UsersService } from 'src/users/users.service';
 
 
 @WebSocketGateway({
@@ -48,7 +49,10 @@ import { type } from 'os';
 export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	@WebSocketServer()
 	_server: Server;
-	constructor (private readonly channelService: ChannelService) {}
+	constructor (
+		private readonly channelService: ChannelService,
+		private readonly userService: UsersService,
+		) {}
 
 	async handleConnection(
 		@ConnectedSocket() clientSocket: Socket,
@@ -157,8 +161,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof res === 'string' || !res) {
 			this._server.to(clientSocket.id).emit('inviteToRoomFailed', res.channelInvite);
 		} else {
-			const target : Partial<User>
-			 = await this.channelService.getUserById(inviteInfo.friendId);
+			const target : Partial<User> | null
+			 = await this.userService.getUser({id: inviteInfo.friendId}, "id,username,avatar,status");
 			this._server.to(clientSocket.id).emit('invitationSent', target);
 			const friendSocket = UserIdToSockets.get(inviteInfo.friendId);
 			if (friendSocket) {
@@ -184,7 +188,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('acceptInvitationFailed', channelInvite);
 		} else {
 			this._server.to(clientSocket.id).emit('invitationAccepted', channelInvite.id);
-			const user : Partial<User> = await this.channelService.getUserById(userId);
+			const user : Partial<User> = await this.userService.getUser({id: userId}, "id,username,avatar,status");
 			this._server.to(channelInvite.id).emit('roomJoined', user);
 		}
 	}
@@ -203,7 +207,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('declineInvitationFailed');
 		} else {
 			this._server.to(clientSocket.id).emit('invitationDeclined', inviteInfo.channelId);
-			const user : Partial<User> = await this.channelService.getUserById(userId);
+			const user : Partial<User> = await this.userService.getUser({id: userId}, "id,username,avatar,status");
 			this._server.to(inviteInfo.channelId).emit('roomDeclined', user);
 		}
 	}
