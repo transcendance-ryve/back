@@ -37,8 +37,19 @@ export class ChannelService {
 	constructor(private readonly prisma: PrismaService) {}
 
 	//Getter
-	getChannels() : Promise<Channel[]> {
-		return this.prisma.channel.findMany();
+	getChannels(
+		name: string,
+	) : Promise<Channel[]> {
+		if (!name)
+			return;
+		return this.prisma.channel.findMany({
+			where: {
+				name: {
+					contains: name,
+					mode: 'insensitive',
+				},
+			},
+		});
 	}
 
 	getChannelById(id: string) : Promise<Channel> {
@@ -427,7 +438,6 @@ export class ChannelService {
 			}
 			const newDMChannel: Channel = await this.prisma.channel.create({
 				data: {
-					name: userId + dto.friendId,
 					status: 'DIRECTMESSAGE',
 					users: {
 						create: [
@@ -603,7 +613,7 @@ export class ChannelService {
 				console.log(messageInfo.content);
 			return messageObj.messages;
 		} catch (err) {
-			//console.log("err", err);
+			console.log("err", err);
 			if (err)
 				return (err.message as string);
 			return 'Internal server error: error storing message';

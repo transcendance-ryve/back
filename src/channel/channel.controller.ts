@@ -8,6 +8,7 @@ import {
 	UseInterceptors,
 	BadRequestException,
 	UploadedFile,
+	Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../users/guard/jwt.guard';
 import { ChannelActionType, ChannelType, Channel } from '@prisma/client';
@@ -31,8 +32,10 @@ export class ChannelController {
 		) {}
 
 	@Get()
-	getChannels() {
-		return this.channelService.getChannels();
+	getChannels(
+		@Query('search') name: string,
+	) {
+		return this.channelService.getChannels(name);
 	}
 
 	//Return all the channels of a user
