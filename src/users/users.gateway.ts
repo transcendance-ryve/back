@@ -81,11 +81,12 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@MessageBody('friendId') friendId: string,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
-		this._usersService.acceptFriendRequest(id, friendId).then(sender => {
+		this._usersService.acceptFriendRequest(id, friendId).then(receiver => {
 			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket) friendSocket.emit('friend_accepted', sender);
-			this._server.to(clientSocket.id).emit('friend_accepted',
-			this._usersService.getUserById(id));
+			if (friendSocket) friendSocket.emit('friend_accepted', receiver);
+			this._usersService.getUserById(friendId).then(sender => {
+				this._server.to(clientSocket.id).emit('friend_accepted', sender);
+			});
 		});
 	}
 
@@ -95,10 +96,12 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@MessageBody('friendId') friendId: string,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
-		this._usersService.declineFriendRequest(id, friendId).then(sender => {
+		this._usersService.declineFriendRequest(id, friendId).then(receiver => {
 			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket) friendSocket.emit('friend_declined', sender);
-			this._server.to(clientSocket.id).emit('friend_declined', this._usersService.getUserById(id));
+			if (friendSocket) friendSocket.emit('friend_declined', receiver);
+			this._usersService.getUserById(friendId).then(sender => {
+				this._server.to(clientSocket.id).emit('friend_declined', sender);
+			});
 		});
 	}
 	
@@ -109,7 +112,9 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	) {
 		this._usersService.sendFriendRequest(id, friendId).then(receiver => {
 			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket) friendSocket.emit('friend_request', this._usersService.getUserById(id));
+			this._usersService.getUserById(id).then(receiver => {
+				if (friendSocket) friendSocket.emit('friend_request', receiver);
+			});
 		});
 	}
 }
