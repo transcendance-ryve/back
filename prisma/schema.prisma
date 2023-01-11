@@ -45,8 +45,8 @@ model User {
 	chanActionTarget	ChannelAction[]		@relation("channelActionsTarget")
 	chanInvitations		ChannelInvitation[]	@relation("userInvites")
 
-	userBlocked			blockedUser[]			@relation("blockedUsers")
-	userBlockedBy		blockedUser[]			@relation("blockedBy")
+	userBlocked			blockedUser[]		@relation("blockedUsers")
+	userBlockedBy		blockedUser[]		@relation("blockedBy")
 	@@map("users")
 }
 
@@ -61,7 +61,8 @@ model Friendship {
 	
 	status			InviteStatus    @default(PENDING)
 
-	DMId			String?
+	channel			Channel?		@relation("directMessage")
+
 	@@unique([sender_id, receiver_id])
 	@@map("friendships")
 }
@@ -110,6 +111,9 @@ model Channel {
 	users			ChannelUser[]		@relation("channelUsers")
 	channelActions	ChannelAction[]		@relation("channelActions")
 	invites			ChannelInvitation[]	@relation("channelInvites")
+
+	friendship		Friendship?			@relation("directMessage", fields: [friendshipId], references: [id], onDelete: Cascade)
+	friendshipId	String?				@unique
 
 	@@map("channels")
 }
