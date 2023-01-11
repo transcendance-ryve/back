@@ -342,8 +342,8 @@ export class UsersService {
 				else
 					delete friend.receiver;
 
-				if (friend.sender) return friend.sender;
-				else return friend.receiver;
+				if (friend.sender) return { ...friend.sender, message: friend?.channel?.messages[0].content };
+				else return { ...friend.receiver, message: friend?.channel?.messages[0].content };
 			})
 
             return friendsList;
