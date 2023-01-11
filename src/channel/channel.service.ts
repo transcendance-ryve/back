@@ -429,7 +429,6 @@ export class ChannelService {
 					],
 				},
 			});
-			console.log(isAlreadyDm.DMId)
 			if (isAlreadyDm.DMId != null) {
 				const dmChannel: Channel | null =
 				await this.prisma.channel.findFirst({
