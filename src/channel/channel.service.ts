@@ -686,7 +686,7 @@ export class ChannelService {
 	async inviteToChannelWS(
 		userId: string,
 		dto: InviteToChannelDto,
-	) : Promise<ChannelInvitation | string> {
+	) : Promise<any> {
 		try {
 			//Check if user exists
 			const user: User | null = await this.prisma.user.findUnique({
@@ -710,9 +710,15 @@ export class ChannelService {
 			if (channelUser != null)
 				throw new Error('User already in channel');
 			//Check if channel exists
-			const channel: Channel | null = await this.prisma.channel.findUnique({
+			const channel: Partial<Channel> | null = await this.prisma.channel.findUnique({
 				where: {
 					id: dto.channelId,
+				},
+				select: {
+					id: true,
+					name: true,
+					avatar: true,
+					usersCount: true,
 				},
 			});
 			if (channel == null)
@@ -725,7 +731,11 @@ export class ChannelService {
 						channelId: dto.channelId,
 					},
 				});
-			return channelInvite;
+			const res = {
+				channelInvite: channelInvite,
+				channel: channel,
+			};
+			return res;
 		} catch (err) {
 			console.log("err", err);
 			if (err.code === 'P2002')

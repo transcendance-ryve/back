@@ -67,25 +67,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		this._server.to(clientSocket.id).emit('pong');
 	}
 
-	@SubscribeMessage('connectToRoom')
-	async connectToChannel(
-		@GetCurrentUserId() userId: string,
-		@MessageBody('channelId') channelId: string,
-		@ConnectedSocket() clientSocket: Socket,
-	) {
-		/*const userOnChannel = await this.channelService.connectToChannel(
-			userId,
-			channelId,
-			clientSocket,
-		);
-		if (userOnChannel != null) {
-			this._server.to(clientSocket.id).emit('connectedToRoom', channelId);
-		} else {
-			this._server.to(clientSocket.id).emit('connectToRoomFailed');
-		}*/
-		console.log('connectToRoom called');
-	}
-
 	@SubscribeMessage('DM')
 	async createDirectMessage(
 		@GetCurrentUserId() userId: string,
@@ -169,12 +150,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@MessageBody('inviteInfo') inviteInfo: InviteToChannelDto,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
-		const channelInvite = await this.channelService.inviteToChannelWS(
+		const res = await this.channelService.inviteToChannelWS(
 			userId,
 			inviteInfo,
 		);
-		if (typeof channelInvite === 'string' || !channelInvite) {
-			this._server.to(clientSocket.id).emit('inviteToRoomFailed', channelInvite);
+		if (typeof res === 'string' || !res) {
+			this._server.to(clientSocket.id).emit('inviteToRoomFailed', res.channelInvite);
 		} else {
 			const target : Partial<User>
 			 = await this.channelService.getUserById(inviteInfo.friendId);
@@ -183,7 +164,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			if (friendSocket) {
 				this._server
 					.to(friendSocket.id)
-					.emit('chanInvitationReceived', channelInvite);
+					.emit('chanInvitationReceived', res.channel);
 			}
 		}
 	}
