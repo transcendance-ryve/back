@@ -79,14 +79,13 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	async handleAcceptFriend(
 		@GetCurrentUserId() id: string,
 		@MessageBody('friendId') friendId: string,
-		@ConnectedSocket() clientSocket: Socket,
+		@ConnectedSocket() socket: Socket,
 	) {
-		this._usersService.acceptFriendRequest(id, friendId).then(receiver => {
+		this._usersService.acceptFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket) friendSocket.emit('friend_accepted', receiver);
-			this._usersService.getUserById(friendId).then(sender => {
-				this._server.to(clientSocket.id).emit('friend_accepted', sender);
-			});
+			if (friendSocket)
+				this._server.to(friendSocket.id).emit('friend_accepted', friendship.sender);
+			this._server.to(socket.id).emit('friend_accepted_submitted', friendship.receiver);
 		});
 	}
 
@@ -94,14 +93,13 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	async handleDeclineFriend(
 		@GetCurrentUserId() id: string,
 		@MessageBody('friendId') friendId: string,
-		@ConnectedSocket() clientSocket: Socket,
+		@ConnectedSocket() socket: Socket,
 	) {
-		this._usersService.declineFriendRequest(id, friendId).then(receiver => {
+		this._usersService.declineFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket) friendSocket.emit('friend_declined', receiver);
-			this._usersService.getUserById(friendId).then(sender => {
-				this._server.to(clientSocket.id).emit('friend_declined', sender);
-			});
+			if (friendSocket)
+				this._server.to(friendSocket.id).emit('friend_declined', friendship.sender);
+			this._server.to(socket.id).emit('friend_declined_submitted ', friendship.receiver);
 		});
 	}
 	
@@ -109,14 +107,13 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	async handleAddFriend(
 		@GetCurrentUserId() id: string,
 		@MessageBody('friendId') friendId: string,
-		@ConnectedSocket() clientSocket: Socket,
+		@ConnectedSocket() socket: Socket,
 	) {
-		this._usersService.sendFriendRequest(id, friendId).then(receiver => {
+		this._usersService.sendFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
-			this._usersService.getUserById(id).then(receiver => {
-				if (friendSocket) friendSocket.emit('friend_request', receiver);
-			});
-			this._server.to(clientSocket.id).emit('friend_request', receiver);
+			if (friendSocket)
+				this._server.to(friendSocket.id).emit('friend_request', friendship.sender);
+			this._server.to(socket.id).emit('friend_request_submitted', friendship.receiver);
 		});
 	}
 }

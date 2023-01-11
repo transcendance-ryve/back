@@ -100,14 +100,14 @@ export class UsersService {
     async sendFriendRequest(
         senderID: Prisma.UserWhereUniqueInput['id'],
         receiverID: Prisma.UserWhereUniqueInput['id']
-    ) : Promise<Partial<User>> {
+    ) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
         try {
             const friend: User = await this._prismaService.user.findUnique({ where: { id: receiverID } });
             if (!friend)
                 throw new NotFoundException('Friend not found');
 
 			try {
-				const friendship = await this._prismaService.friendship.update({
+				const friendship: {sender: Partial<User>, receiver: Partial<User>} = await this._prismaService.friendship.update({
 					where: {
 						sender_id_receiver_id: {
 							sender_id: receiverID,
@@ -122,14 +122,22 @@ export class UsersService {
 								avatar: true,
 								status: true,
 							}
+						},
+						receiver: {
+							select: {
+								id: true,
+								username: true,
+								avatar: true,
+								status: true
+							}
 						}
 					},
 					data: { status: InviteStatus.ACCEPTED }
 				})
 
-				return friendship.sender;
+				return friendship;
 			} catch(err) {
-				const friendship = await this._prismaService.friendship.create({
+				const friendship: {sender: Partial<User>, receiver: Partial<User>} = await this._prismaService.friendship.create({
 					data: {
 						sender: { connect: { id: senderID } },
 						receiver: { connect: { id: receiverID } }
@@ -142,11 +150,19 @@ export class UsersService {
 								avatar: true,
 								status: true,
 							}
+						},
+						receiver: {
+							select: {
+								id: true,
+								username: true,
+								avatar: true,
+								status: true
+							}
 						}
 					},
 				});
 
-				return friendship.sender;
+				return friendship;
 			}
         } catch(err) {
             if (err instanceof PrismaClientKnownRequestError)
@@ -160,9 +176,9 @@ export class UsersService {
     async acceptFriendRequest(
         senderID: Prisma.UserWhereUniqueInput['id'],
         receiverID: Prisma.UserWhereUniqueInput['id']
-    ) : Promise<Partial<User>> {
+    ) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
         try {
-            const friendship = await this._prismaService.friendship.update({
+            const friendship: {sender: Partial<User>, receiver: Partial<User>} = await this._prismaService.friendship.update({
 				where: {
 					sender_id_receiver_id: {
                         sender_id: receiverID,
@@ -170,6 +186,14 @@ export class UsersService {
                     },
                 },
 				select: {
+					sender: {
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+							status: true
+						}
+					},
                     receiver: {
                         select: {
                             id: true,
@@ -182,7 +206,7 @@ export class UsersService {
                 data: { status: InviteStatus.ACCEPTED }
             });
 
-            return friendship.receiver;
+            return friendship;
         } catch(err) {
 			if (err instanceof PrismaClientKnownRequestError)
 				if (err.code === 'P2025')
@@ -194,9 +218,9 @@ export class UsersService {
     async declineFriendRequest(
         senderID: Prisma.UserWhereUniqueInput['id'],
         receiverID: Prisma.UserWhereUniqueInput['id']
-    ) : Promise<Partial<User>> {
+    ) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
         try {
-			const friendshipId: any = await this._prismaService.friendship.findFirst({
+			const friendshipId: {id: string} = await this._prismaService.friendship.findFirst({
 				where: {
 					OR:[
 						{
@@ -213,11 +237,19 @@ export class UsersService {
 					id: true
 				}
 			});
-			const friendship = await this._prismaService.friendship.delete({
+			const friendship: {sender: Partial<User>, receiver: Partial<User>} = await this._prismaService.friendship.delete({
 				where: {
 					id: friendshipId.id
 				},
 				select: {
+					sender: {
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+							status: true
+						}
+					},
 					receiver: {
 						select: {
 							id: true,
@@ -225,12 +257,11 @@ export class UsersService {
                             avatar: true,
                             status: true
 						}
-					}
+					},
 				},
 			});
-            return friendship.receiver;
+            return friendship;
         } catch(err) {
-			console.log(err.message);
             throw new InternalServerErrorException('Internal server error');
 		}
     }
@@ -325,7 +356,15 @@ export class UsersService {
                             avatar: true,
                             status: true
                         }
-                    }
+                    },
+					receiver: {
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+							status: true
+						}
+					}
                 },
             })
 
