@@ -60,21 +60,6 @@ export class ChannelService {
 		});
 	}
 
-	/*async getUserById(id: string): Promise<Partial<User>> {
-		const res: Partial<User> = await this.prisma.user.findUnique({
-			where: {
-				id: id
-			},
-			select: {
-				id: true,
-				username: true,
-				avatar: true,
-				status: true,
-			},
-		});
-		return res;
-	}*/
-
 	async getMessagesOfChannel(channelId: string): Promise<any> {
 		try {
 			await this.isChannel(channelId);
@@ -398,7 +383,7 @@ export class ChannelService {
 						};
 						let chanInvite = await this.inviteToChannelWS(user.id, inviteDto);
 						let userSocket = UserIdToSockets.get(user.id);
-						_server.to(userSocket.id).emit('chanInvitationReceived', chanInvite);
+						_server.to(userSocket.id).emit('chanInvitationReceived', createdChannel);
 					}
 				}
 			}
