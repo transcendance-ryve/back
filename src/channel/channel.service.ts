@@ -27,7 +27,7 @@ import * as bcrypt from 'bcrypt';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import * as fs from 'fs';
 import { join } from 'path';
-import { UserTag } from './interfaces/user.interface';
+import { UserTag } from './interfaces/UserTag.interface';
 
 
 
