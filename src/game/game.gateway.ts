@@ -58,4 +58,22 @@ export class GameGateway {
 		this._matchmakingService.declineGameRequest(currentID, matchmaking);
 		this._server.to(socket.id).emit("declined_game_request");
 	}
+
+	@SubscribeMessage("disconnect")
+	handleDisconnect(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket
+	): void {}
+
+	@SubscribeMessage("reconnect")
+	handleReconnect(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket
+	): void {}
+
+	@SubscribeMessage("spectate")
+	handleSpectate(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket
+	): void {}
 }

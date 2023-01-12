@@ -128,7 +128,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			if (friendSocket)
 				this._server.to(friendSocket.id).emit('friend_removed', friendship.sender);
 			this._server.to(socket.id).emit('friend_removed_submitted', friendship.receiver);
-		});
+		}).catch(err => {});
 	}
 
 }

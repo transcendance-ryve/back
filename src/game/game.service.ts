@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { Game } from "@prisma/client";
 import { PrismaService } from "src/prisma.service";
+import { Socket } from "socket.io";
+import { Game } from "./entities/Game";
+import { Player } from "./entities/Player";
 
 @Injectable()
 export class GameService {
@@ -8,8 +10,10 @@ export class GameService {
 		private readonly _prismaService: PrismaService
 	) {}
 
-	async create(id: string, opponent: string): Promise<Game> {
-		const game = await this._prismaService.game.create({
+	private _games: Map<string, Game> = new Map();
+
+	async create(id: string, opponent: string, server: Socket): Promise<Game> {
+		await this._prismaService.game.create({
 			data: {
 				player_one: { connect: { id } },
 				player_one_score: 0,
@@ -18,23 +22,29 @@ export class GameService {
 			}
 		});
 
-		return game;
-	}
-
-	async get(id: string): Promise<Game> {
-		const game = await this._prismaService.game.findUnique({
-			where: { id }
-		});
+		const game: Game = new Game(server);
+		this._games.set(id, game);
 
 		return game;
 	}
 
-	async update(id: string, score: number): Promise<Game> {
-		const game = await this._prismaService.game.update({
-			where: { id },
-			data: { player_one_score: score }
-		});
 
-		return game;
+	async connect(id: string, socket: Socket, opponent: boolean): Promise<void> {
+		const game: Game = this._games.get(id);
+		
+		const player = new Player(id, 0, 0)
+		if (opponent) {
+			game.setPlayerTwo(player);
+		} else {
+			game.setPlayerOne(player);
+		}
 	}
+
+	async leave(id: string): Promise<void> {}
+
+	async reconnect(id: string): Promise<void> {}
+
+	async spectate(id: string): Promise<void> {}
+
+
 }
