@@ -233,9 +233,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			roleInfo,
 		);
 		if (typeof roleUpdated === 'string' || !roleUpdated) {
-			this._server.to(clientSocket.id).emit('updateRoleFailed', roleUpdated);
+			this._server.to(clientSocket.id).emit('promoteUserFailed', roleUpdated);
 		} else {
-			this._server.to(clientSocket.id).emit('roleUpdated');
+			this._server.to(clientSocket.id).emit('userPromoted', roleUpdated.userId);
 		}
 	}
 
