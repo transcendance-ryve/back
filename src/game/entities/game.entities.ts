@@ -24,8 +24,6 @@ export class Game {
 	private _ball: Ball;
 
 	private _update(): void {
-		console.log(1);
-
 		if (this._status !== Status.Waiting)
 			return;
 

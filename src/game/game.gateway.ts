@@ -15,12 +15,7 @@ export class GameGateway {
 	@WebSocketServer()
 	private readonly _server: Socket;
 
-	@SubscribeMessage("get_users_in_queue")
-	handleGetUsersInQueue(): number {
-		const usersInQueue = this._matchmakingService.count();
-
-		return usersInQueue;
-	}
+	/* Matchmaking */
 
 	@SubscribeMessage("join_queue")
 	handleJoinMatchmaking(
@@ -58,6 +53,28 @@ export class GameGateway {
 		this._matchmakingService.declineGameRequest(currentID, matchmaking);
 		this._server.to(socket.id).emit("declined_game_request");
 	}
+
+	/* Game events */
+
+	@SubscribeMessage("keypress")
+	handleKeyPress(
+		@GetCurrentUserId() currentID: string,
+		@MessageBody('key') key: string,
+		@ConnectedSocket() socket: Socket
+	): void {}
+
+	@SubscribeMessage("keyrelease")
+	handleKeyRelease(
+		@GetCurrentUserId() currentID: string,
+		@MessageBody('key') key: string,
+		@ConnectedSocket() socket: Socket
+	): void {}
+
+	@SubscribeMessage("connect")
+	handleConnect(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket
+	): void {}
 
 	@SubscribeMessage("disconnect")
 	handleDisconnect(
