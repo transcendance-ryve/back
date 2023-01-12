@@ -887,7 +887,7 @@ export class ChannelService {
 		}
 	}
 
-	async updateRole(
+	async promoteUser(
 		userId: string,
 		dto: UpdateRoleDto,
 	) : Promise<ChannelUser | string> {

@@ -222,13 +222,13 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		}
 	}
 
-	@SubscribeMessage('updateRole')
+	@SubscribeMessage('promoteUser')
 	async updateRole(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('roleInfo') roleInfo: UpdateRoleDto,
 		@ConnectedSocket() clientSocket: Socket,
 	) {
-		const roleUpdated = await this.channelService.updateRole(
+		const roleUpdated = await this.channelService.promoteUser(
 			userId,
 			roleInfo,
 		);
@@ -238,6 +238,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('roleUpdated');
 		}
 	}
+
 
 	@SubscribeMessage('muteUser')
 	async muteUser(
