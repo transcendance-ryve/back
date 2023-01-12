@@ -239,6 +239,22 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		}
 	}
 
+	@SubscribeMessage('demoteUser')
+	async demoteUser(
+		@GetCurrentUserId() userId: string,
+		@MessageBody('roleInfo') roleInfo: UpdateRoleDto,
+		@ConnectedSocket() clientSocket: Socket,
+	) {
+		const roleUpdated = await this.channelService.demoteUser(
+			userId,
+			roleInfo,
+		);
+		if (typeof roleUpdated === 'string' || !roleUpdated) {
+			this._server.to(clientSocket.id).emit('demoteUserFailed', roleUpdated);
+		} else {
+			this._server.to(clientSocket.id).emit('userDemoted', roleUpdated.userId);
+		}
+	}
 
 	@SubscribeMessage('muteUser')
 	async muteUser(

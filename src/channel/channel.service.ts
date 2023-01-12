@@ -926,6 +926,43 @@ export class ChannelService {
 			
 	}
 
+	async demoteUser(
+		userId: string,
+		dto: UpdateRoleDto,
+	) : Promise<ChannelUser | string> {
+		try {
+			//Check if user exists
+			const senderRole: string | null = 
+			await this.getRoleOfUserOnChannel(userId, dto.channelId);
+			if (senderRole !== 'OWNER')
+				throw new Error('User dont have permission to demote user');
+			//Check if user exists and is not owner or admin
+			const targetRole: string | null =
+			await this.getRoleOfUserOnChannel(dto.userId, dto.channelId);
+			if (targetRole === 'OWNER')
+				throw new Error('Cannot demote owner');
+			const updatedChannelUser: ChannelUser | null =
+			await this.prisma.channelUser.update({
+				where: {
+					userId_channelId: {
+						userId: dto.userId,
+						channelId: dto.channelId,
+					},
+				},
+				data: {
+					role: "MEMBER",
+				},
+			});
+			if (updatedChannelUser == null)
+				throw new Error('User not found');
+			return updatedChannelUser;
+		} catch (err) {
+			if (err)
+				return err.message;
+			return 'Internal server error: error updating role';
+		}		
+	}
+
 	async editChannel(
 		userId: string,
 		dto: EditChannelDto,
