@@ -4,6 +4,8 @@ export class Entity {
 		this._y = y;
 	}
 
-	private _x: number;
-	private _y: number;
+	_x: number;
+	_y: number;
+	_width: number;
+	_height: number;
 }

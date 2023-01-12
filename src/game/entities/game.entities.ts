@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
-import { Ball } from "./Ball";
-import { Player } from "./Player";
+import { Ball } from "./ball.entities";
+import { Player } from "./player.entities";
 
 enum Status {
 	Waiting,
