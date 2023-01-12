@@ -27,7 +27,7 @@ import * as bcrypt from 'bcrypt';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import * as fs from 'fs';
 import { join } from 'path';
-
+import { UserTag } from './interfaces/user.interface';
 
 
 
@@ -125,11 +125,11 @@ export class ChannelService {
 	}
 
 	async getUsersOfChannel(channelId: string):
-	Promise<Partial<ChannelUser>[]>
+	Promise<UserTag[]>
 	{
 		try {
 			await this.isChannel(channelId);
-			const users: Partial<ChannelUser>[] = await this.prisma.channelUser.findMany({
+			const users: any[] = await this.prisma.channelUser.findMany({
 				where: {
 					channelId: channelId,
 				},
@@ -144,7 +144,18 @@ export class ChannelService {
 					role: true,
 				},
 			});
-			return users;
+			const res: UserTag[] = [];
+			for (const user of users) {
+				res.push({
+					id: user.user.id,
+					username: user.user.username,
+					avatar: user.user.avatar,
+					role: user.role,
+					isMute: await this.isMute(user.userId, channelId),
+					isBan: await this.isBanned(user.userId, channelId),
+				});
+			}
+			return res;
 		} catch (error) {
 			return error;
 		}
