@@ -131,7 +131,6 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		}).catch(err => console.log(err.message));
 	}
 
-
 	@SubscribeMessage('block_user')
 	handleBlockUser(
 		@GetCurrentUserId() id: string,

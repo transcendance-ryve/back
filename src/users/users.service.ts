@@ -154,18 +154,10 @@ export class UsersService {
 				},
 				select: {
 					user: {
-						select: {
-							id: true,
-							username: true,
-							avatar: true,
-						}
+						select: { id: true, username: true, avatar: true }
 					},
 					blocked: {
-						select: {
-							id: true,
-							username: true,
-							avatar: true,
-						}
+						select: { id: true, username: true, avatar: true }
 					}
 				}
 			});
@@ -185,11 +177,11 @@ export class UsersService {
         receiverID: Prisma.UserWhereUniqueInput['id']
     ) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
         try {
-            const friend: User = await this._prismaService.user.findUnique({ where: { id: receiverID } });
-            if (!friend)
-                throw new NotFoundException('Friend not found');
+			const friend = await this.getUser({ id: receiverID }, "id,username,avatar,status");
+			if (!friend)
+				throw new NotFoundException('User not found');
 
-			const blocked = await this._prismaService.blocked.findFirst({
+			const blocked: (Blocked | null) = await this._prismaService.blocked.findFirst({
 				where: {
 					OR: [
 						{ user_id: senderID, blocked_id: receiverID },
@@ -210,20 +202,10 @@ export class UsersService {
 					},
 					select : {
 						sender: {
-							select: {
-								id: true,
-								username: true,
-								avatar: true,
-								status: true,
-							}
+							select: { id: true, username: true, avatar: true }
 						},
 						receiver: {
-							select: {
-								id: true,
-								username: true,
-								avatar: true,
-								status: true
-							}
+							select: { id: true, username: true, avatar: true }
 						}
 					},
 					data: { status: InviteStatus.ACCEPTED }
@@ -238,20 +220,10 @@ export class UsersService {
 					},
 					select : {
 						sender: {
-							select: {
-								id: true,
-								username: true,
-								avatar: true,
-								status: true,
-							}
+							select: { id: true, username: true, avatar: true, status: true }
 						},
 						receiver: {
-							select: {
-								id: true,
-								username: true,
-								avatar: true,
-								status: true
-							}
+							select: { id: true, username: true, avatar: true, status: true }
 						}
 					},
 				});
@@ -283,20 +255,10 @@ export class UsersService {
                 },
 				select: {
 					sender: {
-						select: {
-							id: true,
-							username: true,
-							avatar: true,
-							status: true
-						}
+						select: { id: true, username: true, avatar: true, status: true }
 					},
                     receiver: {
-                        select: {
-                            id: true,
-                            username: true,
-                            avatar: true,
-                            status: true
-                        }
+                        select: { id: true, username: true, avatar: true, status: true }
                     }
                 },
                 data: { status: InviteStatus.ACCEPTED }
@@ -331,8 +293,17 @@ export class UsersService {
 				}
 			});
 
+			
 			if (!friendshipFirst)
 				throw new NotFoundException('Friend request not found');
+			
+			if (friendshipFirst.channel_id) {
+				await this._prismaService.channel.delete({
+					where: {
+						id: friendshipFirst.channel_id
+					}
+				})
+			}
 
 			const friendship: {sender: Partial<User>, receiver: Partial<User>} = await this._prismaService.friendship.delete({
 				where: {
@@ -340,20 +311,10 @@ export class UsersService {
 				},
 				select: {
 					sender: {
-						select: {
-							id: true,
-							username: true,
-							avatar: true,
-							status: true
-						}
+						select: { id: true, username: true, avatar: true, status: true }
 					},
 					receiver: {
-						select: {
-							id: true,
-							username: true,
-                            avatar: true,
-                            status: true
-						}
+						select: { id: true, username: true, avatar: true, status: true }
 					},
 				},
 			});
@@ -413,33 +374,13 @@ export class UsersService {
                 },
                 select: {
 					sender: {
-						select: {
-                            id: true,
-                            username: true,
-                            avatar: true,
-                            status: true
-                        }
+						select: { id: true, username: true, avatar: true, status: true }
 					},
                     receiver: {
-						select: {
-                            id: true,
-                            username: true,
-                            avatar: true,
-                            status: true,
-                        }
+						select: { id: true, username: true, avatar: true, status: true }
                     },
 					channel: {
-						select: {
-							messages: {
-								take: 1,
-								orderBy: {
-									createdAt: 'desc'
-								},
-								select: {
-									content: true,
-								}
-							}
-						}
+						select: { messages: { take: 1, orderBy: { createdAt: 'desc' }, select: { content: true } } }
 					}
                 },
             })
@@ -473,20 +414,10 @@ export class UsersService {
                 },
                 select: {
                     sender: {
-                        select: {
-                            id: true,
-                            username: true,
-                            avatar: true,
-                            status: true
-                        }
+                        select: { id: true, username: true, avatar: true, status: true }
                     },
 					receiver: {
-						select: {
-							id: true,
-							username: true,
-							avatar: true,
-							status: true
-						}
+						select: { id: true, username: true, avatar: true, status: true }
 					}
                 },
             })
@@ -579,14 +510,8 @@ export class UsersService {
 			const friends = await this._prismaService.friendship.findMany({
 				where: {
 					OR: [
-						{
-							sender: { id },
-							receiver: { id: { in: users.map(user => user.id) } }
-						},
-						{
-							sender: { id: { in: users.map(user => user.id) } },
-							receiver: { id }
-						}
+						{ sender: { id }, receiver: { id: { in: users.map(user => user.id) } } },
+						{ sender: { id: { in: users.map(user => user.id) } }, receiver: { id } }
 					]
 				},
 				select: {
