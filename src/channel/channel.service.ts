@@ -1182,11 +1182,19 @@ export class ChannelService {
 				},
 			});
 			setTimeout(async () => {
-				await this.prisma.channelAction.delete({
+				const mutedUser: ChannelAction | null =
+				await this.prisma.channelAction.findFirst({
 					where: {
-						id: mutedUser.id,
+						targetId: dto.targetId,
+						type: 'MUTE',
 					},
 				});
+				if (mutedUser !== null)
+					await this.prisma.channelAction.delete({
+						where: {
+							id: mutedUser.id,
+						},
+					});
 				_server.to(dto.channelId).emit('userUnmuted', dto.targetId);
 			}, MueDurationInMs);
 			return mutedUser;

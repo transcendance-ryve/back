@@ -240,7 +240,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('promoteUserFailed', roleUpdated);
 		} else {
 			const user : Partial<User> = await this.userService.getUser({id: roleUpdated.userId}, "id,username,avatar");
-			this._server.to(clientSocket.id).emit('userPromoted', user);
+			this._server.to(roleInfo.channelId).emit('userPromoted', user);
 		}
 	}
 
@@ -258,7 +258,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('demoteUserFailed', roleUpdated);
 		} else {
 			const user : Partial<User> = await this.userService.getUser({id: roleUpdated.userId}, "id,username,avatar");
-			this._server.to(clientSocket.id).emit('userDemoted', user);
+			this._server.to(roleInfo.channelId).emit('userDemoted', user);
 		}
 	}
 
