@@ -287,7 +287,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userMuted === 'string' || !userMuted) {
 			this._server.to(clientSocket.id).emit('unmuteUserFailed', userMuted);
 		} else {
-			this._server.to(clientSocket.id).emit('userUnmuted');
+			this._server.to(clientSocket.id).emit('userUnmuted', muteInfo.targetId);
 		}
 	}
 
