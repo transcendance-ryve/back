@@ -129,7 +129,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@ConnectedSocket() clientSocket: Socket,
 	) {
 
-		const messageSaved = await this.channelService.storeMessage(
+		const messageSaved = await this.channelService.saveMessage(
 			senderId,
 			messageInfo,
 		);

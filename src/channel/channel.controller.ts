@@ -172,13 +172,6 @@ export class ChannelController {
 		return this.channelService.getMessagesOfChannel(channelId);
 	}
 
-
-
-	@Get('inviteByChannelId/:id')
-	getChannelInvitesByChannelId(@Param('id') channelId: string) {
-		return this.channelService.getChannelInvitesByChannel(channelId);
-	}
-
 	@Get('muted/:id')
 	getMutedUsers(@Param('id') channelId: string) {
 		return this.channelService.getMutedUsersOfChannel(channelId);
