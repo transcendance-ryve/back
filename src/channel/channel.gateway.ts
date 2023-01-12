@@ -133,7 +133,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof messageSaved === 'string' || !messageSaved) {
 			this._server.to(clientSocket.id).emit('messageRoomFailed', messageSaved);
 		} else {
-			console.log("ici");
 			this._server.to(messageInfo.channelId).emit('incomingMessage', messageInfo.content);
 		}
 	}

@@ -151,8 +151,8 @@ export class ChannelService {
 					username: user.user.username,
 					avatar: user.user.avatar,
 					role: user.role,
-					isMute: await this.isMute(user.userId, channelId),
-					isBan: await this.isBanned(user.userId, channelId),
+					isMute: await this.isMute(user.user.id, channelId),
+					isBan: await this.isBanned(user.user.id, channelId),
 				});
 			}
 			return res;
