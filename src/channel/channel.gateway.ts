@@ -37,6 +37,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { type } from 'os';
 import { UsersService } from 'src/users/users.service';
+import { UserTag } from './interfaces/UserTag.interface';
 
 
 @WebSocketGateway({
@@ -304,7 +305,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userBanned === 'string' || !userBanned) {
 			this._server.to(clientSocket.id).emit('banUserFailed', userBanned);
 		} else {
-			this._server.to(clientSocket.id).emit('userBanned', banInfo.targetId);
+			const user: UserTag | string =
+			await this.channelService.getUserTag(banInfo.channelId, banInfo.targetId);
+			this._server.to(clientSocket.id).emit('userBanned', user);
 		}
 	}
 

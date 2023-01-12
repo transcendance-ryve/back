@@ -161,6 +161,41 @@ export class ChannelService {
 		}
 	}
 
+	async getUserTag(channelId: string, userId: string):
+	Promise<UserTag | string>
+	{
+		try{
+		await this.isChannel(channelId);
+			const user: any = await this.prisma.channelUser.findFirst({
+				where: {
+					channelId: channelId,
+					userId: userId,
+				},
+				select: {
+					user: {
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+						},
+					},
+					role: true,
+				},
+			});
+			const res: UserTag = {
+				id: user.user.id,
+				username: user.user.username,
+				avatar: user.user.avatar,
+				role: user.role,
+				isMute: await this.isMute(user.user.id, channelId),
+				isBan: await this.isBanned(user.user.id, channelId),
+				};
+			return res;
+		} catch (error) {
+			return error.message;
+		}
+	}
+
 
 	async getChannelInvitesByUser(userId: string):
 	Promise<any>
