@@ -260,7 +260,17 @@ export class UsersService {
 					},
 				},
 			});
-            return friendship;
+
+			let data: { sender: Partial<User>, receiver: Partial<User> }
+			if (senderID === friendship.sender.id) {
+				data.sender = friendship.sender;
+				data.receiver = friendship.receiver;
+			} else {
+				data.sender = friendship.receiver;
+				data.receiver = friendship.sender;
+			}
+
+            return data;
         } catch(err) {
             throw new InternalServerErrorException('Internal server error');
 		}
