@@ -118,6 +118,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			const user: UserTag | string =
 			await this.channelService.getUserTag(dto.channelId, userId);
 			this._server.to(dto.channelId).emit('newUserInRoom', user);
+			this._server.to(clientSocket.id).emit('joinRoomSuccess', joinedRoom.id);
 		}
 	}
 
@@ -128,7 +129,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@ConnectedSocket() clientSocket: Socket,
 	) {
 
-		const messageSaved = await this.channelService.storeMessage(
+		const messageSaved = await this.channelService.saveMessage(
 			senderId,
 			messageInfo,
 		);
@@ -154,9 +155,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (!userLeaving || typeof userLeaving === 'string') {
 			this._server.to(clientSocket.id).emit('leaveRoomFailed', userLeaving);
 		} else {
-			this._server.to(channelId).emit('roomLeft', userId);
-			this._server.to(clientSocket.id).emit('roomLeft');
+			this._server.to(channelId).emit('userLeftTheRoom', userId);
 			await clientSocket.leave(channelId);
+			this._server.to(clientSocket.id).emit('roomLeft');
 		}
 	}
 
@@ -239,7 +240,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('promoteUserFailed', roleUpdated);
 		} else {
 			const user : Partial<User> = await this.userService.getUser({id: roleUpdated.userId}, "id,username,avatar");
-			this._server.to(clientSocket.id).emit('userPromoted', user);
+			this._server.to(roleInfo.channelId).emit('userPromoted', user);
 		}
 	}
 
@@ -257,7 +258,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('demoteUserFailed', roleUpdated);
 		} else {
 			const user : Partial<User> = await this.userService.getUser({id: roleUpdated.userId}, "id,username,avatar");
-			this._server.to(clientSocket.id).emit('userDemoted', user);
+			this._server.to(roleInfo.channelId).emit('userDemoted', user);
 		}
 	}
 
@@ -270,11 +271,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		const userMuted = await this.channelService.muteUser(
 			userId,
 			muteInfo,
+			this._server,
 		);
 		if (typeof userMuted === 'string' || !userMuted) {
 			this._server.to(clientSocket.id).emit('muteUserFailed', userMuted);
 		} else {
-			this._server.to(clientSocket.id).emit('userMuted', muteInfo.targetId);
+			this._server.to(muteInfo.channelId).emit('userMuted', muteInfo.targetId);
 		}
 	}
 
@@ -291,7 +293,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userMuted === 'string' || !userMuted) {
 			this._server.to(clientSocket.id).emit('unmuteUserFailed', userMuted);
 		} else {
-			this._server.to(clientSocket.id).emit('userUnmuted', muteInfo.targetId);
+			this._server.to(muteInfo.channelId).emit('userUnmuted', muteInfo.targetId);
 		}
 	}
 
@@ -308,7 +310,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userBanned === 'string' || !userBanned) {
 			this._server.to(clientSocket.id).emit('banUserFailed', userBanned);
 		} else {
-			this._server.to(clientSocket.id).emit('userBanned', userBanned);
+			this._server.to(banInfo.channelId).emit('userBanned', userBanned);
 		}
 	}
 
@@ -325,7 +327,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userBanned === 'string' || !userBanned) {
 			this._server.to(clientSocket.id).emit('unbanUserFailed', userBanned);
 		} else {
-			this._server.to(clientSocket.id).emit('userUnbanned', banInfo.targetId);
+			this._server.to(banInfo.channelId).emit('userUnbanned', banInfo.targetId);
 		}
 	}
 }
