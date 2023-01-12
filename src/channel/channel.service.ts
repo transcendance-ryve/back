@@ -355,7 +355,7 @@ export class ChannelService {
 	Promise<any>{
 		try {
 			await this.isChannel(channelId);
-			const res: {
+			const users: {
 				target: {
 					id: string;
 					username: string;
@@ -377,6 +377,17 @@ export class ChannelService {
 					},
 				},
 			});
+			const res: UserTag[] = [];
+			for (const user of users) {
+				res.push({
+					id: user.target.id,
+					username: user.target.username,
+					avatar: user.target.avatar,
+					role: null,
+					isMute: await this.isMute(user.target.id, channelId),
+					isBan: await this.isBanned(user.target.id, channelId),
+				});
+			}
 			return res;
 		} catch (error) {
 			return error.message;
@@ -1354,18 +1365,39 @@ export class ChannelService {
 		return false;
 	}
 
-	async isBlocked(
+	/*async isBlocked(
 		userId: string,
-		blockedUserId: string,
+		channelId: string,
 	): Promise<boolean> {
+		const isDm = await this.prisma.channel.findFirst({
+			where: {
+				id: channelId,
+			},
+			select: {
+				status: true,
+				users: {
+					select: {
+						userId: true,
+					},
+				},
+			},
+		});
+		if (isDm != null && isDm.status !== 'DIRECTMESSAGE')
+			return false;
 		const isBlocked: blockedUser | null = await this.prisma.blockedUser.findFirst({
 			where: {
-				userId: userId,
-				blockedId: blockedUserId,
+				OR: [{
+					userId: isDm.users[0].userId,
+					blockedId: userId,
+				},
+				{
+					userId: isDm.users[1].userId,
+					blockedId: userId,
+				}],
 			},
 		});
 		if (isBlocked != null)
 			return true;
 		return false;
-	}
+	}*/
 }
