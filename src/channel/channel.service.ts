@@ -182,6 +182,9 @@ export class ChannelService {
 					role: true,
 				},
 			});
+			if (!user) {
+				return 'User not found';
+			}
 			const res: UserTag = {
 				id: user.user.id,
 				username: user.user.username,
@@ -1132,7 +1135,7 @@ export class ChannelService {
 	async banUser(
 		userId: string,
 		dto: ModerateUserDto,
-	): Promise<ChannelAction | string> {
+	): Promise<UserTag | string> {
 		try {
 			const check = await this.checkIsValideModeration(userId, dto);
 			if (check != true)
@@ -1155,6 +1158,7 @@ export class ChannelService {
 					type: 'BAN',
 				},
 			});
+			const user: UserTag | string = await this.getUserTag(dto.channelId, dto.targetId);
 			await this.prisma.channelUser.delete({
 				where: {
 					userId_channelId: {
@@ -1173,7 +1177,7 @@ export class ChannelService {
 					},
 				},
 			});
-			return bannedUser;
+			return user;
 		} catch (err) {
 			if (err)
 				return err.message;
