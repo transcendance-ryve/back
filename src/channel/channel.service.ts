@@ -629,7 +629,11 @@ export class ChannelService {
 					id: friendShip.id,
 				},
 				data: {
-					channel_id: newDMChannel.id,
+					channel: {
+						connect: {
+							id: newDMChannel.id,
+						},
+					},
 				},
 			});
 
@@ -1151,6 +1155,7 @@ export class ChannelService {
 	async muteUser(
 		userId: string,
 		dto: ModerateUserDto,
+		_server: Server,
 	): Promise<ChannelAction | string> {
 		try {
 			const check = await this.checkIsValideModeration(userId, dto);
@@ -1164,7 +1169,7 @@ export class ChannelService {
 			});
 			if (isMuted != null)
 				throw new Error('User is already muted');
-			const MueDurationInMs: number = 600 * 1000;
+			const MueDurationInMs: number = 10 * 1000;
 			const MuteExpiration: Date = new Date(Date.now() + MueDurationInMs);
 			const mutedUser: ChannelAction | null =
 			await this.prisma.channelAction.create({
@@ -1176,6 +1181,14 @@ export class ChannelService {
 					type: 'MUTE',
 				},
 			});
+			setTimeout(async () => {
+				await this.prisma.channelAction.delete({
+					where: {
+						id: mutedUser.id,
+					},
+				});
+				_server.to(dto.channelId).emit('userUnmuted', dto.targetId);
+			}, MueDurationInMs);
 			return mutedUser;
 		} catch (err) {
 			if (err)

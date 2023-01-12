@@ -270,11 +270,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		const userMuted = await this.channelService.muteUser(
 			userId,
 			muteInfo,
+			this._server,
 		);
 		if (typeof userMuted === 'string' || !userMuted) {
 			this._server.to(clientSocket.id).emit('muteUserFailed', userMuted);
 		} else {
-			this._server.to(clientSocket.id).emit('userMuted', muteInfo.targetId);
+			this._server.to(muteInfo.channelId).emit('userMuted', muteInfo.targetId);
 		}
 	}
 
@@ -291,7 +292,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userMuted === 'string' || !userMuted) {
 			this._server.to(clientSocket.id).emit('unmuteUserFailed', userMuted);
 		} else {
-			this._server.to(clientSocket.id).emit('userUnmuted', muteInfo.targetId);
+			this._server.to(muteInfo.channelId).emit('userUnmuted', muteInfo.targetId);
 		}
 	}
 
@@ -308,7 +309,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userBanned === 'string' || !userBanned) {
 			this._server.to(clientSocket.id).emit('banUserFailed', userBanned);
 		} else {
-			this._server.to(clientSocket.id).emit('userBanned', userBanned);
+			this._server.to(banInfo.channelId).emit('userBanned', userBanned);
 		}
 	}
 
@@ -325,7 +326,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userBanned === 'string' || !userBanned) {
 			this._server.to(clientSocket.id).emit('unbanUserFailed', userBanned);
 		} else {
-			this._server.to(clientSocket.id).emit('userUnbanned', banInfo.targetId);
+			this._server.to(banInfo.channelId).emit('userUnbanned', banInfo.targetId);
 		}
 	}
 }
