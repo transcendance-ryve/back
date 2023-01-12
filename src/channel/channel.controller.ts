@@ -194,4 +194,9 @@ export class ChannelController {
 	getBannedUsers(@Param('id') channelId: string) {
 		return this.channelService.getBannedUsersOfChannel(channelId);
 	}
+
+	@Get('pending/:id')
+	getPendingInvites(@Param('id') channelId: string) {
+		return this.channelService.getPendingInvitesOfChannel(channelId);
+	}
 }

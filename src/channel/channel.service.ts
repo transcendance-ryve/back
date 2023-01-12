@@ -416,6 +416,39 @@ export class ChannelService {
 		}
 	}
 
+	async getPendingInvitesOfChannel(channelId: string):
+	Promise<any>{
+		try {
+			const users = await this.prisma.channelInvitation.findMany({
+				where: {
+					channelId: channelId,
+				},
+				select: {
+					invitedUser: {
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+						},
+					},
+				},
+			});
+			const res: UserTag[] = [];
+			for (const user of users) {
+				res.push({
+					id: user.invitedUser.id,
+					username: user.invitedUser.username,
+					avatar: user.invitedUser.avatar,
+					role: null,
+					isMute: await this.isMute(user.invitedUser.id, channelId),
+					isBan: await this.isBanned(user.invitedUser.id, channelId),
+				});
+			}
+			return res;
+		} catch (error) {
+			return error.message;
+		}
+	}
 	//Actions
 	async connectToChannel(
 		userId: string,
