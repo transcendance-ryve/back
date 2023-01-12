@@ -220,9 +220,9 @@ export class UsersService {
         receiverID: Prisma.UserWhereUniqueInput['id']
     ) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
         try {
-			const friendshipId: {id: string} = await this._prismaService.friendship.findFirst({
+			const friendshipFirst = await this._prismaService.friendship.findFirst({
 				where: {
-					OR:[
+					OR: [
 						{
 							sender_id: senderID,
 							receiver_id: receiverID
@@ -231,15 +231,16 @@ export class UsersService {
 							sender_id: receiverID,
 							receiver_id: senderID
 						}
-					],
-				},
-				select: {
-					id: true
+					]
 				}
 			});
+
+			if (!friendshipFirst)
+				throw new NotFoundException('Friend request not found');
+
 			const friendship: {sender: Partial<User>, receiver: Partial<User>} = await this._prismaService.friendship.delete({
 				where: {
-					id: friendshipId.id
+					id: friendshipFirst.id
 				},
 				select: {
 					sender: {
@@ -260,8 +261,9 @@ export class UsersService {
 					},
 				},
 			});
+			
 
-			let data: { sender: Partial<User>, receiver: Partial<User> }
+			let data: { sender: Partial<User>, receiver: Partial<User> } = { sender: null, receiver: null }
 			if (senderID === friendship.sender.id) {
 				data.sender = friendship.sender;
 				data.receiver = friendship.receiver;
