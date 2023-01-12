@@ -86,7 +86,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			if (friendSocket)
 				this._server.to(friendSocket.id).emit('friend_accepted', friendship.receiver);
 			this._server.to(socket.id).emit('friend_accepted_submitted', friendship.sender);
-		});
+		}).catch(err => console.log(err.message));
 	}
 
 	@SubscribeMessage('decline_friend')
@@ -100,7 +100,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			if (friendSocket)
 				this._server.to(friendSocket.id).emit('friend_declined', friendship.receiver);
 			this._server.to(socket.id).emit('friend_declined_submitted', friendship.sender);
-		});
+		}).catch(err => console.log(err.message));
 	}
 	
 	@SubscribeMessage('add_friend')
@@ -114,7 +114,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			if (friendSocket)
 				this._server.to(friendSocket.id).emit('friend_request', friendship.sender);
 			this._server.to(socket.id).emit('friend_request_submitted', friendship.receiver);
-		});
+		}).catch(err => console.log(err.message));
 	}
 
 	@SubscribeMessage('remove_friend')
@@ -131,4 +131,32 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		}).catch(err => console.log(err.message));
 	}
 
+
+	@SubscribeMessage('block_user')
+	handleBlockUser(
+		@GetCurrentUserId() id: string,
+		@MessageBody('blockedId') blockedId: string,
+		@ConnectedSocket() socket: Socket,
+	) {
+		this._usersService.blockUser(id, blockedId).then(blocked => {
+			const blockedSocket = UserIdToSockets.get(blockedId);
+			if (blockedSocket)
+				this._server.to(blockedSocket.id).emit('user_blocked', blocked.sender);
+			this._server.to(socket.id).emit('user_blocked_submitted', blocked.receiver);
+		}).catch(err => console.log(err.message));
+	}
+
+	@SubscribeMessage('unblock_user')
+	handleUnblockUser(
+		@GetCurrentUserId() id: string,
+		@MessageBody('blockedId') blockedId: string,
+		@ConnectedSocket() socket: Socket,
+	) {
+		this._usersService.unblockUser(id, blockedId).then(blocked => {
+			const blockedSocket = UserIdToSockets.get(blockedId);
+			if (blockedSocket)
+				this._server.to(blockedSocket.id).emit('user_unblocked', blocked.sender);
+			this._server.to(socket.id).emit('user_unblocked_submitted', blocked.receiver);
+		}).catch(err => console.log(err.message));
+	}
 }

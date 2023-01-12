@@ -36,6 +36,9 @@ model User {
 	friends			Friendship[]			@relation("friends")
 	friends_request	Friendship[]			@relation("friendsRequests")
 
+	user_blocked	Blocked[]				@relation("blocked")
+	user_blocked_by	Blocked[]				@relation("blockedBy")
+
 	games			Game[]					@relation("games")
 	games_request	Game[]					@relation("gamesRequests")
 
@@ -45,8 +48,6 @@ model User {
 	chanActionTarget	ChannelAction[]		@relation("channelActionsTarget")
 	chanInvitations		ChannelInvitation[]	@relation("userInvites")
 
-	userBlocked			blockedUser[]		@relation("blockedUsers")
-	userBlockedBy		blockedUser[]		@relation("blockedBy")
 	@@map("users")
 }
 
@@ -68,6 +69,19 @@ model Friendship {
 	@@map("friendships")
 }
 
+model Blocked {
+	id				String          @id @default(cuid())
+
+	user			User           	@relation("blocked", fields: [user_id], references: [id], onDelete: Cascade)
+	user_id			String
+
+	blocked			User            @relation("blockedBy", fields: [blocked_id], references: [id], onDelete: Cascade)
+	blocked_id		String  
+	
+	@@unique([user_id, blocked_id])
+	@@map("blocked_users")
+}
+
 model Game {
 	id			  		String          @id @default(cuid())
 
@@ -81,21 +95,6 @@ model Game {
 
 	@@map("games")
 }
-
-model blockedUser {
-	id				String          @id @default(cuid())
-	
-	user			User           	@relation("blockedUsers", fields: [userId], references: [id], onDelete: Cascade)
-	userId			String
-	
-	blocked			User            @relation("blockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
-	blockedId		String  
-	
-	@@unique([userId, blockedId])
-	@@map("blocked_users")
-}
-
-
 
 model Channel {
 	id			String			@id @default(cuid())

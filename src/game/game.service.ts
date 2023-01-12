@@ -28,7 +28,6 @@ export class GameService {
 		return game;
 	}
 
-
 	async connect(id: string, socket: Socket, opponent: boolean): Promise<void> {
 		const game: Game = this._games.get(id);
 		

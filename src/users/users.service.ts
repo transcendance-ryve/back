@@ -1,5 +1,5 @@
-import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { Prisma, User, Friendship, InviteStatus } from '@prisma/client';
+import { ConflictException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Prisma, User, Friendship, InviteStatus, Blocked } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as bcrypt from 'bcrypt';
@@ -95,6 +95,89 @@ export class UsersService {
         }
     }
 
+	async blockUser(
+		id: Prisma.UserWhereUniqueInput['id'],
+		target: Prisma.UserWhereUniqueInput['id']
+	) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
+		try {
+
+			const user: Partial<User> = await this.getUser({ id }, "id,username,avatar,status");
+			if (!user)
+				throw new NotFoundException('User not found');
+			
+			const targetUser: Partial<User> = await this.getUser({ id: target }, "id,username,avatar,status");
+			if (!targetUser)
+				throw new NotFoundException('Target user not found');
+
+			const friendship: (Friendship | null) = await this._prismaService.friendship.findFirst({
+				where: {
+					OR: [
+						{ sender_id: id, receiver_id: target },
+						{ sender_id: target, receiver_id: id }
+					]
+				}
+			})
+			if (friendship) {
+				await this._prismaService.friendship.delete({
+					where: {
+						id: friendship.id
+					}
+				});
+			}
+
+			const blockedUser: Blocked = await this._prismaService.blocked.create({
+				data: {
+					user: { connect: { id } },
+					blocked: { connect: { id: target } }
+				}
+			});
+	
+			return { sender: user, receiver: targetUser };
+		} catch(err) {
+			if (err instanceof NotFoundException)
+				throw err;
+			throw new InternalServerErrorException('Internal server error');
+		}
+	}
+
+	async unblockUser(
+		id: Prisma.UserWhereUniqueInput['id'],
+		target: Prisma.UserWhereUniqueInput['id']
+	) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
+		try {
+			const blocked: {user: Partial<User>, blocked: Partial<User>} = await this._prismaService.blocked.delete({
+				where: {
+					user_id_blocked_id: {
+						user_id: id,
+						blocked_id: target
+					}
+				},
+				select: {
+					user: {
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+						}
+					},
+					blocked: {
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+						}
+					}
+				}
+			});
+
+			return { sender: blocked.user, receiver: blocked.blocked };
+		} catch(err) {
+			if (err instanceof NotFoundException)
+				throw err;
+			throw new InternalServerErrorException('Internal server error');
+		}
+	}		
+
     /* FRIENDSHIP */
 
     async sendFriendRequest(
@@ -105,6 +188,17 @@ export class UsersService {
             const friend: User = await this._prismaService.user.findUnique({ where: { id: receiverID } });
             if (!friend)
                 throw new NotFoundException('Friend not found');
+
+			const blocked = await this._prismaService.blocked.findFirst({
+				where: {
+					OR: [
+						{ user_id: senderID, blocked_id: receiverID },
+						{ user_id: receiverID, blocked_id: senderID }
+					]
+				}
+			})
+			if (blocked)
+				throw new ForbiddenException('You are blocked by this user');
 
 			try {
 				const friendship: {sender: Partial<User>, receiver: Partial<User>} = await this._prismaService.friendship.update({
@@ -165,6 +259,8 @@ export class UsersService {
 				return friendship;
 			}
         } catch(err) {
+			if (err instanceof ForbiddenException)
+				throw err;
             if (err instanceof PrismaClientKnownRequestError)
                 if (err.code === 'P2002')
                     throw new ConflictException('Friend request already sent');
