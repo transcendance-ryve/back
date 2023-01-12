@@ -208,6 +208,37 @@ export class ChannelService {
 		}
 	}
 
+	async getPendingUserTag(userId: string):
+	Promise<UserTag | string>
+	{
+		try {
+			const user: any = await this.prisma.user.findFirst({
+				where: {
+					id: userId,
+				},
+				select: {
+					id: true,
+					username: true,
+					avatar: true,
+				},
+			});
+			if (!user) {
+				throw new Error('User not found');
+			}
+			const res: UserTag = {
+				id: user.id,
+				username: user.username,
+				avatar: user.avatar,
+				role: null,
+				isMute: false,
+				isBan: false,
+			};
+			return res;
+		} catch (error) {
+			return error.message;
+		}
+	}
+
 
 	async getChannelInvitesByUser(userId: string):
 	Promise<any>
