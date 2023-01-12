@@ -155,8 +155,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('leaveRoomFailed', userLeaving);
 		} else {
 			this._server.to(channelId).emit('userLeftTheRoom', userId);
-			this._server.to(clientSocket.id).emit('roomLeft');
 			await clientSocket.leave(channelId);
+			this._server.to(clientSocket.id).emit('roomLeft');
 		}
 	}
 
