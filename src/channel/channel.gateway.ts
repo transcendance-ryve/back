@@ -115,7 +115,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof joinedRoom === 'string' || !joinedRoom) {
 			this._server.to(clientSocket.id).emit('joinRoomFailed', joinedRoom);
 		} else {
-			this._server.to(dto.channelId).emit('roomJoined', joinedRoom.id, userId);
+			const user: UserTag | string =
+			await this.channelService.getUserTag(dto.channelId, userId);
+			this._server.to(dto.channelId).emit('newUserInRoom', user);
 		}
 	}
 
@@ -198,8 +200,9 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(clientSocket.id).emit('acceptInvitationFailed', channelInvite);
 		} else {
 			this._server.to(clientSocket.id).emit('invitationAccepted', channelInvite.id);
-			const user : Partial<User> = await this.userService.getUser({id: userId}, "id,username,avatar,status");
-			this._server.to(channelInvite.id).emit('roomJoined', user);
+			const user : UserTag | string =
+			await this.channelService.getUserTag(channelInvite.id, userId);
+			this._server.to(channelInvite.id).emit('newUserInRoom', user);
 		}
 	}
 
