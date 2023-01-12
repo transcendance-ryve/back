@@ -990,6 +990,19 @@ export class ChannelService {
 					role: "ADMIN",
 				},
 			});
+			const isMute =
+			await this.prisma.channelAction.findFirst({
+				where: {
+						targetId: dto.userId,
+						channelId: dto.channelId,
+				},
+			});
+			if (isMute != null)
+				await this.prisma.channelAction.delete({
+					where: {
+						id: isMute.id,
+					},
+				});
 			if (updatedChannelUser == null)
 				throw new Error('User not found');
 			return updatedChannelUser;
