@@ -34,9 +34,10 @@ export class ChannelController {
 
 	@Get()
 	getChannels(
+		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Query('search') name: string,
 	) {
-		return this.channelService.getChannels(name);
+		return this.channelService.getChannels(name, currentUser.id);
 	}
 
 	//Return all the channels of a user
@@ -45,13 +46,6 @@ export class ChannelController {
 		@GetCurrentUser() currentUser: JwtPayloadDto
 	) {
 		return this.channelService.getChannelsByUserId(currentUser.id);
-	}
-
-	@Get('blockedUser')
-	getBlockedUsers(
-		@GetCurrentUser() currentUser: JwtPayloadDto
-	) {
-		return this.channelService.getBlockedUsers(currentUser.id);
 	}
 
 	@Get('invites')

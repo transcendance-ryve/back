@@ -8,7 +8,6 @@ import {
 	ChannelType,
 	ChannelInvitation,
 	ChannelAction,
-	blockedUser,
 	Friendship,
 } from '@prisma/client';
 import {
@@ -40,11 +39,21 @@ export class ChannelService {
 	//Getter
 	getChannels(
 		name: string,
+		userId: string,
 	) : Promise<Channel[]> {
 		if (!name)
 			return;
 		return this.prisma.channel.findMany({
 			where: {
+				NOT: {
+					OR:[
+						{ status: 'PRIVATE',}, 
+						{ users: {
+							some: { userId: userId, },
+							},
+						},
+					],
+				},
 				name: {
 					contains: name,
 					mode: 'insensitive',
@@ -319,33 +328,6 @@ export class ChannelService {
 				},
 			});
 			return mutedUsers;
-		} catch (error) {
-			return error.message;
-		}
-	}
-
-	async getBlockedUsers(userId: string):
-	Promise<any>{
-		try {
-			const blockedUsers: {
-				blocked: {
-					id: string;
-					username: string;
-				};
-			}[] = await this.prisma.blockedUser.findMany({
-				where: {
-					userId: userId,
-				},
-				select: {
-					blocked: {
-						select: {
-							id: true,
-							username: true,
-						},
-					},
-				},
-			});
-			return blockedUsers;
 		} catch (error) {
 			return error.message;
 		}
@@ -1260,60 +1242,6 @@ export class ChannelService {
 		}
 	}
 
-	async blockUser(
-		userId: string,
-		blockedUserId: string,
-	): Promise<blockedUser | string> {
-		try {
-			const isBlocked: blockedUser | null = await this.prisma.blockedUser.findFirst({
-				where: {
-					userId: userId,
-					blockedId: blockedUserId,
-				},
-			});
-			if (isBlocked != null)
-				throw new Error('User is already blocked');
-			const blockedUser: blockedUser | null =
-			await this.prisma.blockedUser.create({
-				data: {
-					userId: userId,
-					blockedId: blockedUserId,
-				},
-			});
-			return blockedUser;
-		} catch (err) {
-			if (err)
-				return err.message;
-			return 'Internal server error: error blocking user';
-		}
-	}
-
-	async unblockUser(
-		userId: string,
-		blockedUserId: string,
-	): Promise<blockedUser | string> {
-		try {
-			const isBlocked: blockedUser | null = await this.prisma.blockedUser.findFirst({
-				where: {
-					userId: userId,
-					blockedId: blockedUserId,
-				},
-			});
-			if (isBlocked == null)
-				throw new Error('User is not blocked');
-			const unblockedUser: blockedUser | null =
-			await this.prisma.blockedUser.delete({
-				where: {
-					id: isBlocked.id,
-				},
-			});
-			return unblockedUser;
-		} catch (err) {
-			if (err)
-				return err.message;
-			return 'Internal server error: error unblocking user';
-		}
-	}
 	// utils
 	async isChannel(channelId: string) {
 		const channel: Channel | null = await this.prisma.channel.findUnique({
@@ -1397,40 +1325,4 @@ export class ChannelService {
 			return true;
 		return false;
 	}
-
-	/*async isBlocked(
-		userId: string,
-		channelId: string,
-	): Promise<boolean> {
-		const isDm = await this.prisma.channel.findFirst({
-			where: {
-				id: channelId,
-			},
-			select: {
-				status: true,
-				users: {
-					select: {
-						userId: true,
-					},
-				},
-			},
-		});
-		if (isDm != null && isDm.status !== 'DIRECTMESSAGE')
-			return false;
-		const isBlocked: blockedUser | null = await this.prisma.blockedUser.findFirst({
-			where: {
-				OR: [{
-					userId: isDm.users[0].userId,
-					blockedId: userId,
-				},
-				{
-					userId: isDm.users[1].userId,
-					blockedId: userId,
-				}],
-			},
-		});
-		if (isBlocked != null)
-			return true;
-		return false;
-	}*/
 }
