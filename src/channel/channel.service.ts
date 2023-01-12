@@ -697,6 +697,19 @@ export class ChannelService {
 			});
 			await clientSocket.join(channelDto.channelId);
 			delete joinedChannel.password;
+			const isInvited: ChannelInvitation | null = await this.prisma.channelInvitation.findFirst({
+				where: {
+					invitedUserId: userId,
+					channelId: channelDto.channelId,
+				},
+			});
+			if (isInvited != null) {
+				await this.prisma.channelInvitation.delete({
+					where: {
+						id: isInvited.id,
+					},
+				});
+			}
 			return joinedChannel;
 		} catch (err) {
 			console.log("err", err);
