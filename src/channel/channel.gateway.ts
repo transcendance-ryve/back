@@ -304,7 +304,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userBanned === 'string' || !userBanned) {
 			this._server.to(clientSocket.id).emit('banUserFailed', userBanned);
 		} else {
-			this._server.to(clientSocket.id).emit('userBanned');
+			this._server.to(clientSocket.id).emit('userBanned', banInfo.targetId);
 		}
 	}
 
@@ -321,7 +321,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof userBanned === 'string' || !userBanned) {
 			this._server.to(clientSocket.id).emit('unbanUserFailed', userBanned);
 		} else {
-			this._server.to(clientSocket.id).emit('userUnbanned');
+			this._server.to(clientSocket.id).emit('userUnbanned', banInfo.targetId);
 		}
 	}
 
