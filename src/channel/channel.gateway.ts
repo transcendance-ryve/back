@@ -239,23 +239,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		}
 	}
 
-	/*@SubscribeMessage('editRoom')
-	async editChannel(
-		@GetCurrentUserId() userId: string,
-		@MessageBody('editInfo') editInfo: EditChannelDto,
-		@ConnectedSocket() clientSocket: Socket,
-	) {
-		const channelEdited = await this.channelService.editChannel(
-			userId,
-			editInfo,
-		);
-		if (typeof channelEdited === 'string' || !channelEdited) {
-			this._server.to(clientSocket.id).emit('editRoomFailed', channelEdited);
-		} else {
-			this._server.to(clientSocket.id).emit('roomEdited');
-		}
-	}*/
-
 	@SubscribeMessage('muteUser')
 	async muteUser(
 		@GetCurrentUserId() userId: string,

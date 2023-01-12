@@ -934,7 +934,7 @@ export class ChannelService {
 		try {
 			const senderRole: string | null =
 			await this.getRoleOfUserOnChannel(userId, dto.channelId);
-			if (senderRole != 'OWNER')
+			if (senderRole === 'MEMBER')
 				throw new Error('User dont have permission to edit channel');
 			if (dto.status === 'PROTECTED')
 			{
