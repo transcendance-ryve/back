@@ -118,6 +118,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			const user: UserTag | string =
 			await this.channelService.getUserTag(dto.channelId, userId);
 			this._server.to(dto.channelId).emit('newUserInRoom', user);
+			this._server.to(clientSocket.id).emit('joinRoomSuccess', joinedRoom.id);
 		}
 	}
 
