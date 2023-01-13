@@ -70,27 +70,18 @@ export class GameGateway {
 		@ConnectedSocket() socket: Socket
 	): void {}
 
-	@SubscribeMessage("connect")
+	@SubscribeMessage("game_connect")
 	handleConnect(
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket
-	): void {}
+	): void {
 
-	@SubscribeMessage("disconnect")
-	handleDisconnect(
-		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
-	): void {}
+		this._server.to(socket.id).emit("game_connected");
+	}
 
-	@SubscribeMessage("reconnect")
-	handleReconnect(
-		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
-	): void {}
-
-	@SubscribeMessage("spectate")
-	handleSpectate(
-		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
-	): void {}
+	// @SubscribeMessage("spectate")
+	// handleSpectate(
+	// 	@GetCurrentUserId() currentID: string,
+	// 	@ConnectedSocket() socket: Socket
+	// ): void {}
 }
