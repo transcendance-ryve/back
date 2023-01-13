@@ -4,7 +4,7 @@ import { HEIGHT, SLOWER_BONUS, REVERSE_KEYS_BONUS } from './config';
  * Keys
  */
 
-Pong.prototype.standardKeysBehavior = function()
+/*Pong.prototype.standardKeysBehavior = function()
 {
 	if (this.keyPressed['W'])
 	{
@@ -34,7 +34,7 @@ Pong.prototype.standardKeysBehavior = function()
 		else
 			this.rightPlayer.positionY = HEIGHT - this.rightPlayer.height - 2
 	}
-}
+}*/
 
 Pong.prototype.reverseLeftPlayerKeys = function()
 {

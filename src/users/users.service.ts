@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma, User, Friendship, InviteStatus, Blocked } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
@@ -177,6 +177,9 @@ export class UsersService {
         receiverID: Prisma.UserWhereUniqueInput['id']
     ) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
         try {
+			if (senderID === receiverID)
+				throw new BadRequestException('You can\'t send a friend request to yourself');
+
 			const friend = await this.getUser({ id: receiverID }, "id,username,avatar,status");
 			if (!friend)
 				throw new NotFoundException('User not found');
@@ -231,7 +234,7 @@ export class UsersService {
 				return friendship;
 			}
         } catch(err) {
-			if (err instanceof ForbiddenException)
+			if (err instanceof HttpException)
 				throw err;
             if (err instanceof PrismaClientKnownRequestError)
                 if (err.code === 'P2002')

@@ -96,7 +96,7 @@ Pong.prototype.setRandBonusPos = function()
 ** Bonuses initialization
 */
 
-Pong.prototype.initImages = function()
+/*Pong.prototype.initImages = function()
 {
 	this.imController = new Image();
 	this.imController.src = "../bonuses_images/game-controller.svg";
@@ -112,7 +112,7 @@ Pong.prototype.initImages = function()
 	
 	this.imEye = new Image();
 	this.imEye.src = "../bonuses_images/Eye.svg";
-}
+}*/
 
 Pong.prototype.initMapBonusImages = function()
 {

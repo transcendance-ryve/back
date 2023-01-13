@@ -28,6 +28,17 @@ export class GameService {
 		) {}
 	private readonly _games: GameSessions = new GameSessions();
 		
+	playerIds: string[] = [];
+	async connect(id: string, server: Server): Promise<void> {
+		this.playerIds.push(id);
+		console.log(this.playerIds.length);
+		if (this.playerIds.length === 2) {
+			const playerOne = this.playerIds[0];
+			const playerTwo = this.playerIds[1];
+			this.playerIds = [];
+			await this.create(playerOne, playerTwo, server);
+		}
+	}
 
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
 		await this._prismaService.game.create({
@@ -41,6 +52,7 @@ export class GameService {
 
 		//const game: Game = new Game(server);
 		const game: Pong = this._games.createGame(id, opponent, server);
+		console.log("size of sessions: " + this._games.getSize());
 		const PlayerOneSocket: Socket= UserIdToSockets.get(id);
 		const PlayerTwoSocket: Socket= UserIdToSockets.get(opponent);
 		PlayerOneSocket.join(game.gameId);
@@ -69,22 +81,32 @@ export class GameService {
 			left: playerOne,
 			right: playerTwo,
 		}
-
-		server.to(game.gameId).emit("start", players);
-
+		const width: number  = 790;
+		const height: number = 390;
+		const res = {
+			players,
+			width,
+			height,
+		}
+		server.to(game.gameId).emit("start", res);
+		game.launchGame();
 		return;
 	}
 
-	/*async connect(id: string, socket: Socket, opponent: boolean): Promise<void> {
-		const game: Game = this._games.getGame(id);
-		
-		const player = new Player(id, 0, 0)
-		if (opponent) {
-			game.setPlayerTwo(player);
-		} else {
-			game.setPlayerOne(player);
+	keyPress(userId: string, key: string): void {
+		const game: Pong = this._games.getGame(userId);
+		if (game) {
+			console.log("mes morts!");
+			game.keyDown(key, userId);
 		}
-	}*/
+	}
+
+	keyRelease(userId: string, key: string): void {
+		const game: Pong = this._games.getGame(userId);
+		if (game) {
+			game.keyUp(key, userId);
+		}
+	}
 
 	async leave(id: string): Promise<void> {}
 

@@ -73,25 +73,3 @@ Pong.prototype.getDrawingData = function ()
 	const game = { paddles, ball};
 	return (game);
 }
-
-Pong.prototype.gameLoop = function ()
-{
-	const currentTime = performance.now();
-	if (currentTime < this.nextTickTime)
-	{
-		requestAnimationFrame(this.gameLoop);
-		return;
-	}
-	this.nextTickTime = currentTime + TICK_INTERVAL;
-	this.updateKeyPresses();
-	//this.drawAll();
-	this._server.to(this.gameId).emit("update", this.getDrawingData());
-	// fonction pour le front avec toutes les infos pour draw
-	if (this.i == 0)
-	{
-		this.i++;
-		console.log(this.getDrawingData());
-	}
-	this.updateStates();
-	requestAnimationFrame(this.gameLoop);
-}

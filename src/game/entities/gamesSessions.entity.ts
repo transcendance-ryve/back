@@ -17,7 +17,7 @@ interface Players {
 }
 
 export class GameSessions {
-	playerMap: Map<string, Pong> = new Map<string, Pong>();
+	playerMap = new Map();
 	size: number = 0;
 
 	getGame(userId: string): Pong | undefined{
@@ -28,19 +28,20 @@ export class GameSessions {
 		return undefined;
 	}
 
+	getSize(): number {
+		return this.size;
+	}
+
 	createGame(playerOne: string, playerTwo: string, server: Server): Pong {
 		const game: Pong = new Pong(playerOne, playerTwo, server);
 		this.playerMap.set(playerOne, game);
 		this.playerMap.set(playerTwo, game);
 		this.size += 2;
+		console.log("PlayerOne: " + playerOne);
+		console.log("PlayerTwo: " + playerTwo);
+		console.log("game created: " + game.gameId);
+		console.log("game size: " + this.playerMap.size);
 		return game;
-	}
-
-	keyPress(userId: string, key: string): void {
-		const game: Pong = this.playerMap.get(userId);
-		if (game) {
-			game.keyDown(key, userId);
-		}
 	}
 
 	keyRelease(userId: string, key: string): void {

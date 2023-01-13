@@ -5,13 +5,15 @@ import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { MatchmakingService } from "./matchmaking.service";
 import { Server, Socket } from "socket.io";
 import { GameSessions } from "./entities/gamesSessions.entity";
-
+import { GameService
+ } from "./game.service";
 @WebSocketGateway()
 @UseGuards(JwtAuthGuard)
 export class GameGateway {
 	constructor(
 		private readonly _matchmakingService: MatchmakingService,
-		private readonly _gameSessions: GameSessions
+		private readonly _gameSessions: GameSessions,
+		private readonly _gameService: GameService
 		) {}
 
 	@WebSocketServer()
@@ -61,32 +63,38 @@ export class GameGateway {
 	@SubscribeMessage("keypress")
 	handleKeyPress(
 		@GetCurrentUserId() currentID: string,
-		@MessageBody('key') key: string,
+		@MessageBody() key: string,
 	): void {
 		console.log("key pressed: " + key)
-		this._gameSessions.keyPress(currentID, key);
+		if (key === "up")
+			key = 'W';
+		else if (key === "down")
+			key = 'S';
+		this._gameService.keyPress(currentID, key);
 	}
 
 	@SubscribeMessage("keyrelease")
 	handleKeyRelease(
 		@GetCurrentUserId() currentID: string,
-		@MessageBody('key') key: string,
+		@MessageBody() key: string,
 		@ConnectedSocket() socket: Socket
 	): void {
-
+		console.log("key released: " + key)
+		if (key === "up")
+			key = 'W';
+		else if (key === "down")
+			key = 'S';
+		this._gameService.keyRelease(currentID, key);
 	}
 
-	@SubscribeMessage("connect")
+	@SubscribeMessage("game_connect")
 	handleConnect(
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket
-	): void {}
-
-	@SubscribeMessage("disconnect")
-	handleDisconnect(
-		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
-	): void {}
+	): void {
+		this._gameService.connect(currentID, this._server);
+		this._server.to(socket.id).emit("game_connected");
+	}
 
 	@SubscribeMessage("reconnect")
 	handleReconnect(
@@ -99,6 +107,4 @@ export class GameGateway {
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket
 	): void {}
-
-	//score
 }
