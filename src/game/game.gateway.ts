@@ -3,17 +3,19 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSo
 import { GetCurrentUserId } from "src/decorators/user.decorator";
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { MatchmakingService } from "./matchmaking.service";
-import { Socket } from "socket.io";
+import { Server, Socket } from "socket.io";
+import { GameSessions } from "./entities/gamesSessions.entity";
 
 @WebSocketGateway()
 @UseGuards(JwtAuthGuard)
 export class GameGateway {
 	constructor(
 		private readonly _matchmakingService: MatchmakingService,
-	) {}
+		private readonly _gameSessions: GameSessions
+		) {}
 
 	@WebSocketServer()
-	private readonly _server: Socket;
+	private readonly _server: Server;
 
 	/* Matchmaking */
 
@@ -40,7 +42,7 @@ export class GameGateway {
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket
 	): void {
-		this._matchmakingService.acceptGameRequest(currentID);
+		this._matchmakingService.acceptGameRequest(currentID, this._server);
 		this._server.to(socket.id).emit("accepted_game_request");
 	}
 
@@ -60,15 +62,19 @@ export class GameGateway {
 	handleKeyPress(
 		@GetCurrentUserId() currentID: string,
 		@MessageBody('key') key: string,
-		@ConnectedSocket() socket: Socket
-	): void {}
+	): void {
+		console.log("key pressed: " + key)
+		this._gameSessions.keyPress(currentID, key);
+	}
 
 	@SubscribeMessage("keyrelease")
 	handleKeyRelease(
 		@GetCurrentUserId() currentID: string,
 		@MessageBody('key') key: string,
 		@ConnectedSocket() socket: Socket
-	): void {}
+	): void {
+
+	}
 
 	@SubscribeMessage("connect")
 	handleConnect(
@@ -93,4 +99,6 @@ export class GameGateway {
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket
 	): void {}
+
+	//score
 }

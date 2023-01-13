@@ -1,6 +1,7 @@
-import { Socket } from "socket.io";
+/*import { Socket } from "socket.io";
 import { Ball } from "./ball.entities";
 import { Player } from "./player.entities";
+import { v4 as cuid } from "cuid";
 
 enum Status {
 	Waiting,
@@ -10,7 +11,7 @@ enum Status {
 
 export class Game {
 	constructor(server: Socket) {
-		this._roomID = "1";
+		this._roomID = cuid();
 		this._ball = new Ball(0, 0);
 		this._status = Status.Waiting;
 
@@ -38,7 +39,7 @@ export class Game {
 		return this._status;
 	}
 
-	/* Player One */
+
 
 	getPlayerOne(): Player {
 		return this._playerOne;
@@ -48,7 +49,7 @@ export class Game {
 		this._playerOne = player;
 	}
 	
-	/* Player Two */
+
 
 	getPlayerTwo(): Player {
 		return this._playerTwo;
@@ -57,4 +58,4 @@ export class Game {
 	setPlayerTwo(player: Player): void {
 		this._playerTwo = player;
 	}
-}
+}*/

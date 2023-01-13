@@ -1,7 +1,6 @@
 import { ChannelService } from './channel.service';
-import { Channel, ChannelRole, ChannelType, User } from '@prisma/client';
+import { Channel, User } from '@prisma/client';
 import {
-	CreateChannelDto,
 	DirectMessageDto,
 	IncomingMessageDto,
 	JoinChannelDto,
@@ -9,7 +8,6 @@ import {
 	InviteToChannelDto,
 	InvitationDto,
 	UpdateRoleDto,
-	EditChannelDto,
 	ModerateUserDto,
 } from './dto';
 import {
@@ -23,19 +21,9 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtAuthGuard } from '../users/guard/jwt.guard';
-import {
-	Req,
-	UseGuards,
-	UploadedFile,
-	UseInterceptors,
-	BadRequestException
-} from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { GetCurrentUserId } from '../decorators/user.decorator';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { type } from 'os';
 import { UsersService } from 'src/users/users.service';
 import { UserTag } from './interfaces/UserTag.interface';
 

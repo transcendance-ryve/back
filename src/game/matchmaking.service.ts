@@ -1,5 +1,7 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Server } from "socket.io";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
+import { GameService } from "./game.service";
 
 interface GamesRequest {
 	sender: {
@@ -16,7 +18,9 @@ interface GamesRequest {
 
 @Injectable()
 export class MatchmakingService {
-	constructor() {}
+	constructor(
+		private readonly GameService: GameService,
+	) {}
 
 	private _matchmakingQueue: string[] = [];
 	private _gamesRequest: GamesRequest[] = [];
@@ -96,7 +100,7 @@ export class MatchmakingService {
 		this._gamesRequest.splice(this._gamesRequest.indexOf(gameRequest), 1);
 	}
 
-	acceptGameRequest(userID: string): void {
+	acceptGameRequest(userID: string, _server: Server): void {
 		const gameRequest = this.getGameRequest(userID);
 
 		if (!gameRequest) {
@@ -114,6 +118,7 @@ export class MatchmakingService {
 			this.deleteGameRequest(userID);
 
 			// TODO: Create game
+			this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, _server);
 		}
 	}
 
