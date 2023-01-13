@@ -1,14 +1,10 @@
-import { Entity } from "./Object";
+import { Entity } from "./entity.entities";
 
 export class Paddle extends Entity {
 	constructor(x: number, y: number) {
 		super(x, y);
 
-		this._height = 100;
 	}
-
-	private _width: number = 20;
-	private _height: number;
 
 	getWidth(): number {
 		return this._width;

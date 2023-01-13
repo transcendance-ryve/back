@@ -98,8 +98,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		this._usersService.removeFriendRequest(id, friendId).then(friendship => {
 			const friendSocket = UserIdToSockets.get(friendId);
 			if (friendSocket)
-				this._server.to(friendSocket.id).emit('friend_declined', friendship.receiver);
-			this._server.to(socket.id).emit('friend_declined_submitted', friendship.sender);
+				this._server.to(friendSocket.id).emit('friend_declined', friendship.sender);
+			this._server.to(socket.id).emit('friend_declined_submitted', friendship.receiver);
 		}).catch(err => console.log(err.message));
 	}
 	

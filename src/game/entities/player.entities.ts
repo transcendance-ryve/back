@@ -1,5 +1,5 @@
-import { Entity } from "./Object";
-import { Paddle } from "./Paddle";
+import { Entity } from "./entity.entities";
+import { Paddle } from "./paddle.entites";
 
 export class Player extends Entity {
 	constructor(id: string, x: number, y: number) {
