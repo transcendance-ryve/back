@@ -95,6 +95,7 @@ model Game {
 	player_two_id 		String
 	player_two_score 	Int
 
+	createdAt			DateTime		@default(now())
 	@@map("games")
 }
 
