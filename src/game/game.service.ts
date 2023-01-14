@@ -96,6 +96,9 @@ export class GameService {
 		return games;
 	}
 
+	async getCurrentGame(): Promise<any> {
+		
+	}
 	//Actions
 	async connect(id: string, server: Server): Promise<void> {
 		this.playerIds.push(id);
@@ -185,17 +188,17 @@ export class GameService {
 			const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
 				{wins:{ increment: 1}, played:{increment: 1} } );
 			const playerSocket: Socket = UserIdToSockets.get(WinnerId);
-			playerSocket.emit("updateUser", playerUpdated);
+			playerSocket.to(playerSocket.id).emit("updateUser", playerUpdated);
 			if (playerOne.win) {	
 				const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
 					{loses:{ increment: 1}, played:{increment: 1}});
 				const playerTwoSocket: Socket = UserIdToSockets.get(playerTwo.id);
-				playerTwoSocket.emit("updateUser", updatedPlayerTwo);
+				playerTwoSocket.to(playerTwoSocket.id).emit("updateUser", updatedPlayerTwo);
 			} else {
 				const updatedPlayerOne: Partial<User> = await this._usersService.updateUser({id: playerOne.id},
 					{loses:{ increment: 1}, played:{increment: 1}});
 				const playerOneSocket: Socket = UserIdToSockets.get(playerOne.id);
-				playerOneSocket.emit("updateUser", updatedPlayerOne);
+				playerOneSocket.to(playerOneSocket.id).emit("updateUser", updatedPlayerOne);
 			}
 
 		} catch (err) {

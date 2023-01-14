@@ -20,4 +20,10 @@ export class GameController {
 		console.log(currentUser);
 		return this._gameService.getGameHistory(currentUser.id);
 	}
+
+	@Get ('current')
+	getCurrentGame(
+	){
+		return this._gameService.getCurrentGame();
+	}
 }
