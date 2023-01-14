@@ -16,9 +16,16 @@ export class GameController {
 	@Get ('history')
 	async getGameHistory(
 		@GetCurrentUser() currentUser: JwtPayloadDto,
-		@Query('search') search: string
+		@Query('search') search: string,
+		@Query('page') page: string,
+		@Query('take') take: string,
+		@Query('order') order: string,
 	) {
-		const games = await this._gameService.getGameHistory(currentUser.id, search);
+		const games = await this._gameService.getGameHistory(currentUser.id,
+			search || undefined,
+			order,
+			Number(page) || undefined,
+			Number(take) || undefined,);
 		const count = await this._gameService.getGameHistoryCount(currentUser.id);
 		return {games, count};
 	}

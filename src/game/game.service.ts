@@ -58,7 +58,12 @@ export class GameService {
 		}
 	}
 
-	async getGameHistory(userId: string, search: string) {
+	async getGameHistory(userId: string,
+		search: string,
+		order: string,
+		page?: number,
+		take?: number,
+		) {
 		const games = await this._prismaService.game.findMany({
 			where: {
 				OR: [
@@ -80,6 +85,9 @@ export class GameService {
 					}
 				]
 			},
+			skip: (page - 1) * take || undefined,
+			take: take || 12,
+			orderBy: { createdAt: order === 'asc' ? 'asc' : 'desc' } ,
 			select: {
 				player_one_score: true,
 				player_two_score: true,
