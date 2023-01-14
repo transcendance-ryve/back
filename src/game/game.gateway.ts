@@ -4,7 +4,6 @@ import { GetCurrentUserId } from "src/decorators/user.decorator";
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { MatchmakingService } from "./matchmaking.service";
 import { Server, Socket } from "socket.io";
-import { GameSessions } from "./entities/gamesSessions.entity";
 import { GameService
  } from "./game.service";
 @WebSocketGateway()
@@ -12,7 +11,6 @@ import { GameService
 export class GameGateway {
 	constructor(
 		private readonly _matchmakingService: MatchmakingService,
-		private readonly _gameSessions: GameSessions,
 		private readonly _gameService: GameService
 		) {}
 

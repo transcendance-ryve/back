@@ -33,7 +33,7 @@ import {
 	BALL_SLOW_DOWN_EFFECT,
 	MAX_BALL_SPEED,
 	BALL_SPEED_MULTIPLIER,
-	} from "./config";
+	} from "../Pong/config";
 
 interface Paddles {
 	left: {
@@ -216,16 +216,10 @@ export class Pong
 
 	launchGame()
 	{
-		//document.addEventListener('keydown', this.keyDown.bind(this), false);
-		//document.addEventListener('keyup', this.keyUp.bind(this), false);
 		this.giveBallRandDirection();
 		this.initBonusesVars();
-
-		//console.log(this.getCanvasDimensions());
 		this.gameLoop();
 	}
-	// Enables gameLoop function to be called inside its own scope using `this`
-	//this.gameLoop.bind(this);
 	
 	async gameLoop()
 	{

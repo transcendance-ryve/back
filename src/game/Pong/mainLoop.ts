@@ -1,4 +1,4 @@
-import { Pong } from './ClassPong';
+import { Pong } from '../entities/Pong.entities';
 import { TICK_INTERVAL } from './config';
 
 interface Paddles {

@@ -1,4 +1,4 @@
-import { Pong } from "./ClassPong";
+import { Pong } from "../entities/Pong.entities";
 import {
 	SLOWER_BONUS,
 	REVERSE_KEYS_BONUS,

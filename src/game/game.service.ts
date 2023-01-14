@@ -1,8 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
 import { Socket } from "socket.io";
-import { Pong } from "./Pong/ClassPong";
-import { GameSessions } from "./entities/gamesSessions.entity";
+import { Pong } from "./entities/Pong.entities";
 import { Server } from "socket.io";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 
@@ -26,9 +25,39 @@ export class GameService {
 	constructor(
 		private readonly _prismaService: PrismaService,
 		) {}
-	private readonly _games: GameSessions = new GameSessions();
-		
+	
 	playerIds: string[] = [];
+	playerIdToGame: Map<string, Pong> = new Map();
+
+	//Getter
+	async getPlayers(playerOne : string, playerTwo: string): Promise<Players> {
+		const playerOneData = await this._prismaService.user.findUnique({
+			where: {
+				id: playerOne
+			},
+			select: {
+				id: true,
+				username: true,
+				avatar: true,
+			}
+		});
+		const playerTwoData = await this._prismaService.user.findUnique({
+			where: {
+				id: playerTwo
+			},
+			select: {
+				id: true,
+				username: true,
+				avatar: true,
+			}
+		});
+		return {
+			left: playerOneData,
+			right: playerTwoData
+		}
+	}
+
+	//Actions
 	async connect(id: string, server: Server): Promise<void> {
 		this.playerIds.push(id);
 		console.log(this.playerIds.length);
@@ -49,38 +78,14 @@ export class GameService {
 				player_two_score: 0
 			}
 		});
-
-		//const game: Game = new Game(server);
-		const game: Pong = this._games.createGame(id, opponent, server);
-		console.log("size of sessions: " + this._games.getSize());
+		const game: Pong =  new Pong(id, opponent, server);
+		this.playerIdToGame.set(id, game);
+		this.playerIdToGame.set(opponent, game);
 		const PlayerOneSocket: Socket= UserIdToSockets.get(id);
 		const PlayerTwoSocket: Socket= UserIdToSockets.get(opponent);
 		PlayerOneSocket.join(game.gameId);
 		PlayerTwoSocket.join(game.gameId);
-		const playerOne = await this._prismaService.user.findUnique({
-			where: {
-				id
-			},
-			select: {
-				id: true,
-				username: true,
-				avatar: true,
-			},
-		});
-		const playerTwo = await this._prismaService.user.findUnique({
-			where: {
-				id: opponent
-			},
-			select: {
-				id: true,
-				username: true,
-				avatar: true,
-			},
-		});
-		const players: Players = {
-			left: playerOne,
-			right: playerTwo,
-		}
+		const players: Players = await this.getPlayers(id, opponent);
 		const width: number  = 790;
 		const height: number = 390;
 		const res = {
@@ -94,7 +99,7 @@ export class GameService {
 	}
 
 	keyPress(userId: string, key: string): void {
-		const game: Pong = this._games.getGame(userId);
+		const game: Pong = this.playerIdToGame.get(userId);
 		if (game) {
 			console.log("mes morts!");
 			game.keyDown(key, userId);
@@ -102,7 +107,7 @@ export class GameService {
 	}
 
 	keyRelease(userId: string, key: string): void {
-		const game: Pong = this._games.getGame(userId);
+		const game: Pong = this.playerIdToGame.get(userId);
 		if (game) {
 			game.keyUp(key, userId);
 		}
@@ -113,6 +118,6 @@ export class GameService {
 	async reconnect(id: string): Promise<void> {}
 
 	async spectate(id: string): Promise<void> {}
-
+	//Utils
 
 }

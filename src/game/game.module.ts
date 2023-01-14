@@ -5,14 +5,13 @@ import { GameController } from "./game.controller";
 import { GameGateway } from "./game.gateway";
 import { GameService } from "./game.service";
 import { MatchmakingService } from "./matchmaking.service";
-import { GameSessions } from "./entities/gamesSessions.entity";
 
 @Module({
 	imports: [
 		UsersModule
 	],
     controllers: [GameController],
-    providers: [GameService, MatchmakingService, PrismaService, GameGateway, GameSessions],
+    providers: [GameService, MatchmakingService, PrismaService, GameGateway],
 	exports: [GameService],
 })
 export class GameModule {}
