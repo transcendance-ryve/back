@@ -32,6 +32,7 @@ CREATE TABLE "users" (
     "tfa_token" TEXT,
     "tfa_secret" TEXT,
     "tfa_enabled" BOOLEAN NOT NULL DEFAULT false,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
