@@ -6,6 +6,7 @@ import { MatchmakingService } from "./matchmaking.service";
 import { Server, Socket } from "socket.io";
 import { GameService
  } from "./game.service";
+
 @WebSocketGateway()
 @UseGuards(JwtAuthGuard)
 export class GameGateway {

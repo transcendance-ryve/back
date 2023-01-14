@@ -35,37 +35,7 @@ import {
 	BALL_SPEED_MULTIPLIER,
 	} from "../Pong/config";
 import { GameService } from "../game.service";
-
-interface Paddles {
-	left: {
-		x: number,
-		y: number,
-		width: number,
-		height: number,
-		color: string,
-	},
-	right: {
-		x: number,
-		y: number,
-		width: number,
-		height: number,
-		color: string,
-	},
-}
-
-interface Ball {
-	x: number,
-	y: number,
-	radius: number,
-	color: string,
-}
-
-interface endGamePlayer {
-	id: string,
-	score: number,
-	win: boolean,
-	loose: boolean,
-}
+import { Paddles, Ball, EndGamePlayer } from "../interfaces/game.interface";
 
 export class Pong
 {
@@ -638,13 +608,13 @@ export class Pong
 	gameOver = function () {
 		if (this.game.leftScore === this.game.topScore) {
 			console.log('Left Wins');
-			const playerOne: endGamePlayer = {
+			const playerOne: EndGamePlayer = {
 				id: this.leftPlayer.id,
 				score: this.game.leftScore,
 				win: true,
 				loose: false,
 			}
-			const playerTwo: endGamePlayer = {
+			const playerTwo: EndGamePlayer = {
 				id: this.rightPlayer.id,
 				score: this.game.rightScore,
 				win: false,
@@ -656,13 +626,13 @@ export class Pong
 			this.resetgame();
 		}
 		else if (this.game.rightScore === this.game.topScore) {
-			const playerOne: endGamePlayer = {
+			const playerOne: EndGamePlayer = {
 				id: this.leftPlayer.id,
 				score: this.game.leftScore,
 				win: false,
 				loose: true,
 			}
-			const playerTwo: endGamePlayer = {
+			const playerTwo: EndGamePlayer = {
 				id: this.rightPlayer.id,
 				score: this.game.rightScore,
 				win: true,

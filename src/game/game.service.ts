@@ -5,34 +5,8 @@ import { Pong } from "./entities/Pong.entities";
 import { Server } from "socket.io";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 import { UsersService } from "src/users/users.service";
+import { Players, StartInfo, EndGamePlayer } from "./interfaces/game.interface";
 
-interface Player {
-	id: string,
-	username: string,
-	avatar: string,
-	score: number,
-	level: number,
-	experience: number,
-	next_level: number,
-}
-
-interface Players {
-	left: Player,
-	right: Player,
-}
-
-interface StartInfo {
-	players: Players,
-	width: number,
-	height: number,
-}
-
-interface endGamePlayer {
-	id: string,
-	score: number,
-	win: boolean,
-	loose: boolean,
-}
 
 @Injectable()
 export class GameService {
@@ -96,10 +70,31 @@ export class GameService {
 					}
 				]
 			},
+			select: {
+				id: true,
+				player_one_id: true,
+				player_two_id: true,
+				player_one_score: true,
+				player_two_score: true,
+				player_one: {
+					select: {
+						id: true,
+						username: true,
+						avatar: true,
+					}
+				},
+				player_two: {
+					select: {
+						id: true,
+						username: true,
+						avatar: true,
+					}
+				}
+			}
 		});
 		return games;
 	}
-	
+
 	//Actions
 	async connect(id: string, server: Server): Promise<void> {
 		this.playerIds.push(id);
@@ -162,14 +157,12 @@ export class GameService {
 		}
 	}
 
-	async endGame(playerOne: endGamePlayer, playerTwo: endGamePlayer)
+	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer)
  	{
-		console.log("endGame");
-		console.log("playerOne: " + playerOne.score);
-		console.log("playerTwo: " + playerTwo.score);
 		const game: Pong = this.playerIdToGame.get(playerOne.id);
-		console.log(this.playerIdToGame.size);
-		console.log(game.game);
+		if (!game) {
+			return "Game not found";
+		}
 		await this._prismaService.game.update({
 			where: {
 				id: game.game.gameId,
@@ -181,11 +174,8 @@ export class GameService {
 				player_two_id: playerTwo.id,
 			}
 		});
-
-		if (game) {
-			this.playerIdToGame.delete(playerOne.id);
-			this.playerIdToGame.delete(playerTwo.id);
-		}
+		this.playerIdToGame.delete(playerOne.id);
+		this.playerIdToGame.delete(playerTwo.id);
 		const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
 		this._usersService.addExperience(WinnerId, 20);
 		this._usersService.addRankPoint(WinnerId, true);
