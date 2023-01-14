@@ -2,19 +2,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { Server } from "socket.io";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 import { GameService } from "./game.service";
-
-interface GamesRequest {
-	sender: {
-		id: string,
-		accept: boolean,
-	},
-	receiver: {
-		id: string,
-		accept: boolean,
-	},
-
-	timer: number,
-}
+import { GamesRequest } from "./interfaces/game.interface";
 
 @Injectable()
 export class MatchmakingService {
