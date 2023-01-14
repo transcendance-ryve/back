@@ -103,15 +103,11 @@ export class GameService {
 		for (const game of games) {
 			res.push({
 				left: {
-					id: game.player_one.id,
-					username: game.player_one.username,
-					avatar: game.player_one.avatar,
+					...game.player_one,
 					score: game.player_one_score,
 				},
 				right: {
-					id: game.player_two.id,
-					username: game.player_two.username,
-					avatar: game.player_two.avatar,
+					...game.player_two,
 					score: game.player_two_score,
 				}
 			});
