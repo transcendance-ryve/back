@@ -53,8 +53,14 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const { id } = socket.data || {};
 		if (!id) return;
 
-		const userData = await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
-		this._emitToFriends(id, 'user_disconnected', { id, status: userData.status, username: userData.username, avatar: userData.avatar });
+		setTimeout(async () => {
+			const user = await this._usersService.getUser({ id });
+
+			if (user.status === Status.ONLINE) return;
+
+			const userData = await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
+			this._emitToFriends(id, 'user_disconnected', { id, status: userData.status, username: userData.username, avatar: userData.avatar });
+		}, 5000);
 	}
 
 	@SubscribeMessage('join_game')
