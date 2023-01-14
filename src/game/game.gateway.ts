@@ -1,4 +1,4 @@
-import { UseGuards } from "@nestjs/common";
+import { Query, UseGuards } from "@nestjs/common";
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { GetCurrentUserId } from "src/decorators/user.decorator";
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
@@ -16,7 +16,6 @@ export class GameGateway {
 
 	@WebSocketServer()
 	private readonly _server: Server;
-	
 	/* Matchmaking */
 
 	@SubscribeMessage("join_queue")

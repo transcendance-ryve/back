@@ -2,7 +2,7 @@ import { Controller, UseGuards } from "@nestjs/common"
 import { GameService } from "./game.service"
 import { GetCurrentUser } from 'src/decorators/user.decorator';
 import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
-import { Get } from '@nestjs/common';
+import { Get, Query } from '@nestjs/common';
 import { Game } from "@prisma/client";
 import { JwtAuthGuard } from 'src/users/guard/jwt.guard';
 
@@ -16,9 +16,11 @@ export class GameController {
 	@Get ('history')
 	getGameHistory(
 		@GetCurrentUser() currentUser: JwtPayloadDto,
+		@Query('search') search: string
 	) {
-		console.log(currentUser);
-		return this._gameService.getGameHistory(currentUser.id);
+		const games = this._gameService.getGameHistory(currentUser.id, search);
+		const count = this._gameService.getGameHistoryCount(currentUser.id);
+		return {games, count};
 	}
 
 	@Get ('current')

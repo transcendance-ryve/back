@@ -58,15 +58,25 @@ export class GameService {
 		}
 	}
 
-	async getGameHistory(userId: string): Promise<any> {
+	async getGameHistory(userId: string, search: string) {
 		const games = await this._prismaService.game.findMany({
 			where: {
 				OR: [
 					{
-						player_one_id: userId,
+						player_one: {
+								username: {
+									contains: search,
+									mode: 'insensitive'
+								},
+							},
 					},
 					{
-						player_two_id: userId,
+						player_two: {
+							username: {
+								contains: search,
+								mode: 'insensitive'
+							},
+						},
 					}
 				]
 			},
@@ -92,8 +102,39 @@ export class GameService {
 				}
 			}
 		});
+		const nb = games.length;
+		const res = [];
+		for (const game of games) {
+			res.push({
+				left: {
+					id: game.player_one_id,
+					username: game.player_one.username,
+					avatar: game.player_one.avatar,
+					score: game.player_one_score,
+				},
+				right: {
+					id: game.player_two_id,
+					username: game.player_two.username,
+					avatar: game.player_two.avatar,
+					score: game.player_two_score,
+				}
+			});
+		}
 		return games;
 	}
+
+	async getGameHistoryCount(userId: string) {
+		const games = await this._prismaService.user.findFirst({
+			where: {
+				id: userId
+			},
+			select: {
+				played: true,
+			}
+		});
+		return games.played;
+	}
+
 
 	async getCurrentGame(): Promise<any> {
 		
