@@ -6,6 +6,7 @@ import { Pong } from "./entities/Pong.entities";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 import { UsersService } from "src/users/users.service";
 import { Players, StartInfo, EndGamePlayer } from "./interfaces/game.interface";
+import { v4 as uuidv4 } from 'uuid';
 
 
 @Injectable()
@@ -17,7 +18,7 @@ export class GameService {
 	
 	playerIds: string[] = [];
 	playerIdToGame: Map<string, Pong> = new Map();
-
+	gameIdToGame: Map<string, Pong> = new Map();
 	//Getter
 	async getPlayers(playerOne : string, playerTwo: string): Promise<Players> {
 		const playerOneData = await this._prismaService.user.findUnique({
@@ -86,7 +87,7 @@ export class GameService {
 				]
 			},
 			skip: (page - 1) * take || undefined,
-			take: take || 12,
+			take: take || 20,
 			orderBy: { createdAt: order === 'asc' ? 'asc' : 'desc' } ,
 			select: {
 				player_one_score: true,
@@ -137,8 +138,24 @@ export class GameService {
 	}
 
 	async getCurrentGame(): Promise<any> {
-		
+		const games = []; 
+		let res = [];
+		for (const game of this.gameIdToGame.entries())
+		{
+			games.push(game);
+		}
+		for (const game of games)
+		{	
+			const player = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
+			res.push({
+				id: game[1].game.gameId,
+				players: player,
+			});
+		}
+		//console.log(res);
+		return res;
 	}
+
 	//Actions
 	async connect(id: string, server: Server): Promise<void> {
 		this.playerIds.push(id);
@@ -152,22 +169,11 @@ export class GameService {
 	}
 
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
-		const gameId = await this._prismaService.game.create({
-			data: {
-				player_one: { connect: { id } },
-				player_one_score: 0,
-				player_two: { connect: { id: opponent } },
-				player_two_score: 0
-			},
-			select: {
-				id: true
-			},
-		});
-		const toGameId : string = gameId.id;
-		const game: Pong =  new Pong(toGameId, id, opponent, server, this);
-		console.log(game.game.gameId);
+		const gameId: string = uuidv4();
+		const game: Pong =  new Pong(gameId, id, opponent, server, this);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
+		this.gameIdToGame.set(gameId, game);
 		const PlayerOneSocket: Socket = UserIdToSockets.get(id);
 		const PlayerTwoSocket: Socket = UserIdToSockets.get(opponent);
 		PlayerOneSocket.join(game.game.gameId);
@@ -180,8 +186,6 @@ export class GameService {
 			width,
 			height,
 		}
-		console.log(this.playerIdToGame.size);
-		console.log(game.game.gameId);
 		server.to(game.game.gameId).emit("start", res);
 		game.launchGame();
 		return;
@@ -208,15 +212,13 @@ export class GameService {
 			if (!game) {
 				return "Game not found";
 			}
-			await this._prismaService.game.update({
-				where: {
-					id: game.game.gameId,
-				},
+			await this._prismaService.game.create({
 				data: {
+					id: game.game.gameId,
+					player_one: { connect: { id: playerOne.id } },
 					player_one_score: playerOne.score,
+					player_two: { connect: { id: playerTwo.id } },
 					player_two_score: playerTwo.score,
-					player_one_id: playerOne.id,
-					player_two_id: playerTwo.id,
 				}
 			});
 			this.playerIdToGame.delete(playerOne.id);

@@ -85,7 +85,7 @@ model Blocked {
 }
 
 model Game {
-	id			  		String          @id @default(cuid())
+	id			  		String          @id @unique
 
 	player_one			User            @relation("games", fields: [player_one_id], references: [id], onDelete: Cascade)
 	player_one_id		String
