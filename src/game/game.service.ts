@@ -81,9 +81,6 @@ export class GameService {
 				]
 			},
 			select: {
-				id: true,
-				player_one_id: true,
-				player_two_id: true,
 				player_one_score: true,
 				player_two_score: true,
 				player_one: {
@@ -102,25 +99,24 @@ export class GameService {
 				}
 			}
 		});
-		const nb = games.length;
 		const res = [];
 		for (const game of games) {
 			res.push({
 				left: {
-					id: game.player_one_id,
+					id: game.player_one.id,
 					username: game.player_one.username,
 					avatar: game.player_one.avatar,
 					score: game.player_one_score,
 				},
 				right: {
-					id: game.player_two_id,
+					id: game.player_two.id,
 					username: game.player_two.username,
 					avatar: game.player_two.avatar,
 					score: game.player_two_score,
 				}
 			});
 		}
-		return games;
+		return res;
 	}
 
 	async getGameHistoryCount(userId: string) {
