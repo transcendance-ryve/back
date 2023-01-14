@@ -17,7 +17,7 @@ export class GameGateway {
 
 	@WebSocketServer()
 	private readonly _server: Server;
-
+	
 	/* Matchmaking */
 
 	@SubscribeMessage("join_queue")

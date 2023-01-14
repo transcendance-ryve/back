@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
+import { User } from "@prisma/client";
 import { Socket } from "socket.io";
 import { Pong } from "./entities/Pong.entities";
 import { Server } from "socket.io";
@@ -159,36 +160,48 @@ export class GameService {
 
 	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer)
  	{
-		const game: Pong = this.playerIdToGame.get(playerOne.id);
-		if (!game) {
-			return "Game not found";
-		}
-		await this._prismaService.game.update({
-			where: {
-				id: game.game.gameId,
-			},
-			data: {
-				player_one_score: playerOne.score,
-				player_two_score: playerTwo.score,
-				player_one_id: playerOne.id,
-				player_two_id: playerTwo.id,
+		try {
+			const game: Pong = this.playerIdToGame.get(playerOne.id);
+			if (!game) {
+				return "Game not found";
 			}
-		});
-		this.playerIdToGame.delete(playerOne.id);
-		this.playerIdToGame.delete(playerTwo.id);
-		const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
-		this._usersService.addExperience(WinnerId, 20);
-		this._usersService.addRankPoint(WinnerId, true);
-		await this._usersService.updateUser({id: WinnerId},
-			{wins:{ increment: 1}, played:{increment: 1} } );
-		if (playerOne.win) {	
-			await this._usersService.updateUser({id: playerTwo.id},
-				{loses:{ increment: 1}, played:{increment: 1}});
-		} else {
-			await this._usersService.updateUser({id: playerOne.id},
-				{loses:{ increment: 1}, played:{increment: 1}});
-		}
+			await this._prismaService.game.update({
+				where: {
+					id: game.game.gameId,
+				},
+				data: {
+					player_one_score: playerOne.score,
+					player_two_score: playerTwo.score,
+					player_one_id: playerOne.id,
+					player_two_id: playerTwo.id,
+				}
+			});
+			this.playerIdToGame.delete(playerOne.id);
+			this.playerIdToGame.delete(playerTwo.id);
+			const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
+			this._usersService.addExperience(WinnerId, 20);
+			this._usersService.addRankPoint(WinnerId, true);
 
+			const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
+				{wins:{ increment: 1}, played:{increment: 1} } );
+			const playerSocket: Socket = UserIdToSockets.get(WinnerId);
+			playerSocket.emit("updateUser", playerUpdated);
+			if (playerOne.win) {	
+				const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
+					{loses:{ increment: 1}, played:{increment: 1}});
+				const playerTwoSocket: Socket = UserIdToSockets.get(playerTwo.id);
+				playerTwoSocket.emit("updateUser", updatedPlayerTwo);
+			} else {
+				const updatedPlayerOne: Partial<User> = await this._usersService.updateUser({id: playerOne.id},
+					{loses:{ increment: 1}, played:{increment: 1}});
+				const playerOneSocket: Socket = UserIdToSockets.get(playerOne.id);
+				playerOneSocket.emit("updateUser", updatedPlayerOne);
+			}
+
+		} catch (err) {
+			console.log(err);
+			return err.message;
+		}
 	}
 
 	async leave(id: string): Promise<void> {}
