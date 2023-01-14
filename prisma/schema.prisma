@@ -48,6 +48,8 @@ model User {
 	chanActionTarget	ChannelAction[]		@relation("channelActionsTarget")
 	chanInvitations		ChannelInvitation[]	@relation("userInvites")
 
+	updatedAt		DateTime				@updatedAt @default(now())
+
 	@@map("users")
 }
 

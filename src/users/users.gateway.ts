@@ -7,6 +7,7 @@ import { UsersService } from "./users.service";
 import { UserIdToSockets } from "./userIdToSockets.service";
 import { JwtService } from "@nestjs/jwt";
 import { GetCurrentUserId } from "src/decorators/user.decorator";
+import { userInfo } from "os";
 
 @WebSocketGateway({
 	cors: {
@@ -28,7 +29,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			friends.forEach((friend: Partial<User>) => {
 				const friendSocket = UserIdToSockets.get(friend.id);
 				if (friendSocket) {
-					friendSocket.emit(event, data);
+					this._server.to(friendSocket.id).emit(event, data);
 				}
 			});
 		});
@@ -39,27 +40,29 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const accessToken = cookie?.split('=')?.pop();
 		
 		try {
-			const user = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
-			const userData = await this._usersService.updateUser({ id: user.id }, { status: Status.ONLINE });
+			const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
+			UserIdToSockets.set(payload.id, socket);
 			
-			UserIdToSockets.set(user.id, socket);
-			this._emitToFriends(user.id, 'user_connected', { id: user.id, status: userData.status, username: userData.username, avatar: userData.avatar });
-	
-			socket.data.id = user.id;
-		} catch(err) { socket.disconnect(); }
+			const currentDate = new Date()
+			const user = await this._usersService.getUser({ id: payload.id });
+			if (currentDate.getTime() - user.updatedAt.getTime() > 5000)
+				this._emitToFriends(user.id, 'user_connected', { id: user.id, status: user.status, username: user.username, avatar: user.avatar });
+			await this._usersService.updateUser({ id: user.id }, { status: Status.ONLINE });
+
+			socket.data = user;
+		} catch(err) { socket.disconnect() }
 	}
 
 	async handleDisconnect(socket: Socket) {
 		const { id } = socket.data || {};
 		if (!id) return;
-
+		
+		await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
 		setTimeout(async () => {
 			const user = await this._usersService.getUser({ id });
 
 			if (user.status === Status.ONLINE) return;
-
-			const userData = await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
-			this._emitToFriends(id, 'user_disconnected', { id, status: userData.status, username: userData.username, avatar: userData.avatar });
+			this._emitToFriends(user.id, 'user_disconnected', { id: user.id, status: user.status, username: user.username, avatar: user.avatar });
 		}, 5000);
 	}
 

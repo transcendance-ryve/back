@@ -47,12 +47,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@ConnectedSocket() clientSocket: Socket,
 		@GetCurrentUserId() userId: string,
 	) {
-		console.log('user connected');
+		// console.log('user connected');
 		await this.channelService.connectToMyChannels(userId, clientSocket);
 	}
 
 	async handleDisconnect() {
-		console.log('user disconnected');
+		// console.log('user disconnected');
 	}
 
 	@SubscribeMessage('getRole')
