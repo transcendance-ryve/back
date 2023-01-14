@@ -637,21 +637,21 @@ export class Pong
 			}
 			this._server.to(this.gameId).emit('score', data);
 		}
-		//document.getElementsByClassName('left')[0].textContent = this.game.leftScore
-		//document.getElementsByClassName('right')[0].textContent = this.game.rightScore
 	}
 	
 	gameOver = function () {
 		if (this.game.leftScore === this.game.topScore) {
 			console.log('Left Wins');
 			// sessionStorage.setItem("winner", "Left");
-			window.location.href = "winner.html";
+			this._server.to(this.gameId).emit('gameWin', this.leftPlayer.id);
+			this.server.to(this.gameId).emit('gameLoose', this.rightPlayer.id);
 			this.resetgame();
 		}
 		else if (this.game.rightScore === this.game.topScore) {
 			console.log('Right Wins');
 			// sessionStorage.setItem("winner", "Right");
-			window.location.href = "winner.html";
+			this._server.to(this.gameId).emit('gameWin', this.rightPlayer.id);
+			this.server.to(this.gameId).emit('gameLoose', this.leftPlayer.id);
 			this.resetgame();
 		}
 	}

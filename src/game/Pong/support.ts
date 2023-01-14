@@ -72,7 +72,7 @@ Pong.prototype.setScore = function () {
 	document.getElementsByClassName('right')[0].textContent = this.game.rightScore
 }
 
-Pong.prototype.gameOver = function () {
+/*Pong.prototype.gameOver = function () {
 	if (this.game.leftScore === this.game.topScore) {
 		console.log('Left Wins');
 		// sessionStorage.setItem("winner", "Left");
@@ -85,7 +85,7 @@ Pong.prototype.gameOver = function () {
 		window.location.href = "winner.html";
 		this.resetgame();
 	}
-}
+}*/
 
 Pong.prototype.resetgame = function () {
 	this.game.leftScore = 0
