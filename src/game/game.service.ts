@@ -128,8 +128,8 @@ export class GameService {
 		console.log(game.game.gameId);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
-		const PlayerOneSocket: Socket= UserIdToSockets.get(id);
-		const PlayerTwoSocket: Socket= UserIdToSockets.get(opponent);
+		const PlayerOneSocket: Socket = UserIdToSockets.get(id);
+		const PlayerTwoSocket: Socket = UserIdToSockets.get(opponent);
 		PlayerOneSocket.join(game.game.gameId);
 		PlayerTwoSocket.join(game.game.gameId);
 		const players: Players = await this.getPlayers(id, opponent);

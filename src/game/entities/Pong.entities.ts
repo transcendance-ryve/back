@@ -36,6 +36,7 @@ import {
 	} from "../Pong/config";
 import { GameService } from "../game.service";
 import { Paddles, Ball, EndGamePlayer } from "../interfaces/game.interface";
+import { UserIdToSockets } from "src/users/userIdToSockets.service";
 
 export class Pong
 {
@@ -620,8 +621,8 @@ export class Pong
 				win: false,
 				loose: true,
 			}
-			this._server.to(this.game.gameId).emit('gameWin', this.leftPlayer.id);
-			this._server.to(this.game.gameId).emit('gameLoose', this.rightPlayer.id);
+			this._server.to(UserIdToSockets.get(this.leftPlayer.id).id).emit('gameWin');
+			this._server.to(UserIdToSockets.get(this.rightPlayer.id).id).emit('gameLoose');
 			this._gameService.endGame(playerOne, playerTwo);
 			this.resetgame();
 		}
@@ -639,8 +640,8 @@ export class Pong
 				loose: false,
 			}
 			console.log('Right Wins');
-			this._server.to(this.game.gameId).emit('gameWin', this.rightPlayer.id);
-			this._server.to(this.game.gameId).emit('gameLoose', this.leftPlayer.id);
+			this._server.to(UserIdToSockets.get(this.rightPlayer.id).id).emit('gameWin');
+			this._server.to(UserIdToSockets.get(this.leftPlayer.id).id).emit('gameLoose');
 			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
 		}
