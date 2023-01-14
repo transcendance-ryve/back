@@ -21,6 +21,19 @@ interface Players {
 	right: Player,
 }
 
+interface StartInfo {
+	players: Players,
+	width: number,
+	height: number,
+}
+
+interface endGamePlayer {
+	id: string,
+	score: number,
+	win: boolean,
+	loose: boolean,
+}
+
 @Injectable()
 export class GameService {
 	constructor(
@@ -71,6 +84,22 @@ export class GameService {
 		}
 	}
 
+	async getGameHistory(userId: string): Promise<any> {
+		const games = await this._prismaService.game.findMany({
+			where: {
+				OR: [
+					{
+						player_one_id: userId,
+					},
+					{
+						player_two_id: userId,
+					}
+				]
+			},
+		});
+		return games;
+	}
+	
 	//Actions
 	async connect(id: string, server: Server): Promise<void> {
 		this.playerIds.push(id);
@@ -84,30 +113,37 @@ export class GameService {
 	}
 
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
-		await this._prismaService.game.create({
+		const gameId = await this._prismaService.game.create({
 			data: {
 				player_one: { connect: { id } },
 				player_one_score: 0,
 				player_two: { connect: { id: opponent } },
 				player_two_score: 0
-			}
+			},
+			select: {
+				id: true
+			},
 		});
-		const game: Pong =  new Pong(id, opponent, server, this);
+		const toGameId : string = gameId.id;
+		const game: Pong =  new Pong(toGameId, id, opponent, server, this);
+		console.log(game.game.gameId);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
 		const PlayerOneSocket: Socket= UserIdToSockets.get(id);
 		const PlayerTwoSocket: Socket= UserIdToSockets.get(opponent);
-		PlayerOneSocket.join(game.gameId);
-		PlayerTwoSocket.join(game.gameId);
+		PlayerOneSocket.join(game.game.gameId);
+		PlayerTwoSocket.join(game.game.gameId);
 		const players: Players = await this.getPlayers(id, opponent);
 		const width: number  = 790;
 		const height: number = 390;
-		const res = {
+		const res: StartInfo = {
 			players,
 			width,
 			height,
 		}
-		server.to(game.gameId).emit("start", res);
+		console.log(this.playerIdToGame.size);
+		console.log(game.game.gameId);
+		server.to(game.game.gameId).emit("start", res);
 		game.launchGame();
 		return;
 	}
@@ -126,16 +162,43 @@ export class GameService {
 		}
 	}
 
-	endGame(playerOne: string, playerTwo: string, WinnerId: string)
+	async endGame(playerOne: endGamePlayer, playerTwo: endGamePlayer)
  	{
 		console.log("endGame");
-		const game: Pong = this.playerIdToGame.get(playerOne);
+		console.log("playerOne: " + playerOne.score);
+		console.log("playerTwo: " + playerTwo.score);
+		const game: Pong = this.playerIdToGame.get(playerOne.id);
+		console.log(this.playerIdToGame.size);
+		console.log(game.game);
+		await this._prismaService.game.update({
+			where: {
+				id: game.game.gameId,
+			},
+			data: {
+				player_one_score: playerOne.score,
+				player_two_score: playerTwo.score,
+				player_one_id: playerOne.id,
+				player_two_id: playerTwo.id,
+			}
+		});
+
 		if (game) {
-			this.playerIdToGame.delete(playerOne);
-			this.playerIdToGame.delete(playerTwo);
+			this.playerIdToGame.delete(playerOne.id);
+			this.playerIdToGame.delete(playerTwo.id);
 		}
+		const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
 		this._usersService.addExperience(WinnerId, 20);
 		this._usersService.addRankPoint(WinnerId, true);
+		await this._usersService.updateUser({id: WinnerId},
+			{wins:{ increment: 1}, played:{increment: 1} } );
+		if (playerOne.win) {	
+			await this._usersService.updateUser({id: playerTwo.id},
+				{loses:{ increment: 1}, played:{increment: 1}});
+		} else {
+			await this._usersService.updateUser({id: playerOne.id},
+				{loses:{ increment: 1}, played:{increment: 1}});
+		}
+
 	}
 
 	async leave(id: string): Promise<void> {}

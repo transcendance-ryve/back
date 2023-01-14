@@ -12,7 +12,7 @@ import {
 	Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../users/guard/jwt.guard';
-import { ChannelActionType, ChannelType, Channel } from '@prisma/client';
+import { Channel } from '@prisma/client';
 import { ChannelService } from './channel.service';
 import { GetCurrentUserId } from 'src/decorators/user.decorator';
 import { GetCurrentUser } from 'src/decorators/user.decorator';

@@ -60,12 +60,19 @@ interface Ball {
 	color: string,
 }
 
+interface endGamePlayer {
+	id: string,
+	score: number,
+	win: boolean,
+	loose: boolean,
+}
+
 export class Pong
 {
-	constructor(PlayerOne, PlayerTwo, _server: Server, _gameService: GameService){
+	constructor(gameId, PlayerOne, PlayerTwo, _server: Server, _gameService: GameService){
 		this.leftPlayer.id = PlayerOne;
 		this.rightPlayer.id = PlayerTwo;
-		this.gameId = PlayerOne + PlayerTwo;
+		this.game.gameId = gameId;
 		this._server = _server;
 		this._gameService = _gameService;
 	}
@@ -76,13 +83,13 @@ export class Pong
 	*/
 
 	_server: Server;
-	gameId: string = null;
 	activated = true;
 	hits = 0;
 	ballFreezed = false;
 	nextTickTime = 0;
-
+	
 	game = {
+		gameId: null,
 		leftScore: 0,
 		rightScore: 0,	
 		topScore: 5,
@@ -228,7 +235,7 @@ export class Pong
 	async gameLoop()
 	{
 		this.updateKeyPresses();
-		this._server.to(this.gameId).emit("update", this.getDrawingData());
+		this._server.to(this.game.gameId).emit("update", this.getDrawingData());
 		this.updateStates();
 		await setTimeout(async () => {this.gameLoop();}, 16);
 	}
@@ -609,7 +616,7 @@ export class Pong
 				id: this.leftPlayer.id,
 				score: this.game.leftScore
 			}
-			this._server.to(this.gameId).emit('score', data);
+			this._server.to(this.game.gameId).emit('score', data);
 		}
 		else if (this.ball.positionX < this.rightPlayer.width) {
 			this.game.rightScore++;
@@ -624,23 +631,47 @@ export class Pong
 				id: this.rightPlayer.id,
 				score: this.game.rightScore
 			}
-			this._server.to(this.gameId).emit('score', data);
+			this._server.to(this.game.gameId).emit('score', data);
 		}
 	}
 	
 	gameOver = function () {
 		if (this.game.leftScore === this.game.topScore) {
 			console.log('Left Wins');
-			this._server.to(this.gameId).emit('gameWin', this.leftPlayer.id);
-			this._server.to(this.gameId).emit('gameLoose', this.rightPlayer.id);
-			this._gameService.endGame(this.leftPlayer.id, this.rightPlayer.id, this.leftPlayer.id);
+			const playerOne: endGamePlayer = {
+				id: this.leftPlayer.id,
+				score: this.game.leftScore,
+				win: true,
+				loose: false,
+			}
+			const playerTwo: endGamePlayer = {
+				id: this.rightPlayer.id,
+				score: this.game.rightScore,
+				win: false,
+				loose: true,
+			}
+			this._server.to(this.game.gameId).emit('gameWin', this.leftPlayer.id);
+			this._server.to(this.game.gameId).emit('gameLoose', this.rightPlayer.id);
+			this._gameService.endGame(playerOne, playerTwo);
 			this.resetgame();
 		}
 		else if (this.game.rightScore === this.game.topScore) {
+			const playerOne: endGamePlayer = {
+				id: this.leftPlayer.id,
+				score: this.game.leftScore,
+				win: false,
+				loose: true,
+			}
+			const playerTwo: endGamePlayer = {
+				id: this.rightPlayer.id,
+				score: this.game.rightScore,
+				win: true,
+				loose: false,
+			}
 			console.log('Right Wins');
-			this._server.to(this.gameId).emit('gameWin', this.rightPlayer.id);
-			this._server.to(this.gameId).emit('gameLoose', this.leftPlayer.id);
-			this._gameService.endGame(this.leftPlayer.id, this.rightPlayer.id, this.rightPlayer.id);
+			this._server.to(this.game.gameId).emit('gameWin', this.rightPlayer.id);
+			this._server.to(this.game.gameId).emit('gameLoose', this.leftPlayer.id);
+			this._gameService.endGame(playerOne, playerTwo);
 			this.resetgame();
 		}
 	}
