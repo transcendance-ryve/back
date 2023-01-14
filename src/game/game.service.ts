@@ -161,7 +161,7 @@ export class GameService {
 		}
 	}
 
-	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer)
+	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, server: Server): Promise<string> 
  	{
 		try {
 			const game: Pong = this.playerIdToGame.get(playerOne.id);
@@ -188,17 +188,17 @@ export class GameService {
 			const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
 				{wins:{ increment: 1}, played:{increment: 1} } );
 			const playerSocket: Socket = UserIdToSockets.get(WinnerId);
-			playerSocket.to(playerSocket.id).emit("updateUser", playerUpdated);
-			if (playerOne.win) {	
+			server.to(playerSocket.id).emit("updateUser", playerUpdated);
+			if (playerOne.win) {
 				const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
 					{loses:{ increment: 1}, played:{increment: 1}});
 				const playerTwoSocket: Socket = UserIdToSockets.get(playerTwo.id);
-				playerTwoSocket.to(playerTwoSocket.id).emit("updateUser", updatedPlayerTwo);
+				server.to(playerTwoSocket.id).emit("updateUser", updatedPlayerTwo);
 			} else {
 				const updatedPlayerOne: Partial<User> = await this._usersService.updateUser({id: playerOne.id},
 					{loses:{ increment: 1}, played:{increment: 1}});
 				const playerOneSocket: Socket = UserIdToSockets.get(playerOne.id);
-				playerOneSocket.to(playerOneSocket.id).emit("updateUser", updatedPlayerOne);
+				server.to(playerOneSocket.id).emit("updateUser", updatedPlayerOne);
 			}
 
 		} catch (err) {

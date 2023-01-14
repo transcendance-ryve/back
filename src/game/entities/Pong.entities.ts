@@ -641,7 +641,7 @@ export class Pong
 			console.log('Right Wins');
 			this._server.to(this.game.gameId).emit('gameWin', this.rightPlayer.id);
 			this._server.to(this.game.gameId).emit('gameLoose', this.leftPlayer.id);
-			this._gameService.endGame(playerOne, playerTwo);
+			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
 		}
 	}
