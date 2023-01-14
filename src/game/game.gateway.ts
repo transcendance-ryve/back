@@ -4,8 +4,7 @@ import { GetCurrentUserId } from "src/decorators/user.decorator";
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { MatchmakingService } from "./matchmaking.service";
 import { Server, Socket } from "socket.io";
-import { GameService
- } from "./game.service";
+import { GameService } from "./game.service";
 
 @WebSocketGateway()
 @UseGuards(JwtAuthGuard)

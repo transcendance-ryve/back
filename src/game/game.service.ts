@@ -1,9 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
 import { User } from "@prisma/client";
-import { Socket } from "socket.io";
+import { Socket, Server } from "socket.io";
 import { Pong } from "./entities/Pong.entities";
-import { Server } from "socket.io";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 import { UsersService } from "src/users/users.service";
 import { Players, StartInfo, EndGamePlayer } from "./interfaces/game.interface";
@@ -187,8 +186,8 @@ export class GameService {
 
 			const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
 				{wins:{ increment: 1}, played:{increment: 1} } );
-			const playerSocket: Socket = UserIdToSockets.get(WinnerId);
-			server.to(playerSocket.id).emit("updateUser", playerUpdated);
+			const WinnerSocket: Socket = UserIdToSockets.get(WinnerId);
+			server.to(WinnerSocket.id).emit("updateUser", playerUpdated);
 			if (playerOne.win) {
 				const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
 					{loses:{ increment: 1}, played:{increment: 1}});

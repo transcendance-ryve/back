@@ -63,7 +63,7 @@ export class Pong
 		gameId: null,
 		leftScore: 0,
 		rightScore: 0,	
-		topScore: 5,
+		topScore: 1,
 		speedIncreaseHit: 1,
 	}
 
@@ -623,7 +623,7 @@ export class Pong
 			}
 			this._server.to(UserIdToSockets.get(this.leftPlayer.id).id).emit('gameWin');
 			this._server.to(UserIdToSockets.get(this.rightPlayer.id).id).emit('gameLoose');
-			this._gameService.endGame(playerOne, playerTwo);
+			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
 		}
 		else if (this.game.rightScore === this.game.topScore) {
