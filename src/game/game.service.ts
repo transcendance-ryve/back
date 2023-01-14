@@ -182,8 +182,8 @@ export class GameService {
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
 			const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
-			this._usersService.addExperience(WinnerId, 20);
-			this._usersService.addRankPoint(WinnerId, true);
+			await this._usersService.addExperience(WinnerId, 20);
+			await this._usersService.addRankPoint(WinnerId, true);
 
 			const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
 				{wins:{ increment: 1}, played:{increment: 1} } );
