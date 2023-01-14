@@ -124,6 +124,7 @@ export class GameService {
 	}
 
 	async getGameHistoryCount(userId: string) {
+		console.log(userId);
 		const games = await this._prismaService.user.findFirst({
 			where: {
 				id: userId
@@ -134,7 +135,6 @@ export class GameService {
 		});
 		return games.played;
 	}
-
 
 	async getCurrentGame(): Promise<any> {
 		

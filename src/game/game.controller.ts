@@ -14,12 +14,12 @@ export class GameController {
 	){}
 
 	@Get ('history')
-	getGameHistory(
+	async getGameHistory(
 		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Query('search') search: string
 	) {
-		const games = this._gameService.getGameHistory(currentUser.id, search);
-		const count = this._gameService.getGameHistoryCount(currentUser.id);
+		const games = await this._gameService.getGameHistory(currentUser.id, search);
+		const count = await this._gameService.getGameHistoryCount(currentUser.id);
 		return {games, count};
 	}
 
