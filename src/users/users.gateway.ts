@@ -40,10 +40,10 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		
 		try {
 			const user = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
-			await this._usersService.updateUser({ id: user.id }, { status: Status.ONLINE });
+			const userData = await this._usersService.updateUser({ id: user.id }, { status: Status.ONLINE });
 			
 			UserIdToSockets.set(user.id, socket);
-			this._emitToFriends(user.id, 'user_connected', user.id);
+			this._emitToFriends(user.id, 'user_connected', { id: user.id, status: userData.status, username: userData.username, avatar: userData.avatar });
 	
 			socket.data.id = user.id;
 		} catch(err) { socket.disconnect(); }
@@ -53,8 +53,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const { id } = socket.data || {};
 		if (!id) return;
 
-		await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
-		this._emitToFriends(id, 'user_disconnected', id);
+		const userData = await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
+		this._emitToFriends(id, 'user_disconnected', { id, status: userData.status, username: userData.username, avatar: userData.avatar });
 	}
 
 	@SubscribeMessage('join_game')
