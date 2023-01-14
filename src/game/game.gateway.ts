@@ -63,7 +63,6 @@ export class GameGateway {
 		@GetCurrentUserId() currentID: string,
 		@MessageBody() key: string,
 	): void {
-		console.log("key pressed: " + key)
 		if (key === "up")
 			key = 'W';
 		else if (key === "down")
@@ -77,7 +76,6 @@ export class GameGateway {
 		@MessageBody() key: string,
 		@ConnectedSocket() socket: Socket
 	): void {
-		console.log("key released: " + key)
 		if (key === "up")
 			key = 'W';
 		else if (key === "down")

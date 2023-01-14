@@ -34,6 +34,7 @@ import {
 	MAX_BALL_SPEED,
 	BALL_SPEED_MULTIPLIER,
 	} from "../Pong/config";
+import { GameService } from "../game.service";
 
 interface Paddles {
 	left: {
@@ -61,13 +62,15 @@ interface Ball {
 
 export class Pong
 {
-	constructor(PlayerOne, PlayerTwo, _server: Server){
+	constructor(PlayerOne, PlayerTwo, _server: Server, _gameService: GameService){
 		this.leftPlayer.id = PlayerOne;
 		this.rightPlayer.id = PlayerTwo;
 		this.gameId = PlayerOne + PlayerTwo;
 		this._server = _server;
+		this._gameService = _gameService;
 	}
 
+	_gameService: GameService;
 	/*
 	** Game variables
 	*/
@@ -219,6 +222,7 @@ export class Pong
 		this.giveBallRandDirection();
 		this.initBonusesVars();
 		this.gameLoop();
+		return this.game;
 	}
 	
 	async gameLoop()
@@ -420,14 +424,7 @@ export class Pong
 			if (key === 'W')
 				this.rightPlayer.keyPressed['W'] = true;
 		}
-		//if (code === 'KeyS')
-		//	this.keyPressed['S'] = true;
-		//if (code === 'KeyW')
-		//	this.keyPressed['W'] = true;
-		//if (code === 'ArrowUp')
-		//	this.keyPressed['Up'] = true;
-		//if (code === 'ArrowDown')
-		//	this.keyPressed['Down'] = true;
+
 	}
 
 	keyUp = function(key, playerID)
@@ -446,14 +443,6 @@ export class Pong
 			if (key === 'W')
 				this.rightPlayer.keyPressed['W'] = false;
 		}
-		//if (code === 'KeyS')
-		//	this.keyPressed['S'] = false;
-		//if (code === 'KeyW')
-		//	this.keyPressed['W'] = false;
-		//if (code === 'ArrowUp')
-		//	this.keyPressed['Up'] = false;
-		//if (code === 'ArrowDown')
-		//	this.keyPressed['Down'] = false;
 	}
 
 	randomY = function(min, max)
@@ -642,16 +631,16 @@ export class Pong
 	gameOver = function () {
 		if (this.game.leftScore === this.game.topScore) {
 			console.log('Left Wins');
-			// sessionStorage.setItem("winner", "Left");
 			this._server.to(this.gameId).emit('gameWin', this.leftPlayer.id);
-			this.server.to(this.gameId).emit('gameLoose', this.rightPlayer.id);
+			this._server.to(this.gameId).emit('gameLoose', this.rightPlayer.id);
+			this._gameService.endGame(this.leftPlayer.id, this.rightPlayer.id, this.leftPlayer.id);
 			this.resetgame();
 		}
 		else if (this.game.rightScore === this.game.topScore) {
 			console.log('Right Wins');
-			// sessionStorage.setItem("winner", "Right");
 			this._server.to(this.gameId).emit('gameWin', this.rightPlayer.id);
-			this.server.to(this.gameId).emit('gameLoose', this.leftPlayer.id);
+			this._server.to(this.gameId).emit('gameLoose', this.leftPlayer.id);
+			this._gameService.endGame(this.leftPlayer.id, this.rightPlayer.id, this.rightPlayer.id);
 			this.resetgame();
 		}
 	}

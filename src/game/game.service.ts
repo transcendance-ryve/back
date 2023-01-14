@@ -4,6 +4,7 @@ import { Socket } from "socket.io";
 import { Pong } from "./entities/Pong.entities";
 import { Server } from "socket.io";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
+import { UsersService } from "src/users/users.service";
 
 interface Player {
 	id: string,
@@ -24,6 +25,7 @@ interface Players {
 export class GameService {
 	constructor(
 		private readonly _prismaService: PrismaService,
+		private readonly _usersService: UsersService,
 		) {}
 	
 	playerIds: string[] = [];
@@ -90,7 +92,7 @@ export class GameService {
 				player_two_score: 0
 			}
 		});
-		const game: Pong =  new Pong(id, opponent, server);
+		const game: Pong =  new Pong(id, opponent, server, this);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
 		const PlayerOneSocket: Socket= UserIdToSockets.get(id);
@@ -105,7 +107,6 @@ export class GameService {
 			width,
 			height,
 		}
-		console.log(res);
 		server.to(game.gameId).emit("start", res);
 		game.launchGame();
 		return;
@@ -114,7 +115,6 @@ export class GameService {
 	keyPress(userId: string, key: string): void {
 		const game: Pong = this.playerIdToGame.get(userId);
 		if (game) {
-			console.log("mes morts!");
 			game.keyDown(key, userId);
 		}
 	}
@@ -124,6 +124,18 @@ export class GameService {
 		if (game) {
 			game.keyUp(key, userId);
 		}
+	}
+
+	endGame(playerOne: string, playerTwo: string, WinnerId: string)
+ 	{
+		console.log("endGame");
+		const game: Pong = this.playerIdToGame.get(playerOne);
+		if (game) {
+			this.playerIdToGame.delete(playerOne);
+			this.playerIdToGame.delete(playerTwo);
+		}
+		this._usersService.addExperience(WinnerId, 20);
+		this._usersService.addRankPoint(WinnerId, true);
 	}
 
 	async leave(id: string): Promise<void> {}
