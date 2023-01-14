@@ -9,10 +9,10 @@ interface Player {
 	id: string,
 	username: string,
 	avatar: string,
-	/*score: number,
+	score: number,
 	level: number,
 	experience: number,
-	next_level: number,*/
+	next_level: number,
 }
 
 interface Players {
@@ -39,6 +39,9 @@ export class GameService {
 				id: true,
 				username: true,
 				avatar: true,
+				level: true,
+				experience: true,
+				next_level: true,
 			}
 		});
 		const playerTwoData = await this._prismaService.user.findUnique({
@@ -49,11 +52,20 @@ export class GameService {
 				id: true,
 				username: true,
 				avatar: true,
+				level: true,
+				experience: true,
+				next_level: true,
 			}
 		});
 		return {
-			left: playerOneData,
-			right: playerTwoData
+			left: {
+				score: 0,
+				...playerOneData
+			},
+			right:{
+				score: 0,
+				...playerTwoData
+			}
 		}
 	}
 
@@ -93,6 +105,7 @@ export class GameService {
 			width,
 			height,
 		}
+		console.log(res);
 		server.to(game.gameId).emit("start", res);
 		game.launchGame();
 		return;
