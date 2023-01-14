@@ -616,7 +616,7 @@ export class Pong
 			if (this.bonusCaught[SIZE_DECREASE])
 				this.playerDecreased = true;
 			this.resetBonuses()
-			this._server.to(this.gameId).emit('updateScore', this.leftPlayer.id, this.game.leftScore);
+			this._server.to(this.gameId).emit('score', this.leftPlayer.id, this.game.leftScore);
 		}
 		else if (this.ball.positionX < this.rightPlayer.width) {
 			this.game.rightScore++;
@@ -627,7 +627,7 @@ export class Pong
 			if (this.bonusCaught[SIZE_DECREASE])
 				this.playerDecreased = true;
 			this.resetBonuses()
-			this._server.to(this.gameId).emit('updateScore', this.rightPlayer.id, this.game.rightScore);
+			this._server.to(this.gameId).emit('score', this.rightPlayer.id, this.game.rightScore);
 		}
 		//document.getElementsByClassName('left')[0].textContent = this.game.leftScore
 		//document.getElementsByClassName('right')[0].textContent = this.game.rightScore
