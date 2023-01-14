@@ -30,7 +30,7 @@ export class GameController {
 		return {games, count};
 	}
 
-	@Get ('current')
+	@Get('current')
 	getCurrentGame(
 	){
 		return this._gameService.getCurrentGame();

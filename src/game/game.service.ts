@@ -146,13 +146,22 @@ export class GameService {
 		}
 		for (const game of games)
 		{	
-			const player = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
+			let player = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
+			player = {
+				left: {
+					...player.left,
+					score: game[1].game.leftScore,
+				},
+				right: {
+					...player.right,
+					score: game[1].game.rightScore,
+				},
+			}
 			res.push({
 				id: game[1].game.gameId,
 				players: player,
 			});
 		}
-		//console.log(res);
 		return res;
 	}
 

@@ -63,7 +63,7 @@ export class Pong
 		gameId: null,
 		leftScore: 0,
 		rightScore: 0,	
-		topScore: 1,
+		topScore: 5,
 		speedIncreaseHit: 1,
 	}
 
