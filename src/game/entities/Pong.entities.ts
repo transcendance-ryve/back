@@ -63,7 +63,7 @@ export class Pong
 		gameId: null,
 		leftScore: 0,
 		rightScore: 0,	
-		topScore: 5,
+		topScore: 3,
 		speedIncreaseHit: 1,
 	}
 
@@ -588,6 +588,8 @@ export class Pong
 				score: this.game.leftScore
 			}
 			this._server.to(this.game.gameId).emit('score', data);
+			this._server.to(this._gameService.spectateRoom)
+				.emit('updateScore', this.game.game.gameId, data);
 		}
 		else if (this.ball.positionX < this.rightPlayer.width) {
 			this.game.rightScore++;
@@ -603,6 +605,8 @@ export class Pong
 				score: this.game.rightScore
 			}
 			this._server.to(this.game.gameId).emit('score', data);
+			this._server.to(this._gameService.spectateRoom)
+				.emit('updateScore', this.game.game.gameId, data);
 		}
 	}
 	
