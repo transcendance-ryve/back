@@ -212,8 +212,17 @@ export class GameService {
 			height,
 		}
 		server.to(game.game.gameId).emit("start", res);
+		this.emitNewGameToSpectate(game, players, server);
 		game.launchGame();
 		return;
+	}
+
+	emitNewGameToSpectate(game: Pong, players: Players, server: Server): void {
+		const res = {
+			id: game.game.gameId,
+			players,
+		}
+		server.to(this.spectateRoom).emit("newGameStarted", res);
 	}
 
 	keyPress(userId: string, key: string): void {
@@ -234,6 +243,7 @@ export class GameService {
  	{
 		try {
 			const game: Pong = this.playerIdToGame.get(playerOne.id);
+			server.to(this.spectateRoom).emit("gameEnded", game.game.gameId);	
 			if (!game) {
 				throw new Error("Game not found");
 			}
@@ -287,7 +297,7 @@ export class GameService {
 		userSocket.leave(this.spectateRoom);
 		console.log("user left spcetate room");
 	}
-	
+
 	async leave(id: string): Promise<void> {}
 
 	async reconnect(id: string): Promise<void> {}
