@@ -588,8 +588,9 @@ export class Pong
 				score: this.game.leftScore
 			}
 			this._server.to(this.game.gameId).emit('score', data);
+			console.log("score: " + this._gameService.spectateRoom);
 			this._server.to(this._gameService.spectateRoom)
-				.emit('updateScore', this.game.game.gameId, data);
+				.emit('updateScore', this.game.gameId, data);
 		}
 		else if (this.ball.positionX < this.rightPlayer.width) {
 			this.game.rightScore++;
@@ -605,8 +606,9 @@ export class Pong
 				score: this.game.rightScore
 			}
 			this._server.to(this.game.gameId).emit('score', data);
+			console.log("score: " + this._gameService.spectateRoom);
 			this._server.to(this._gameService.spectateRoom)
-				.emit('updateScore', this.game.game.gameId, data);
+				.emit('updateScore', this.game.gameId, data);
 		}
 	}
 	
