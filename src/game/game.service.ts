@@ -153,31 +153,44 @@ export class GameService {
 		return games.played;
 	}
 
-	async getCurrentGame(): Promise<any> {
+	async getCurrentGame(
+		order: string,
+		page: number,
+		take: number,
+		search?: string,
+	): Promise<any> {
 		const games = []; 
 		let res = [];
 		for (const game of this.gameIdToGame.entries())
 		{
 			games.push(game);
 		}
-		for (const game of games)
-		{	
-			let player = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
-			player = {
-				left: {
-					...player.left,
-					score: game[1].game.leftScore,
-				},
-				right: {
-					...player.right,
-					score: game[1].game.rightScore,
-				},
+		for (let i = (page - 1) * take; i < page * take; i++)
+		{
+			if (i >= games.length)
+				break;
+			let player: Players = await this.getPlayers(games[i][1].leftPlayer.id, games[i][1].rightPlayer.id);
+			if (!search || search && player.left.username.toLowerCase().includes(search.toLowerCase()) 
+				|| player.right.username.toLowerCase().includes(search.toLowerCase()))
+			{
+				player = {
+					left: {
+						...player.left,
+						score: games[i][1].game.leftScore,
+					},
+					right: {
+						...player.right,
+						score: games[i][1].game.rightScore,
+					},
+				}
+				res.push({
+					id: games[i][1].game.gameId,
+					players: player,
+				});
 			}
-			res.push({
-				id: game[1].game.gameId,
-				players: player,
-			});
 		}
+		if (order === 'desc')
+			res = res.reverse();
 		return res;
 	}
 

@@ -5,6 +5,7 @@ import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
 import { Get, Query } from '@nestjs/common';
 import { Game } from "@prisma/client";
 import { JwtAuthGuard } from 'src/users/guard/jwt.guard';
+import { query } from "express";
 
 @UseGuards(JwtAuthGuard)
 @Controller('game')
@@ -32,7 +33,16 @@ export class GameController {
 
 	@Get('current')
 	getCurrentGame(
+		@Query('order') order: string,
+		@Query('page') page: number,
+		@Query('take') take: number,
+		@Query('search') search: string,
 	){
-		return this._gameService.getCurrentGame();
+		return this._gameService.getCurrentGame(
+			order,
+			page,
+			take,
+			search || undefined
+		);
 	}
 }
