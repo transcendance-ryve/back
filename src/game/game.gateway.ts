@@ -91,6 +91,23 @@ export class GameGateway {
 		this._server.to(socket.id).emit("game_connected");
 	}
 
+	@SubscribeMessage("onSpectate")
+	handleOnSpectate(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket
+	): void {
+		this._gameService.onSpectate(currentID, socket);
+		this._server.to(socket.id).emit("spectate_connected");
+	}
+
+	@SubscribeMessage("offSpecate")
+	handleOffSpectate(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket
+	): void {
+		this._gameService.offSpectate(currentID, socket);
+		this._server.to(socket.id).emit("spectate_disconnected");
+	}
 	@SubscribeMessage("reconnect")
 	handleReconnect(
 		@GetCurrentUserId() currentID: string,

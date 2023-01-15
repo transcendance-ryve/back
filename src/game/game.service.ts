@@ -19,6 +19,7 @@ export class GameService {
 	playerIds: string[] = [];
 	playerIdToGame: Map<string, Pong> = new Map();
 	gameIdToGame: Map<string, Pong> = new Map();
+	private spectateRoom: string = uuidv4();
 
 	//Getter
 	async getPlayers(playerOne : string, playerTwo: string): Promise<Players> {
@@ -277,6 +278,16 @@ export class GameService {
 		}
 	}
 
+	async  onSpectate(id: string, userSocket: Socket): Promise<void> {
+		userSocket.join(this.spectateRoom);
+		console.log("user joined spcetate room");
+	}
+
+	async offSpectate(id: string, userSocket: Socket): Promise<void> {
+		userSocket.leave(this.spectateRoom);
+		console.log("user left spcetate room");
+	}
+	
 	async leave(id: string): Promise<void> {}
 
 	async reconnect(id: string): Promise<void> {}
