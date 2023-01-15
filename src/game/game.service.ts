@@ -19,6 +19,7 @@ export class GameService {
 	playerIds: string[] = [];
 	playerIdToGame: Map<string, Pong> = new Map();
 	gameIdToGame: Map<string, Pong> = new Map();
+
 	//Getter
 	async getPlayers(playerOne : string, playerTwo: string): Promise<Players> {
 		const playerOneData = await this._prismaService.user.findUnique({
@@ -232,6 +233,7 @@ export class GameService {
 			});
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
+			this.gameIdToGame.delete(game.game.gameId);
 			const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
 			await this._usersService.addExperience(WinnerId, 20);
 			await this._usersService.addRankPoint(WinnerId, true);
@@ -240,17 +242,20 @@ export class GameService {
 				{wins:{ increment: 1}, played:{increment: 1} } );
 			const WinnerSocket: Socket = UserIdToSockets.get(WinnerId);
 			server.to(WinnerSocket.id).emit("updateUser", playerUpdated);
+			let looserSocket: Socket;
 			if (playerOne.win) {
 				const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
 					{loses:{ increment: 1}, played:{increment: 1}});
-				const playerTwoSocket: Socket = UserIdToSockets.get(playerTwo.id);
-				server.to(playerTwoSocket.id).emit("updateUser", updatedPlayerTwo);
+				looserSocket = UserIdToSockets.get(playerTwo.id);
+				server.to(looserSocket.id).emit("updateUser", updatedPlayerTwo);
 			} else {
 				const updatedPlayerOne: Partial<User> = await this._usersService.updateUser({id: playerOne.id},
 					{loses:{ increment: 1}, played:{increment: 1}});
-				const playerOneSocket: Socket = UserIdToSockets.get(playerOne.id);
-				server.to(playerOneSocket.id).emit("updateUser", updatedPlayerOne);
+				looserSocket = UserIdToSockets.get(playerOne.id);
+				server.to(looserSocket.id).emit("updateUser", updatedPlayerOne);
 			}
+			looserSocket.leave(game.game.gameId);
+			WinnerSocket.leave(game.game.gameId);
 
 		} catch (err) {
 			console.log(err);
