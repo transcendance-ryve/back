@@ -627,8 +627,7 @@ export class Pong
 				win: false,
 				loose: true,
 			}
-			this._server.to(UserIdToSockets.get(this.leftPlayer.id).id).emit('gameWin');
-			this._server.to(UserIdToSockets.get(this.rightPlayer.id).id).emit('gameLoose');
+			this._server.to(this.game.id).emit('gameWinner', this.leftPlayer.id);
 			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
 		}
@@ -646,8 +645,7 @@ export class Pong
 				loose: false,
 			}
 			console.log('Right Wins');
-			this._server.to(UserIdToSockets.get(this.rightPlayer.id).id).emit('gameWin');
-			this._server.to(UserIdToSockets.get(this.leftPlayer.id).id).emit('gameLoose');
+			this._server.to(this.game.id).emit('gameWinner', this.rightPlayer.id);
 			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
 		}
