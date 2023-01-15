@@ -271,7 +271,7 @@ export class GameService {
 			});
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
-			this.gameIdToGame.delete(game.game.gameId);
+			//this.gameIdToGame.delete(game.game.gameId);
 			const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
 			await this._usersService.addExperience(WinnerId, 20);
 			await this._usersService.addRankPoint(WinnerId, true);
