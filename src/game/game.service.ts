@@ -311,11 +311,33 @@ export class GameService {
 		console.log("user left spcetate room");
 	}
 
+	async spectateGame(gameId: string, userSocket: Socket, server: Server): Promise<void> {
+		const game: Pong = this.gameIdToGame.get(gameId);
+		if (game) {
+			const players: Players = await this.getPlayers(game.leftPlayer.id, game.rightPlayer.id);
+			const width: number  = 790;
+			const height: number = 390;
+			const res: StartInfo = {
+				players,
+				width,
+				height,
+			}
+			server.to(userSocket.id).emit("start", res);
+			userSocket.join(game.game.gameId);
+		}
+	}
+
+	async leaveSpectateGame(gameId: string, userSocket: Socket): Promise<void> {
+		const game: Pong = this.gameIdToGame.get(gameId);
+		if (game) {
+			userSocket.leave(game.game.gameId);
+		}
+	}
+
 	async leave(id: string): Promise<void> {}
 
 	async reconnect(id: string): Promise<void> {}
 
-	async spectate(id: string): Promise<void> {}
 	//Utils
 
 }

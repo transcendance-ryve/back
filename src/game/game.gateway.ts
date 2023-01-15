@@ -115,9 +115,21 @@ export class GameGateway {
 		@ConnectedSocket() socket: Socket
 	): void {}
 
-	@SubscribeMessage("spectate")
+	@SubscribeMessage("spectateGame")
 	handleSpectate(
-		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
-	): void {}
+		@ConnectedSocket() socket: Socket,
+		@MessageBody("gameId") gameId: string
+	): void {
+		this._gameService.spectateGame(gameId, socket, this._server);
+		this._server.to(socket.id).emit("spectate_connected");
+	}
+
+	@SubscribeMessage("leaveSpectateGame")
+	handleLeaveSpectate(
+		@ConnectedSocket() socket: Socket,
+		@MessageBody("gameId") gameId: string
+	): void {
+		this._gameService.leaveSpectateGame(gameId, socket);
+		this._server.to(socket.id).emit("spectate_disconnected");
+	}
 }
