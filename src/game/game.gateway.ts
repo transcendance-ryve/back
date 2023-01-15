@@ -100,7 +100,7 @@ export class GameGateway {
 		this._server.to(socket.id).emit("spectate_connected");
 	}
 
-	@SubscribeMessage("offSpecate")
+	@SubscribeMessage("offSpectate")
 	handleOffSpectate(
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket
