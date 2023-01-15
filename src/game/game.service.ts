@@ -191,7 +191,7 @@ export class GameService {
 		}
 		if (order === 'desc')
 			res = res.reverse();
-		return res;
+		return {res, count: games.length};
 	}
 
 	//Actions
