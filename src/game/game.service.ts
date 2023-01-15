@@ -68,24 +68,38 @@ export class GameService {
 		) {
 		const games = await this._prismaService.game.findMany({
 			where: {
-				OR: [
+				AND: [
 					{
-						player_one: {
-								username: {
-									contains: search,
-									mode: 'insensitive'
-								},
+						OR: [
+							{
+								player_one_id: userId,
 							},
+							{
+								player_two_id: userId,
+							},
+						],
 					},
 					{
-						player_two: {
-							username: {
-								contains: search,
-								mode: 'insensitive'
+						OR: [
+							{
+								player_one: {
+										username: {
+											contains: search,
+											mode: 'insensitive'
+										},
+									},
 							},
-						},
-					}
-				]
+							{
+								player_two: {
+									username: {
+										contains: search,
+										mode: 'insensitive'
+									},
+								},
+							},
+						],
+					},
+				],
 			},
 			skip: (page - 1) * take || undefined,
 			take: take || 20,
@@ -220,7 +234,7 @@ export class GameService {
 		try {
 			const game: Pong = this.playerIdToGame.get(playerOne.id);
 			if (!game) {
-				return "Game not found";
+				throw new Error("Game not found");
 			}
 			await this._prismaService.game.create({
 				data: {
