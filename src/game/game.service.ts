@@ -329,6 +329,7 @@ export class GameService {
 
 	async leaveSpectateGame(gameId: string, userSocket: Socket): Promise<void> {
 		const game: Pong = this.gameIdToGame.get(gameId);
+		console.log("user left game spectate");
 		if (game) {
 			userSocket.leave(game.game.gameId);
 		}

@@ -105,7 +105,6 @@ export class MatchmakingService {
 
 			this.deleteGameRequest(userID);
 
-			// TODO: Create game
 			this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, _server);
 		}
 	}
