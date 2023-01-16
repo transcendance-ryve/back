@@ -667,7 +667,7 @@ export class ChannelService {
 		} catch (err) {
 			console.log(err);
 			if (err.code === 'P2002')
-				return 'Channel name already exists';
+				return 'Channel name already used';
 			else if(err)
 				return err.message;
 			return 'Internal server error: error creating channel';
