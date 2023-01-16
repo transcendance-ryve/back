@@ -777,8 +777,10 @@ export class ChannelService {
 			return joinedChannel;
 		} catch (err) {
 			console.log("err", err);
+			if (err.message === "data and hash must be strings")
+				return "Wrong password";
 			if (err)
-				return (err.message as string);
+				return (err.message);
 			return 'Internal server error: error joining channel';
 		}
 	}
