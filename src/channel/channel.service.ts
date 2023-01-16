@@ -696,7 +696,7 @@ export class ChannelService {
 					},
 				});
 				if (isInvited == null)
-					throw new Error('Error: Not invited in private channel');
+					throw new Error('Not invited in private channel');
 				await this.prisma.channelInvitation.delete({
 					where: {
 						id: isInvited.id,
@@ -724,7 +724,7 @@ export class ChannelService {
 						channel.password,
 					);
 					if (!passwordMatch)
-						throw new Error('WrongPassword');
+						throw new Error('Wrong password');
 				}
 			}
 			//Check if channel exists
