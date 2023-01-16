@@ -155,6 +155,7 @@ export class ChannelController {
 			this.channelGateway._server.to(clientSocket.id).emit('editRoomFailed', channelEdited);
 		} else {
 			this.channelGateway._server.to(clientSocket.id).emit('roomEdited');
+			this.channelGateway._server.to(channelEdited.id).emit('roomUpdated', channelEdited);
 		}
 	}
 

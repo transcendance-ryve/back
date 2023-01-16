@@ -1187,7 +1187,7 @@ export class ChannelService {
 		userId: string,
 		dto: EditChannelDto,
 		avatar: Express.Multer.File,
-	) : Promise<Channel | string> {
+	) : Promise<Partial<Channel> | string> {
 		try {
 			//Check if sender have the right to edit channel
 			const senderRole: string | null =
@@ -1218,7 +1218,7 @@ export class ChannelService {
 			}
 			let tmp: string = chan.avatar;
 			//Update channel
-			const updatedChannel: Channel | null =
+			const updatedChannel: Partial<Channel> | null =
 			await this.prisma.channel.update({
 				where: {
 					id: dto.channelId,
@@ -1229,6 +1229,12 @@ export class ChannelService {
 					password: dto.password,
 					avatar: avatar ? this.staticPath + avatar.filename : tmp,
 				},
+				select: {
+					id: true,
+					name: true,
+					status: true,
+					avatar: true,
+				}
 			});
 			if (updatedChannel == null)
 				throw new Error('Channel not found');
