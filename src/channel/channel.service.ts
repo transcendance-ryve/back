@@ -556,7 +556,8 @@ export class ChannelService {
 						};
 						let chanInvite = await this.inviteToChannelWS(user.id, inviteDto);
 						let userSocket = UserIdToSockets.get(user.id);
-						_server.to(userSocket.id).emit('chanInvitationReceived', createdChannel);
+						if (userSocket != null)
+							_server.to(userSocket.id).emit('chanInvitationReceived', createdChannel);
 					}
 				}
 			}
