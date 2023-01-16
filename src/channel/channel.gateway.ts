@@ -301,7 +301,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(banInfo.channelId).emit('userBanned', userBanned);
 			const chanName: Partial<Channel> | null =
 			await this.channelService.getChannelById({id: banInfo.channelId}, "id,name");
-			this._server.to(banInfo.targetId).emit('banned', chanName);
+			UserIdToSockets.get(banInfo.targetId);
+			this._server.to(UserIdToSockets.get(banInfo.targetId).id).emit('banned', chanName);
 		}
 	}
 
