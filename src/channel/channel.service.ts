@@ -962,8 +962,8 @@ export class ChannelService {
 			console.log("err", err);
 			if (err.code === 'P2002')
 				return 'User already invited to channel';
-			if (typeof err === 'string')
-				return err;
+			if (err)
+				return err.message;
 			return 'Internal server error: error inviting user to channel';
 		}
 	}
