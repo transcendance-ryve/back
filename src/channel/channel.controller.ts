@@ -158,7 +158,7 @@ export class ChannelController {
 	//return a channel by id
 	@Get(':id')
 	getChannelById(@Param('id') id: string) {
-		return this.channelService.getChannelById(id);
+		return this.channelService.getChannelById({id: id});
 	}
 
 	//Return all the members of a channel

@@ -22,18 +22,21 @@ import {
 	ModerateUserDto,
 } from './dto';
 import { Socket, Server } from 'socket.io';
-import * as bcrypt from 'bcrypt';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
-import * as fs from 'fs';
 import { join } from 'path';
 import { UserTag } from './interfaces/UserTag.interface';
+import * as bcrypt from 'bcrypt';
+import * as fs from 'fs';
+import { Prisma } from '@prisma/client';
 
 
 
 
 @Injectable()
 export class ChannelService {
-	constructor(private readonly prisma: PrismaService) {}
+	constructor(
+		private readonly prisma: PrismaService
+		) {}
 
 	private staticPath: string = 'http://localhost:3000/';
 	//Getter
@@ -71,13 +74,33 @@ export class ChannelService {
 	//@brief: Get all the channels of a user
 	//@param: userId: string
 	//@return: Promise<Channel[]>
-	getChannelById(id: string) : Promise<Channel> {
-		return this.prisma.channel.findUnique({
-			where: {
-				id: id
+	async getChannelById(
+		where: Prisma.ChannelWhereUniqueInput,
+		selected?: string,
+		) : Promise<Partial<Channel> | null>
+		{
+			const select: Prisma.ChannelSelect = selected?.split(',').reduce((acc, cur) => {
+				acc[cur] = true;
+				return acc;
+			}, {});
+
+			try {
+				const channel: Partial<Channel> | null = await this.prisma.channel.findUnique({
+					where,
+					select: (selected && selected.length > 0) ? select : undefined,
+				});
+
+				if (!channel)
+					throw new Error('Channel not found');
+				
+				delete channel.password;
+				return channel;
+			} catch (err) {
+				if (err)
+					throw new Error(err.message);
+				throw new Error("Internal server error")
 			}
-		});
-	}
+		}
 
 	//@brief: Get all the messages of a channel
 	//@param: channelId: string
