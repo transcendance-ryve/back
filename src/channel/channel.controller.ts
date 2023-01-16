@@ -23,6 +23,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CreateChannelDto, EditChannelDto } from './dto';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
+import { InvitaionTag, UserTag } from './interfaces/utils.interfaces';
 
 @UseGuards(JwtAuthGuard)
 @Controller('channels')
@@ -36,7 +37,7 @@ export class ChannelController {
 	getChannels(
 		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Query('search') name: string,
-	) {
+	): Promise<Channel[]> {
 		return this.channelService.getChannels(name, currentUser.id);
 	}
 
@@ -44,12 +45,14 @@ export class ChannelController {
 	@Get('ofUser')
 	getChannelsOfUser(
 		@GetCurrentUser() currentUser: JwtPayloadDto
-	) {
+	): Promise<Partial<Channel>[]> {
 		return this.channelService.getChannelsByUserId(currentUser.id);
 	}
 
 	@Get('invites')
-	getChannelInvites(@GetCurrentUser() currentUser: JwtPayloadDto) {
+	getChannelInvites(
+		@GetCurrentUser() currentUser: JwtPayloadDto
+	 ): Promise<InvitaionTag[] | string> {
 		return this.channelService.getChannelInvitesByUser(currentUser.id);
 	}
 
@@ -88,11 +91,11 @@ export class ChannelController {
 		@GetCurrentUserId() userId: string,
 		@Body('createInfo') dto: CreateChannelDto,
 		@UploadedFile() avatar: Express.Multer.File,
-	) {
+	): Promise<void> {
 		console.log("createRoom called")
 		const clientSocket = UserIdToSockets.get(userId);
-		let channel: Channel | string | null;
-		channel = await this.channelService.createChannelWS(
+		let channel: Channel | string
+		= await this.channelService.createChannelWS(
 			dto,
 			userId,
 			clientSocket,
@@ -141,7 +144,7 @@ export class ChannelController {
 		@GetCurrentUserId() userId: string,
 		@Body('editInfo') editInfo: EditChannelDto,
 		@UploadedFile() avatar: Express.Multer.File,
-	) {
+	): Promise<void> {
 		const channelEdited = await this.channelService.editChannel(
 			userId,
 			editInfo,
@@ -157,13 +160,13 @@ export class ChannelController {
 
 	//return a channel by id
 	@Get(':id')
-	getChannelById(@Param('id') id: string) {
+	getChannelById(@Param('id') id: string) : Promise<Partial<Channel> | null> {
 		return this.channelService.getChannelById({id: id});
 	}
 
 	//Return all the members of a channel
 	@Get('users/:channelId')
-	getUsersOfChannel(@Param('channelId') channelId: string) {
+	getUsersOfChannel(@Param('channelId') channelId: string) : Promise<UserTag[]>{
 		return this.channelService.getUsersOfChannel(channelId);
 	}
 
@@ -172,22 +175,22 @@ export class ChannelController {
 		@Param('channelId') channelId: string,
 		@Query('page') page: number,
 		@Query('take') take: number,
-		) {
+		) : Promise<any> {
 		return this.channelService.getMessagesOfChannel(channelId, page, take);
 	}
 
 	@Get('muted/:id')
-	getMutedUsers(@Param('id') channelId: string) {
+	getMutedUsers(@Param('id') channelId: string): Promise<any> {
 		return this.channelService.getMutedUsersOfChannel(channelId);
 	}
 	
 	@Get('banned/:id')
-	getBannedUsers(@Param('id') channelId: string) {
+	getBannedUsers(@Param('id') channelId: string): Promise<any> {
 		return this.channelService.getBannedUsersOfChannel(channelId);
 	}
 
 	@Get('pending/:id')
-	getPendingInvites(@Param('id') channelId: string) {
+	getPendingInvites(@Param('id') channelId: string): Promise<any> {
 		return this.channelService.getPendingInvitesOfChannel(channelId);
 	}
 }

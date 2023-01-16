@@ -24,7 +24,7 @@ import {
 import { Socket, Server } from 'socket.io';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { join } from 'path';
-import { UserTag } from './interfaces/UserTag.interface';
+import { UserTag, InvitaionTag } from './interfaces/utils.interfaces';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import { Prisma } from '@prisma/client';
@@ -306,7 +306,7 @@ export class ChannelService {
 	//@param: userId: string
 	//@return: Promise<any>
 	async getChannelInvitesByUser(userId: string):
-	Promise<any>
+	Promise<InvitaionTag[] | string>
 	{
 		try {
 			const invites: {
@@ -333,16 +333,10 @@ export class ChannelService {
 					},
 				},
 			});
-			let res:{ 
-				id: string;
-				name: string;
-				status: ChannelType;
-				usersCount: number;
-			}[] =  invites.map((invite) => invite.channel);
+			let res: InvitaionTag[] =  invites.map((invite) => invite.channel);
 			return res;
-		} catch (error) {
-			console.log(error);
-			return error;
+		} catch (err) {
+			return(err).message;
 		}
 	}
 

@@ -25,7 +25,7 @@ import { UseGuards } from '@nestjs/common';
 import { GetCurrentUserId } from '../decorators/user.decorator';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { UsersService } from 'src/users/users.service';
-import { UserTag } from './interfaces/UserTag.interface';
+import { UserTag } from './interfaces/utils.interfaces';
 
 
 @WebSocketGateway({
