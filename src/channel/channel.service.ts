@@ -939,6 +939,7 @@ export class ChannelService {
 					id: true,
 					name: true,
 					avatar: true,
+					status: true,
 					usersCount: true,
 				},
 			});
