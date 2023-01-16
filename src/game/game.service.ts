@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
 import { User } from "@prisma/client";
 import { Socket, Server } from "socket.io";
-import { Pong } from "./entities/Pong.entities";
+import { Pong } from "./entities/neoPong.entities";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 import { UsersService } from "src/users/users.service";
 import { Players, StartInfo, EndGamePlayer } from "./interfaces/game.interface";
@@ -19,7 +19,7 @@ export class GameService {
 	playerIds: string[] = [];
 	playerIdToGame: Map<string, Pong> = new Map();
 	gameIdToGame: Map<string, Pong> = new Map();
-	private spectateRoom: string = uuidv4();
+	spectateRoom: string = uuidv4();
 
 	//Getter
 	async getPlayers(playerOne : string, playerTwo: string): Promise<Players> {
@@ -214,8 +214,8 @@ export class GameService {
 		this.gameIdToGame.set(gameId, game);
 		const PlayerOneSocket: Socket = UserIdToSockets.get(id);
 		const PlayerTwoSocket: Socket = UserIdToSockets.get(opponent);
-		PlayerOneSocket.join(game.game.gameId);
-		PlayerTwoSocket.join(game.game.gameId);
+		PlayerOneSocket.join(game.gameId);
+		PlayerTwoSocket.join(game.gameId);
 		const players: Players = await this.getPlayers(id, opponent);
 		const width: number  = 790;
 		const height: number = 390;
@@ -224,7 +224,7 @@ export class GameService {
 			width,
 			height,
 		}
-		server.to(game.game.gameId).emit("start", res);
+		server.to(game.gameId).emit("start", res);
 		this.emitNewGameToSpectate(game, players, server);
 		game.launchGame();
 		return;
@@ -232,7 +232,7 @@ export class GameService {
 
 	emitNewGameToSpectate(game: Pong, players: Players, server: Server): void {
 		const res = {
-			id: game.game.gameId,
+			id: game.gameId,
 			players,
 		}
 		server.to(this.spectateRoom).emit("newGameStarted", res);
@@ -256,13 +256,13 @@ export class GameService {
  	{
 		try {
 			const game: Pong = this.playerIdToGame.get(playerOne.id);
-			server.to(this.spectateRoom).emit("gameEnded", game.game.gameId);	
+			server.to(this.spectateRoom).emit("gameEnded", game.gameId);	
 			if (!game) {
 				throw new Error("Game not found");
 			}
 			await this._prismaService.game.create({
 				data: {
-					id: game.game.gameId,
+					id: game.gameId,
 					player_one: { connect: { id: playerOne.id } },
 					player_one_score: playerOne.score,
 					player_two: { connect: { id: playerTwo.id } },
@@ -292,8 +292,8 @@ export class GameService {
 				looserSocket = UserIdToSockets.get(playerOne.id);
 				server.to(looserSocket.id).emit("updateUser", updatedPlayerOne);
 			}
-			looserSocket.leave(game.game.gameId);
-			WinnerSocket.leave(game.game.gameId);
+			looserSocket.leave(game.gameId);
+			WinnerSocket.leave(game.gameId);
 
 		} catch (err) {
 			console.log(err);
@@ -323,7 +323,7 @@ export class GameService {
 				height,
 			}
 			server.to(userSocket.id).emit("start", res);
-			userSocket.join(game.game.gameId);
+			userSocket.join(game.gameId);
 		}
 	}
 
@@ -331,7 +331,7 @@ export class GameService {
 		const game: Pong = this.gameIdToGame.get(gameId);
 		console.log("user left game spectate");
 		if (game) {
-			userSocket.leave(game.game.gameId);
+			userSocket.leave(game.gameId);
 		}
 	}
 

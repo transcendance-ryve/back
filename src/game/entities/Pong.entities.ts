@@ -33,7 +33,7 @@ import {
 	BALL_SLOW_DOWN_EFFECT,
 	MAX_BALL_SPEED,
 	BALL_SPEED_MULTIPLIER,
-	} from "../Pong/config";
+	} from "./utils.entities";
 import { GameService } from "../game.service";
 import { Paddles, Ball, EndGamePlayer } from "../interfaces/game.interface";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
@@ -49,6 +49,8 @@ export class Pong
 	}
 
 	_gameService: GameService;
+
+
 	/*
 	** Game variables
 	*/
@@ -246,6 +248,7 @@ export class Pong
 		let randomNumber = min + Math.random() * (max - min);
 		return (randomNumber);
 	}
+
 
 	/*initImages = function()
 	{
@@ -869,15 +872,15 @@ export class Pong
 	makeBallBounce = function()
 	{
 		// gives ball a new direction and effect
-		if (this.keyPressed.Up && Math.abs(this.ball.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.ball.velocityY < 0)
-			this.ball.velocityX = -this.ball.velocityX * BALL_SPEED_UP_EFFECT
-		else if (this.keyPressed.Up && Math.abs(this.ball.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.ball.velocityY > 0)
-			this.ball.velocityX = -this.ball.velocityX * BALL_SLOW_DOWN_EFFECT
-		else if (this.keyPressed.Down && Math.abs(this.ball.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.ball.velocityY > 0)
-			this.ball.velocityX = -this.ball.velocityX * BALL_SPEED_UP_EFFECT
-		else if (this.keyPressed.Down && Math.abs(this.ball.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.ball.velocityY < 0)
-			this.ball.velocityX = -this.ball.velocityX * BALL_SLOW_DOWN_EFFECT
-		else if (this.keyPressed.W && Math.abs(this.ball.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.ball.velocityY < 0)
+		// if (this.keyPressed.Up && Math.abs(this.ball.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.ball.velocityY < 0)
+		// 	this.ball.velocityX = -this.ball.velocityX * BALL_SPEED_UP_EFFECT
+		// else if (this.keyPressed.Up && Math.abs(this.ball.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.ball.velocityY > 0)
+		// 	this.ball.velocityX = -this.ball.velocityX * BALL_SLOW_DOWN_EFFECT
+		// else if (this.keyPressed.Down && Math.abs(this.ball.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.ball.velocityY > 0)
+		// 	this.ball.velocityX = -this.ball.velocityX * BALL_SPEED_UP_EFFECT
+		// else if (this.keyPressed.Down && Math.abs(this.ball.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.ball.velocityY < 0)
+		// 	this.ball.velocityX = -this.ball.velocityX * BALL_SLOW_DOWN_EFFECT
+		if (this.keyPressed.W && Math.abs(this.ball.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.ball.velocityY < 0)
 			this.ball.velocityX = -this.ball.velocityX * BALL_SPEED_UP_EFFECT
 		else if (this.keyPressed.W && Math.abs(this.ball.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.ball.velocityY > 0)
 			this.ball.velocityX = -this.ball.velocityX * BALL_SLOW_DOWN_EFFECT

@@ -1,3 +1,28 @@
+export const color =
+{
+	blue: "blue",
+	red: "red"
+}
+
+export const gameStatus =
+{
+	inGame: "inGame",
+	won: "won",
+	lost: "lost"
+}
+
+export const playerStatus =
+{
+	connected: "connected",
+	disconnected: "disconnected"
+}
+
+export function randomNb(min: number, max: number): number
+{
+	let randomNumber: number = min + Math.random() * (max - min);
+	return (randomNumber);
+}
+
 export const HEIGHT: number = 390;
 export const WIDTH: number = 790;
 
