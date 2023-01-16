@@ -180,8 +180,6 @@ export class Ball extends Entity
 				this.velocityY *= BALL_SPEED_MULTIPLIER
 			}
 		}
-		console.log("Ball speed: " + this.velocityX + " " + this.velocityY);
-		console.log("Ball position: " + this.positionX + " " + this.positionY);
 		this.positionX += this.velocityX;
 		this.positionY += this.velocityY;
 	}
@@ -222,6 +220,5 @@ export class Ball extends Entity
 	{
 		this.handleBallCollisions(leftPlayer, rightPlayer);
 		this.increaseBallSpeed();
-		//onsole.log("Ball position: " + this.positionX + " " + this.positionY);
 	}
 }

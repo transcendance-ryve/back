@@ -209,6 +209,7 @@ export class GameService {
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
 		const gameId: string = uuidv4();
 		const game: Pong =  new Pong(gameId, id, opponent, server, this);
+		console.log("game created : " + game.gameId);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
 		this.gameIdToGame.set(gameId, game);
@@ -255,6 +256,7 @@ export class GameService {
 	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, server: Server): Promise<string> 
  	{
 		try {
+			console.log("jure");
 			const game: Pong = this.playerIdToGame.get(playerOne.id);
 			server.to(this.spectateRoom).emit("gameEnded", game.gameId);	
 			if (!game) {
@@ -269,9 +271,10 @@ export class GameService {
 					player_two_score: playerTwo.score,
 				}
 			});
+			this.gameIdToGame.delete(game.gameId);
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
-			//this.gameIdToGame.delete(game.game.gameId);
+			console.log("Game ended");
 			const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
 			await this._usersService.addExperience(WinnerId, 20);
 			await this._usersService.addRankPoint(WinnerId, true);

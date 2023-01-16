@@ -1,8 +1,8 @@
 import { Server } from "socket.io";
 import { GameService } from "../game.service";
-import { Paddles } from "../interfaces/game.interface";
+import { Paddles, EndGamePlayer } from "../interfaces/game.interface";
 import { Player } from "./Player.entities";
-import { color, WIDTH, SIZE_INCREASE, SIZE_DECREASE } from "./utils.entities";
+import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT, PLAYERS_WIDTH, START_BALL_RADIUS } from "./utils.entities";
 import { Ball } from "./Ball.entities";
 
 
@@ -36,8 +36,7 @@ export class Pong
 	_gameService: GameService;
 	_server: Server;
 	gameId: string;
-
-	ball = new Ball();
+	topScore: number = 2;
 	/*bonuses = [
 		new Bonus("SIZE_DECREASE", "../bonuses_images/game-controller.svg"),
 		new Bonus("SIZE_INCREASE", "../bonuses_images/friends.svg"),
@@ -46,6 +45,7 @@ export class Pong
 		new Bonus("SNIPER_BONUS", "../bonuses_images/Eye.svg"),
 	];*/
 
+	ball = new Ball();
 	leftPlayer: Player;
 	rightPlayer: Player;
 
@@ -55,6 +55,7 @@ export class Pong
 	{
 		this.ball.update(this.leftPlayer, this.rightPlayer);
 		this.setScore();
+		this.gameOver();
 	}
 
 	keyDown(key: string, playerId: string)
@@ -183,6 +184,70 @@ export class Pong
 			console.log("score: " + this._gameService.spectateRoom);
 			this._server.to(this._gameService.spectateRoom)
 				.emit('updateScore', this.gameId, data);
+		}
+	}
+
+	gameOver() {
+		if (this.leftPlayer.score === this.topScore) {
+			console.log('Left Wins');
+			const playerOne: EndGamePlayer = {
+				id: this.leftPlayer.id,
+				score: this.leftPlayer.score,
+				win: true,
+				loose: false,
+			}
+			const playerTwo: EndGamePlayer = {
+				id: this.rightPlayer.id,
+				score: this.rightPlayer.score,
+				win: false,
+				loose: true,
+			}
+			this._server.to(this.gameId).emit('gameWinner', this.leftPlayer.id);
+			this._gameService.endGame(playerOne, playerTwo, this._server);
+			this.resetgame();
+		}
+		else if (this.rightPlayer.score === this.topScore) {
+			const playerOne: EndGamePlayer = {
+				id: this.leftPlayer.id,
+				score: this.leftPlayer.score,
+				win: false,
+				loose: true,
+			}
+			const playerTwo: EndGamePlayer = {
+				id: this.rightPlayer.id,
+				score: this.rightPlayer.score,
+				win: true,
+				loose: false,
+			}
+			console.log('Right Wins');
+			this._server.to(this.gameId).emit('gameWinner', this.rightPlayer.id);
+			this._gameService.endGame(playerOne, playerTwo, this._server);
+			this.resetgame();
+		}
+	}
+
+	resetgame() {
+		this.leftPlayer.score = 0
+		this.rightPlayer.score = 0
+		this.ball.positionX = 0
+		this.ball.positionY = 0
+		this.leftPlayer.pad.positionY = HEIGHT / 2 - this.leftPlayer.pad.height / 2
+		this.rightPlayer.pad.positionY = HEIGHT / 2 - PLAYERS_HEIGHT / 2
+		this.updateObjectsPos()
+	}
+
+	updateObjectsPos() {
+		// WIDTH = canvasWrapper.offsetWidth;
+		// HEIGHT = canvasWrapper.offsetHeight;
+	
+		this.ball.positionX = WIDTH / 2 - START_BALL_RADIUS / 2
+		this.ball.positionY = HEIGHT / 2 - START_BALL_RADIUS / 2
+	
+		this.rightPlayer.pad.positionX = WIDTH - (PLAYERS_WIDTH + 10)
+	
+		if (this.leftPlayer.score === 0 && this.rightPlayer.score === 0) {
+			this.leftPlayer.pad.positionY = HEIGHT / 2 - PLAYERS_HEIGHT / 2
+			this.rightPlayer.pad.positionY = HEIGHT / 2 - PLAYERS_HEIGHT / 2
 		}
 	}
 }
