@@ -687,7 +687,7 @@ export class ChannelService {
 		try {
 			const isBanned: boolean = await this.isBanned(userId, channelDto.channelId);
 			if (isBanned)
-				throw new Error('Error: User is banned');
+				throw new Error('You are banned from this channel');
 			//Check if user is invited on private channels
 			if (channelDto.status === 'PRIVATE') {
 				const isInvited: ChannelInvitation | null = await this.prisma.channelInvitation.findFirst({
