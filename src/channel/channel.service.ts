@@ -98,8 +98,11 @@ export class ChannelService {
 			.messages();
 			if (take > messages.length)
 				take = messages.length;
-				if (messages.length == 0)
-				return [];
+			if (messages.length == 0)
+			{
+				const res: any = [];
+				return res;
+			}
 			page = (messages.length / take) - page;
 			let res : any = [];
 			for (let i = (page - 1) * take; i < page * take; i++) {
@@ -834,6 +837,7 @@ export class ChannelService {
 			if (userId === '' || channelId === '' || userId == null || channelId == null)
 				throw new Error('WrongData');
 			await this.isChannel(channelId);
+
 			//remove user from channel users
 			let leavingUser: ChannelUser = await this.prisma.channelUser.delete({
 				where: {
