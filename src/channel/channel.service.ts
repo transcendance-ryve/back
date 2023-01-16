@@ -101,7 +101,7 @@ export class ChannelService {
 			if (messages.length == 0)
 			{
 				const res: any = [];
-				return res;
+				return { res, total: 0 };
 			}
 			page = (messages.length / take) - page;
 			let res : any = [];
