@@ -257,11 +257,14 @@ export class GameService {
 	{
 		try {
 			const game: Pong = this.playerIdToGame.get(playerOne.id);
-			server.to(this.spectateRoom).emit("gameEnded", game.gameId);	
+			server.to(this.spectateRoom).emit("gameEnded", game.gameId);
+			console.log("gameIdtoGame size : " + this.gameIdToGame.size);
+			console.log("playerIdtoGame size : " + this.playerIdToGame.size);
 			if (!game) {
 				throw new Error("Game not found");
 			}
 			const gameId: string = game.gameId;
+			console.log("game ended : " + gameId);
 			await this._prismaService.game.create({
 				data: {
 					id:	gameId,
