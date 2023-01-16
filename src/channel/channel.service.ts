@@ -757,7 +757,7 @@ export class ChannelService {
 	async saveMessage(
 		userId: string,
 		messageInfo: IncomingMessageDto,
-	) : Promise<Message[] | string> {
+	) {
 		try {
 			//check if channel exists
 			await this.isChannel(messageInfo.channelId); 
@@ -784,7 +784,23 @@ export class ChannelService {
 					},
 				});
 				console.log(messageInfo.content);
-			return messageObj.messages;
+				const message: Message = messageObj.messages[messageObj.messages.length - 1];
+				const res = {
+					content: message.content,
+					createdAt: message.createdAt,
+					sender:  await this.prisma.user.findFirst({
+						where: {
+							id: message.senderId,
+						},
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+						},
+					}),
+				}
+			return res;
+
 		} catch (err) {
 			console.log("err", err);
 			if (err)
