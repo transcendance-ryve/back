@@ -82,7 +82,11 @@ export class ChannelService {
 	//@brief: Get all the messages of a channel
 	//@param: channelId: string
 	//@return: Promise<Message[]>
-	async getMessagesOfChannel(channelId: string): Promise<any> {
+	async getMessagesOfChannel(
+		channelId: string,
+		page: number,
+		take: number,
+		): Promise<any> {
 		try {
 			await this.isChannel(channelId);
 			const messages: Message[] = await this.prisma.channel
@@ -92,14 +96,17 @@ export class ChannelService {
 					},
 				})
 				.messages();
+			if (messages.length == 0)
+				return [];
+			page = (messages.length / take) - page;
 			let res : any = [];
-			for (const message of messages) {
+			for (let i = (page - 1) * take; i < page * take; i++) {
 				res.push({
-					content: message.content,
-					createdAt: message.createdAt,
+					content: messages[i].content,
+					createdAt: messages[i].createdAt,
 					sender: await this.prisma.user.findFirst({
 							where: {
-								id: message.senderId,
+								id: messages[i].senderId,
 							},
 							select: {
 								id: true,

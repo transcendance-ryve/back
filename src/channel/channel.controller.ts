@@ -168,8 +168,12 @@ export class ChannelController {
 	}
 
 	@Get("messages/:channelId")
-	getMessagesOfChannel(@Param('channelId') channelId: string) {
-		return this.channelService.getMessagesOfChannel(channelId);
+	getMessagesOfChannel(
+		@Param('channelId') channelId: string,
+		@Query('page') page: number,
+		@Query('take') take: number,
+		) {
+		return this.channelService.getMessagesOfChannel(channelId, page, take);
 	}
 
 	@Get('muted/:id')
