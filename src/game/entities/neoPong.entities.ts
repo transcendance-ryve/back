@@ -31,12 +31,19 @@ export class Pong
 		this._gameService = _gameService;
 		this._server = _server;
 		this.gameId = gameId;
+		this.start = true;
 	}
 
+	destructor(){
+		delete(this.ball);
+		delete(this.leftPlayer);
+		delete(this.rightPlayer);
+	}
 	_gameService: GameService;
 	_server: Server;
 	gameId: string;
 	topScore: number = 2;
+	start: boolean = false;
 	/*bonuses = [
 		new Bonus("SIZE_DECREASE", "../bonuses_images/game-controller.svg"),
 		new Bonus("SIZE_INCREASE", "../bonuses_images/friends.svg"),
@@ -110,7 +117,10 @@ export class Pong
 		this.updateKeyPress();
 		this._server.to(this.gameId).emit("update", this.getDrawingData());
 		this.update();
-		setTimeout(async () => {this.gameLoop();}, 16);
+		setTimeout(async () => {
+			if (this.start)
+				this.gameLoop();
+		}, 16);
 	}
 
 	getDrawingData()
@@ -205,6 +215,8 @@ export class Pong
 			this._server.to(this.gameId).emit('gameWinner', this.leftPlayer.id);
 			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
+			this.start = false;
+			this.destructor();
 		}
 		else if (this.rightPlayer.score === this.topScore) {
 			const playerOne: EndGamePlayer = {
@@ -223,6 +235,8 @@ export class Pong
 			this._server.to(this.gameId).emit('gameWinner', this.rightPlayer.id);
 			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
+			this.start = false;
+			this.destructor();
 		}
 	}
 

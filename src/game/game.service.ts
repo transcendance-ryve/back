@@ -252,19 +252,19 @@ export class GameService {
 			game.keyUp(key, userId);
 		}
 	}
-
+	
 	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, server: Server): Promise<string> 
- 	{
+	{
 		try {
-			console.log("jure");
 			const game: Pong = this.playerIdToGame.get(playerOne.id);
 			server.to(this.spectateRoom).emit("gameEnded", game.gameId);	
 			if (!game) {
 				throw new Error("Game not found");
 			}
+			const gameId: string = game.gameId;
 			await this._prismaService.game.create({
 				data: {
-					id: game.gameId,
+					id:	gameId,
 					player_one: { connect: { id: playerOne.id } },
 					player_one_score: playerOne.score,
 					player_two: { connect: { id: playerTwo.id } },
@@ -274,7 +274,6 @@ export class GameService {
 			this.gameIdToGame.delete(game.gameId);
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
-			console.log("Game ended");
 			const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
 			await this._usersService.addExperience(WinnerId, 20);
 			await this._usersService.addRankPoint(WinnerId, true);
