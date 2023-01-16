@@ -90,17 +90,23 @@ export class ChannelService {
 		try {
 			await this.isChannel(channelId);
 			const messages: Message[] = await this.prisma.channel
-				.findUnique({
-					where: {
-						id: channelId,
-					},
-				})
-				.messages();
+			.findUnique({
+				where: {
+					id: channelId,
+				},
+			})
+			.messages();
+			if (take > messages.length)
+				take = messages.length;
 			if (messages.length == 0)
 				return [];
-			page = (messages.length / take) - page;
+				page = (messages.length / take) - page;
+			//console.log("central cee->", messages.length," page->",  page," take->", take,);
 			let res : any = [];
 			for (let i = (page - 1) * take; i < page * take; i++) {
+				if (i < 0)
+					i = 0;
+				//console.log('i->', i, " ", page * take);
 				res.push({
 					content: messages[i].content,
 					createdAt: messages[i].createdAt,
