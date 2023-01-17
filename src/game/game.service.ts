@@ -20,6 +20,7 @@ export class GameService {
 	playerIdToGame: Map<string, Pong> = new Map();
 	gameIdToGame: Map<string, Pong> = new Map();
 	spectateRoom: string = uuidv4();
+	userIdToTimeout: Map<string, NodeJS.Timeout> = new Map();
 
 	//Getter
 	async getPlayers(playerOne : string, playerTwo: string): Promise<Players> {
@@ -391,6 +392,8 @@ export class GameService {
 		console.log(await this.isOnGame(userId));
 		try{
 			if (await this.isOnGame(userId)) {
+				const timeout: NodeJS.Timeout = this.userIdToTimeout.get(userId);
+				clearTimeout(timeout);
 				console.log("user is on game");
 				let game: Pong;
 				for (const gameSess of this.gameIdToGame.values()) {
@@ -446,12 +449,10 @@ export class GameService {
 				rightPlayer.win = false;
 			}
 			this.playerIdToGame.delete(userId);
-			setTimeout(async () => {
-				if (!await this.isOnCurrentGame(userId, game.gameId)) {
+			this.userIdToTimeout.set(userId, setTimeout(async () => {
+				if (!await this.isOnCurrentGame(userId, game.gameId))
 					this.endGame(leftPlayer, rightPlayer, server, game.gameId);
-					userSocket.leave(game.gameId);
-				}
-			}, 15000);
+			}, 15000));
 		}
 	}
 
