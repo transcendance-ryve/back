@@ -445,9 +445,11 @@ export class GameService {
 				rightPlayer.win = false;
 			}
 			setTimeout(async () => {
-				this.endGame(leftPlayer, rightPlayer, server);
-				userSocket.leave(game.gameId);
-			}, 30000);
+				if (! await this.isOnGame(userId)) {
+					this.endGame(leftPlayer, rightPlayer, server);
+					userSocket.leave(game.gameId);
+				}
+			}, 15000);
 		}
 	}
 	
