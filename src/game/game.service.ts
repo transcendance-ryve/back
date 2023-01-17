@@ -311,10 +311,14 @@ export class GameService {
 			}
 	}
 
-	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, server: Server): Promise<string> 
+	async endGame(
+		playerOne: EndGamePlayer,
+		playerTwo: EndGamePlayer,
+		server: Server,
+		gameId: string): Promise<string> 
 	{
 		try {
-			const game: Pong = this.playerIdToGame.get(playerOne.id);
+			const game: Pong = this.gameIdToGame.get(gameId);
 			if (!game) {
 				throw new Error("Game not found");
 			}
@@ -332,31 +336,14 @@ export class GameService {
 			this.gameIdToGame.delete(game.gameId);
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
-			// const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
-			// await this._usersService.addExperience(WinnerId, 20);
-			// await this._usersService.addRankPoint(WinnerId, true);
-
-			// const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
-			// 	{wins:{ increment: 1}, played:{increment: 1} } );
-			// const winnerSocket: Socket = UserIdToSockets.get(WinnerId);
-			// server.to(winnerSocket.id).emit("updateUser", playerUpdated);
-			// let looserSocket: Socket;
-			// if (playerOne.win) {
-			// 	const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
-			// 		{loses:{ increment: 1}, played:{increment: 1}});
-			// 	looserSocket = UserIdToSockets.get(playerTwo.id);
-			// 	server.to(looserSocket.id).emit("updateUser", updatedPlayerTwo);
-			// } else {
-			// 	const updatedPlayerOne: Partial<User> = await this._usersService.updateUser({id: playerOne.id},
-			// 		{loses:{ increment: 1}, played:{increment: 1}});
-			// 	looserSocket = UserIdToSockets.get(playerOne.id);
-			// 	server.to(looserSocket.id).emit("updateUser", updatedPlayerOne);
-			// }
 			await this.updateUserStats(playerOne, playerTwo, server);
 			const playerOneSocket: Socket = UserIdToSockets.get(playerOne.id);
 			const playerTwoSocket: Socket = UserIdToSockets.get(playerTwo.id);
 			playerOneSocket.leave(game.gameId);
 			playerTwoSocket.leave(game.gameId);
+			game.resetgame();
+			game.start = false;
+			game.destructor();
 
 		} catch (err) {
 			console.log(err);
@@ -402,18 +389,32 @@ export class GameService {
 
 	async reconnect(userId: string, userSocket: Socket, server: Server): Promise<void> {
 		console.log(await this.isOnGame(userId));
-		if (await this.isOnGame(userId)) {
-			const game: Pong = this.playerIdToGame.get(userId);
-			userSocket.join(game.gameId);
-			const players: Players = await this.getPlayersByGameId(game.gameId);
-			const width: number  = 790;
-			const height: number = 390;
-			const res: StartInfo = {
-				players,
-				width,
-				height,
+		try{
+			if (await this.isOnGame(userId)) {
+				console.log("user is on game");
+				let game: Pong;
+				for (const gameSess of this.gameIdToGame.values()) {
+					if (gameSess.leftPlayer.id === userId || gameSess.rightPlayer.id === userId) {
+						game = this.gameIdToGame.get(gameSess.gameId);	
+					}
+				}
+				if(!game) {
+					throw new Error("Game not found");
+				}
+				this.playerIdToGame.set(userId, game);
+				userSocket.join(game.gameId);
+				const players: Players = await this.getPlayersByGameId(game.gameId);
+				const width: number  = 790;
+				const height: number = 390;
+				const res: StartInfo = {
+					players,
+					width,
+					height,
+				}
+				server.to(game.gameId).emit("start", res);
 			}
-			server.to(game.gameId).emit("start", res);
+		} catch (err) {
+			console.log(err);
 		}
 	}
 
@@ -444,19 +445,33 @@ export class GameService {
 				rightPlayer.loose = true;
 				rightPlayer.win = false;
 			}
+			this.playerIdToGame.delete(userId);
 			setTimeout(async () => {
-				if (! await this.isOnGame(userId)) {
-					this.endGame(leftPlayer, rightPlayer, server);
+				if (!await this.isOnCurrentGame(userId, game.gameId)) {
+					this.endGame(leftPlayer, rightPlayer, server, game.gameId);
 					userSocket.leave(game.gameId);
 				}
 			}, 15000);
 		}
 	}
-	
+
 	//Utils
 
 	async isOnGame(userId: string): Promise<boolean> {
-		return this.playerIdToGame.has(userId);
+		for (const game of this.gameIdToGame.values()) {
+			if (game.leftPlayer.id === userId || game.rightPlayer.id === userId) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	async isOnCurrentGame(userId: string, gameId: string): Promise<boolean> {
+		const game: Pong = this.playerIdToGame.get(userId);
+		if (game) {
+			return game.gameId === gameId;
+		}
+		return false;
 	}
 
 	async getPlayersByGameId(gameId: string)

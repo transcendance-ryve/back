@@ -211,10 +211,10 @@ export class Pong
 				win: false,
 				loose: true,
 			}
-			this._gameService.endGame(playerOne, playerTwo, this._server);
-			this.resetgame();
-			this.start = false;
-			this.destructor();
+			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
+			// this.resetgame();
+			// this.start = false;
+			// this.destructor();
 		}
 		else if (this.rightPlayer.score === this.topScore) {
 			const playerOne: EndGamePlayer = {
@@ -229,10 +229,10 @@ export class Pong
 				win: true,
 				loose: false,
 			}
-			this._gameService.endGame(playerOne, playerTwo, this._server);
-			this.resetgame();
-			this.start = false;
-			this.destructor();
+			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
+			// this.resetgame();
+			// this.start = false;
+			// this.destructor();
 		}
 	}
 
