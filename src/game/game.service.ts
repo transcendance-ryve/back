@@ -173,15 +173,19 @@ export class GameService {
 		if (take > games.length)
 			take = games.length;
 		page = (games.length / take) - page;
+		console.log("page: " + page + " take: " + take + " games: " + games.length);
+
 		for (let i = (page - 1) * take; i < page * take; i++)
 		{
+			if (i < 0)
+				i = 0;
 			if (i >= games.length)
 				break;
 			let player: Players = await this.getPlayers(games[i][1].leftPlayer.id, games[i][1].rightPlayer.id);
 			player = {
 				left: {
 					...player.left,
-					username: i.toString(),
+					//username: i.toString(),
 					score: games[i][1].leftPlayer.score,
 				},
 				right: {
@@ -212,8 +216,8 @@ export class GameService {
 	}
 
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
-		for (let i = 0; i < 100; i++)
-			this.creatFakeGame(id, opponent, server);
+		// for (let i = 0; i < 100; i++)
+		// 	this.creatFakeGame(id, opponent, server);
 		/*for (let i = 0; i < 50; i++)
 			this.creatFakeGame("clcx72pq8000081v68amqngoh", "clcw8b0hf0002811zyu7wbw3v", server);
 		for (let i = 0; i < 50; i++)
