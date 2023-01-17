@@ -404,10 +404,10 @@ export class UsersService {
 				else
 					delete friend.receiver;
 				
-				const lastMsg = friend?.channel?.messages[0]?.content || null;
+				const messages = friend?.channel?.messages[0] || null;
 
-				if (friend.sender) return { ...friend.sender, lastMsg };
-				else return { ...friend.receiver, lastMsg };
+				if (friend.sender) return { ...friend.sender, messages };
+				else return { ...friend.receiver, messages };
 			})
 
             return friendsList;
