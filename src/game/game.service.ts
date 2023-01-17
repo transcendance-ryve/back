@@ -212,12 +212,12 @@ export class GameService {
 	}
 
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
-		for (let i = 0; i < 50; i++)
+		for (let i = 0; i < 100; i++)
 			this.creatFakeGame(id, opponent, server);
-		for (let i = 0; i < 50; i++)
+		/*for (let i = 0; i < 50; i++)
 			this.creatFakeGame("clcx72pq8000081v68amqngoh", "clcw8b0hf0002811zyu7wbw3v", server);
 		for (let i = 0; i < 50; i++)
-			this.creatFakeGame("clcw8aqlc0000811z55xuot0j", "clcw8b0hf0002811zyu7wbw3v", server);
+			this.creatFakeGame("clcw8aqlc0000811z55xuot0j", "clcw8b0hf0002811zyu7wbw3v", server);*/
 		const gameId: string = uuidv4();
 		const game: Pong =  new Pong(gameId, id, opponent, server, this);
 		console.log("game created : " + game.gameId);
