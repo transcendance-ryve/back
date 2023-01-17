@@ -1,5 +1,13 @@
 import { Query, UseGuards } from "@nestjs/common";
-import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import {
+	ConnectedSocket,
+	MessageBody,
+	SubscribeMessage,
+	WebSocketGateway,
+	WebSocketServer,
+	OnGatewayConnection,
+	OnGatewayDisconnect 
+} from "@nestjs/websockets";
 import { GetCurrentUserId } from "src/decorators/user.decorator";
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { MatchmakingService } from "./matchmaking.service";
@@ -8,7 +16,7 @@ import { GameService } from "./game.service";
 
 @WebSocketGateway()
 @UseGuards(JwtAuthGuard)
-export class GameGateway {
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	constructor(
 		private readonly _matchmakingService: MatchmakingService,
 		private readonly _gameService: GameService
@@ -16,6 +24,13 @@ export class GameGateway {
 
 	@WebSocketServer()
 	private readonly _server: Server;
+	
+	async handleConnection(socket: Socket) {
+	}
+
+	async handleDisconnect(socket: Socket) {
+	}
+	
 	/* Matchmaking */
 
 	@SubscribeMessage("join_queue")
@@ -107,14 +122,7 @@ export class GameGateway {
 		this._server.to(socket.id).emit("spectate_disconnected");
 	}
 	
-	@SubscribeMessage("disconnect_game")
-	handleReconnect(
-		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket,
-		@MessageBody("gameId") gameId: string
-	): void {
 
-	}
 
 	@SubscribeMessage("spectateGame")
 	handleSpectate(
@@ -132,5 +140,37 @@ export class GameGateway {
 	): void {
 		this._gameService.leaveSpectateGame(gameId, socket);
 		this._server.to(socket.id).emit("spectate_disconnected");
+	}
+
+	@SubscribeMessage("joined_game")
+	hanflerJoinedGame(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket,
+		@MessageBody("gameId") gameId: string
+	): void {
+		
+	}
+
+	@SubscribeMessage("disconnect_game")
+	handleDisconnectGame(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket,
+	): void {
+		console.log("disconnected from game");
+		this._gameService.disconnect(currentID, socket, this._server);
+		this._server.to(socket.id).emit("game_disconnected");
+	}
+
+	@SubscribeMessage("connect_game")
+	async handleReconnect(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket,
+	) {
+		console.log("connected to game");
+		const isOnGame = await this._gameService.isOnGame(currentID);
+		console.log(isOnGame);
+		if(isOnGame)
+			this._gameService.reconnect(currentID, socket, this._server);
+		this._server.to(socket.id).emit("reconnected_to_game", isOnGame);
 	}
 }

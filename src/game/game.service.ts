@@ -225,12 +225,6 @@ export class GameService {
 	}
 
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
-		for (let i = 0; i < 100; i++)
-		 	this.creatFakeGame(id, opponent, server);
-		/*for (let i = 0; i < 50; i++)
-			this.creatFakeGame("clcx72pq8000081v68amqngoh", "clcw8b0hf0002811zyu7wbw3v", server);
-		for (let i = 0; i < 50; i++)
-			this.creatFakeGame("clcw8aqlc0000811z55xuot0j", "clcw8b0hf0002811zyu7wbw3v", server);*/
 		const gameId: string = uuidv4();
 		const game: Pong =  new Pong(gameId, id, opponent, server, this);
 		console.log("game created : " + game.gameId);
@@ -255,13 +249,13 @@ export class GameService {
 		return;
 	}
 
-	async creatFakeGame(id: string, opponent: string, server: Server){
-		const gameId: string = uuidv4();
-		const game: Pong =  new Pong(gameId, id, opponent, server, this);
-		//console.log("game created : " + game.gameId);
-		this.gameIdToGame.set(gameId, game);
+	// async creatFakeGame(id: string, opponent: string, server: Server){
+	// 	const gameId: string = uuidv4();
+	// 	const game: Pong =  new Pong(gameId, id, opponent, server, this);
+	// 	//console.log("game created : " + game.gameId);
+	// 	this.gameIdToGame.set(gameId, game);
 
-	}
+	// }
 
 	emitNewGameToSpectate(game: Pong, players: Players, server: Server): void {
 		const res = {
@@ -285,38 +279,24 @@ export class GameService {
 		}
 	}
 	
-	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, server: Server): Promise<string> 
+	emitWinner(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, game: Pong, server: Server):
+	void {
+		if (playerOne.win)
+			server.to(game.gameId).emit('gameWinner', playerOne.id);
+		else
+			server.to(game.gameId).emit('gameWinner', playerTwo.id);
+	}
+
+	async updateUserStats(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, server: Server)
 	{
-		try {
-			const game: Pong = this.playerIdToGame.get(playerOne.id);
-			server.to(this.spectateRoom).emit("gameEnded", game.gameId);
-			console.log("gameIdtoGame size : " + this.gameIdToGame.size);
-			console.log("playerIdtoGame size : " + this.playerIdToGame.size);
-			if (!game) {
-				throw new Error("Game not found");
-			}
-			const gameId: string = game.gameId;
-			console.log("game ended : " + gameId);
-			await this._prismaService.game.create({
-				data: {
-					id:	gameId,
-					player_one: { connect: { id: playerOne.id } },
-					player_one_score: playerOne.score,
-					player_two: { connect: { id: playerTwo.id } },
-					player_two_score: playerTwo.score,
-				}
-			});
-			//this.gameIdToGame.delete(game.gameId);
-			this.playerIdToGame.delete(playerOne.id);
-			this.playerIdToGame.delete(playerTwo.id);
-			const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
+		const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
 			await this._usersService.addExperience(WinnerId, 20);
 			await this._usersService.addRankPoint(WinnerId, true);
 
 			const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
 				{wins:{ increment: 1}, played:{increment: 1} } );
-			const WinnerSocket: Socket = UserIdToSockets.get(WinnerId);
-			server.to(WinnerSocket.id).emit("updateUser", playerUpdated);
+			const winnerSocket: Socket = UserIdToSockets.get(WinnerId);
+			server.to(winnerSocket.id).emit("updateUser", playerUpdated);
 			let looserSocket: Socket;
 			if (playerOne.win) {
 				const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
@@ -329,8 +309,54 @@ export class GameService {
 				looserSocket = UserIdToSockets.get(playerOne.id);
 				server.to(looserSocket.id).emit("updateUser", updatedPlayerOne);
 			}
-			looserSocket.leave(game.gameId);
-			WinnerSocket.leave(game.gameId);
+	}
+
+	async endGame(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, server: Server): Promise<string> 
+	{
+		try {
+			const game: Pong = this.playerIdToGame.get(playerOne.id);
+			if (!game) {
+				throw new Error("Game not found");
+			}
+			this.emitWinner(playerOne, playerTwo, game, server);
+			server.to(this.spectateRoom).emit("gameEnded", game.gameId);
+			await this._prismaService.game.create({
+				data: {
+					id:	game.gameId,
+					player_one: { connect: { id: playerOne.id } },
+					player_one_score: playerOne.score,
+					player_two: { connect: { id: playerTwo.id } },
+					player_two_score: playerTwo.score,
+				}
+			});
+			this.gameIdToGame.delete(game.gameId);
+			this.playerIdToGame.delete(playerOne.id);
+			this.playerIdToGame.delete(playerTwo.id);
+			// const WinnerId: string = playerOne.win ? playerOne.id : playerTwo.id;
+			// await this._usersService.addExperience(WinnerId, 20);
+			// await this._usersService.addRankPoint(WinnerId, true);
+
+			// const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
+			// 	{wins:{ increment: 1}, played:{increment: 1} } );
+			// const winnerSocket: Socket = UserIdToSockets.get(WinnerId);
+			// server.to(winnerSocket.id).emit("updateUser", playerUpdated);
+			// let looserSocket: Socket;
+			// if (playerOne.win) {
+			// 	const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
+			// 		{loses:{ increment: 1}, played:{increment: 1}});
+			// 	looserSocket = UserIdToSockets.get(playerTwo.id);
+			// 	server.to(looserSocket.id).emit("updateUser", updatedPlayerTwo);
+			// } else {
+			// 	const updatedPlayerOne: Partial<User> = await this._usersService.updateUser({id: playerOne.id},
+			// 		{loses:{ increment: 1}, played:{increment: 1}});
+			// 	looserSocket = UserIdToSockets.get(playerOne.id);
+			// 	server.to(looserSocket.id).emit("updateUser", updatedPlayerOne);
+			// }
+			await this.updateUserStats(playerOne, playerTwo, server);
+			const playerOneSocket: Socket = UserIdToSockets.get(playerOne.id);
+			const playerTwoSocket: Socket = UserIdToSockets.get(playerTwo.id);
+			playerOneSocket.leave(game.gameId);
+			playerTwoSocket.leave(game.gameId);
 
 		} catch (err) {
 			console.log(err);
@@ -374,8 +400,70 @@ export class GameService {
 
 	async leave(id: string): Promise<void> {}
 
-	async reconnect(id: string): Promise<void> {}
+	async reconnect(userId: string, userSocket: Socket, server: Server): Promise<void> {
+		console.log(await this.isOnGame(userId));
+		if (await this.isOnGame(userId)) {
+			const game: Pong = this.playerIdToGame.get(userId);
+			userSocket.join(game.gameId);
+			const players: Players = await this.getPlayersByGameId(game.gameId);
+			const width: number  = 790;
+			const height: number = 390;
+			const res: StartInfo = {
+				players,
+				width,
+				height,
+			}
+			server.to(game.gameId).emit("start", res);
+		}
+	}
 
+	async disconnect(userId: string, userSocket: Socket, server: Server): Promise<void> {
+		if (await this.isOnGame(userId)) {
+			const game: Pong = this.playerIdToGame.get(userId);
+			const players: Players = await this.getPlayersByGameId(game.gameId);
+			const leftPlayer: EndGamePlayer = {
+				id: players.left.id,
+				score: players.left.score,
+				win: false,
+				loose: true,
+			}
+			const rightPlayer: EndGamePlayer = {
+				id: players.right.id,
+				score: players.right.score,
+				win: false,
+				loose: true,
+			}
+			if (players.left.id === userId) {
+				leftPlayer.loose = true;
+				leftPlayer.win = false;
+				rightPlayer.loose = false;
+				rightPlayer.win = true;
+			} else {
+				leftPlayer.loose = false;
+				leftPlayer.win = true;
+				rightPlayer.loose = true;
+				rightPlayer.win = false;
+			}
+			setTimeout(async () => {
+				this.endGame(leftPlayer, rightPlayer, server);
+				userSocket.leave(game.gameId);
+			}, 30000);
+		}
+	}
+	
 	//Utils
 
+	async isOnGame(userId: string): Promise<boolean> {
+		return this.playerIdToGame.has(userId);
+	}
+
+	async getPlayersByGameId(gameId: string)
+	{
+		const game: Pong = this.gameIdToGame.get(gameId);
+		if (game) {
+			const players: Players = await this.getPlayers(game.leftPlayer.id, game.rightPlayer.id);
+			return players;
+		}
+		return null;
+	}
 }

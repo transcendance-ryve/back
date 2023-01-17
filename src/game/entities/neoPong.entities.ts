@@ -199,7 +199,6 @@ export class Pong
 
 	gameOver() {
 		if (this.leftPlayer.score === this.topScore) {
-			console.log('Left Wins');
 			const playerOne: EndGamePlayer = {
 				id: this.leftPlayer.id,
 				score: this.leftPlayer.score,
@@ -212,7 +211,6 @@ export class Pong
 				win: false,
 				loose: true,
 			}
-			this._server.to(this.gameId).emit('gameWinner', this.leftPlayer.id);
 			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
 			this.start = false;
@@ -231,8 +229,6 @@ export class Pong
 				win: true,
 				loose: false,
 			}
-			console.log('Right Wins');
-			this._server.to(this.gameId).emit('gameWinner', this.rightPlayer.id);
 			this._gameService.endGame(playerOne, playerTwo, this._server);
 			this.resetgame();
 			this.start = false;
