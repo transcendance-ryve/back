@@ -163,7 +163,12 @@ export class GameService {
 		let res = [];
 		for (const game of this.gameIdToGame.entries())
 		{
-			games.push(game);
+			let player: Players = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
+			const left: string = player.left.username.toLowerCase();
+			const right: string = player.right.username.toLowerCase();
+			if (!search || search && left.includes(search.toLocaleLowerCase()) 
+				|| right.includes(search.toLowerCase()))
+					games.push(game);
 		}
 		if (take > games.length)
 			take = games.length;
@@ -173,24 +178,20 @@ export class GameService {
 			if (i >= games.length)
 				break;
 			let player: Players = await this.getPlayers(games[i][1].leftPlayer.id, games[i][1].rightPlayer.id);
-			if (!search || search && player.left.username.toLowerCase().includes(search.toLowerCase()) 
-				|| player.right.username.toLowerCase().includes(search.toLowerCase()))
-			{
-				player = {
-					left: {
-						...player.left,
-						score: games[i][1].leftPlayer.score,
-					},
-					right: {
-						...player.right,
-						score: games[i][1].rightPlayer.score,
-					},
-				}
-				res.push({
-					id: games[i][1].gameId,
-					players: player,
-				});
+			player = {
+				left: {
+					...player.left,
+					score: games[i][1].leftPlayer.score,
+				},
+				right: {
+					...player.right,
+					score: games[i][1].rightPlayer.score,
+				},
 			}
+			res.push({
+				id: games[i][1].gameId,
+				players: player,
+			});
 		}
 		if (order === 'desc')
 			res = res.reverse();
@@ -210,8 +211,12 @@ export class GameService {
 	}
 
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
-		for (let i = 0; i < 100; i++)
+		for (let i = 0; i < 50; i++)
 			this.creatFakeGame(id, opponent, server);
+		for (let i = 0; i < 50; i++)
+			this.creatFakeGame("clcx72pq8000081v68amqngoh", "clcw8b0hf0002811zyu7wbw3v", server);
+		for (let i = 0; i < 50; i++)
+			this.creatFakeGame("clcw8aqlc0000811z55xuot0j", "clcw8b0hf0002811zyu7wbw3v", server);
 		const gameId: string = uuidv4();
 		const game: Pong =  new Pong(gameId, id, opponent, server, this);
 		console.log("game created : " + game.gameId);
