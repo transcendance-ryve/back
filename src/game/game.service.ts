@@ -246,7 +246,7 @@ export class GameService {
 		}
 		server.to(game.gameId).emit("start", res);
 		this.emitNewGameToSpectate(game, players, server);
-		game.launchGame();
+		game.runGame();
 		return;
 	}
 
