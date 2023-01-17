@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 import { GameService } from "../game.service";
 import { Paddles, EndGamePlayer } from "../interfaces/game.interface";
 import { Player } from "./Player.entities";
-import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT, PLAYERS_WIDTH, START_BALL_RADIUS } from "./utils.entities";
+import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT, PLAYERS_WIDTH, START_BALL_RADIUS, TICK_INTERVAL } from "./utils.entities";
 import { Ball } from "./Ball.entities";
 
 
@@ -42,9 +42,10 @@ export class Pong
 	_gameService: GameService;
 	_server: Server;
 	gameId: string;
-	topScore: number = 2;
+	topScore: number = 5;
 	start: boolean = false;
 	timemout: NodeJS.Timeout;
+
 	/*bonuses = [
 		new Bonus("SIZE_DECREASE", "../bonuses_images/game-controller.svg"),
 		new Bonus("SIZE_INCREASE", "../bonuses_images/friends.svg"),
@@ -59,12 +60,6 @@ export class Pong
 
 	// generateBonusSurMap();
 	// removeBonusSurMap();
-	update()
-	{
-		this.ball.update(this.leftPlayer, this.rightPlayer);
-		this.setScore();
-		this.gameOver();
-	}
 
 	keyDown(key: string, playerId: string)
 	{
@@ -99,102 +94,6 @@ export class Pong
 				this.rightPlayer.pad.keyPressed.S = false;
 			if (key === 'W')
 				this.rightPlayer.pad.keyPressed.W = false;
-		}
-	}
-
-	updateKeyPress()
-	{
-		this.leftPlayer.pad.standardKeysBehavior();
-		this.rightPlayer.pad.standardKeysBehavior();
-	}
-
-	launchGame()
-	{
-		this.gameLoop();
-	}
-
-	async gameLoop()
-	{
-		this.updateKeyPress();
-		this._server.to(this.gameId).emit("update", this.getDrawingData());
-		this.update();
-		this.timemout=  setTimeout(async () => {
-			if (this.start)
-				this.gameLoop();
-		}, 16);
-	}
-
-	getDrawingData()
-	{
-		let leftPlayerDrawingData = {
-			x: this.leftPlayer.pad.positionX,
-			y: this.leftPlayer.pad.positionY,
-			width: this.leftPlayer.pad.width,
-			height: this.leftPlayer.pad.height,
-			color: this.leftPlayer.color
-		};
-	
-		let rightPlayerDrawingData = {
-			x: this.rightPlayer.pad.positionX,
-			y: this.rightPlayer.pad.positionY,
-			width: this.rightPlayer.pad.width,
-			height: this.rightPlayer.pad.height,
-			color: this.rightPlayer.color
-		};
-	
-	
-		let ballDrawingData = {
-			x: this.ball.positionX,
-			y: this.ball.positionY,
-			radius: this.ball.radius,
-			color: this.ball.color
-		};
-	
-		const paddles: Paddles = {
-			left: leftPlayerDrawingData,
-			right: rightPlayerDrawingData,
-		};
-		const ball: Partial<Ball> = ballDrawingData;
-		const game = { paddles, ball };
-		return (game);
-	}
-
-	setScore() {
-		if (this.ball.positionX > WIDTH - (this.rightPlayer.pad.width)) {
-			this.leftPlayer.score++;
-			this.ball.color = this.rightPlayer.color;
-			this.ball.resetBall();
-			// //if (this.bonusCaught[SIZE_INCREASE])
-			// 	this.playerIncreased = true;
-			// if (this.bonusCaught[SIZE_DECREASE])
-			// 	this.playerDecreased = true;
-			// //this.resetBonuses();
-			const data = {
-				id: this.leftPlayer.id,
-				score: this.leftPlayer.score,
-			}
-			this._server.to(this.gameId).emit('score', data);
-			console.log("score: " + this._gameService.spectateRoom);
-			this._server.to(this._gameService.spectateRoom)
-				.emit('updateScore', this.gameId, data);
-		}
-		else if (this.ball.positionX < this.rightPlayer.pad.width) {
-			this.rightPlayer.score++;
-			this.ball.color = this.leftPlayer.color;
-			this.ball.resetBall();
-			// if (this.bonusCaught[SIZE_INCREASE])
-			// 	this.playerIncreased = true;
-			// if (this.bonusCaught[SIZE_DECREASE])
-			// 	this.playerDecreased = true;
-			// this.resetBonuses();
-			const data = {
-				id: this.rightPlayer.id,
-				score: this.rightPlayer.score
-			}
-			this._server.to(this.gameId).emit('score', data);
-			console.log("score: " + this._gameService.spectateRoom);
-			this._server.to(this._gameService.spectateRoom)
-				.emit('updateScore', this.gameId, data);
 		}
 	}
 
@@ -235,6 +134,99 @@ export class Pong
 		}
 	}
 
+	setScore() {
+		if (this.ball.positionX > WIDTH - (this.rightPlayer.pad.width)) {
+			this.leftPlayer.score++;
+			this.ball.resetBall();
+			// //if (this.bonusCaught[SIZE_INCREASE])
+			// 	this.playerIncreased = true;
+			// if (this.bonusCaught[SIZE_DECREASE])
+			// 	this.playerDecreased = true;
+			// //this.resetBonuses();
+			const data = {
+				id: this.leftPlayer.id,
+				score: this.leftPlayer.score,
+			}
+			this._server.to(this.gameId).emit('score', data);
+			console.log("score: " + this._gameService.spectateRoom);
+			this._server.to(this._gameService.spectateRoom)
+				.emit('updateScore', this.gameId, data);
+		}
+		else if (this.ball.positionX < this.rightPlayer.pad.width) {
+			this.rightPlayer.score++;
+			this.ball.resetBall();
+			// if (this.bonusCaught[SIZE_INCREASE])
+			// 	this.playerIncreased = true;
+			// if (this.bonusCaught[SIZE_DECREASE])
+			// 	this.playerDecreased = true;
+			// this.resetBonuses();
+			const data = {
+				id: this.rightPlayer.id,
+				score: this.rightPlayer.score
+			}
+			this._server.to(this.gameId).emit('score', data);
+			console.log("score: " + this._gameService.spectateRoom);
+			this._server.to(this._gameService.spectateRoom)
+				.emit('updateScore', this.gameId, data);
+		}
+	}
+
+	
+	update()
+	{
+		// this.updateKeyPress();
+		this.leftPlayer.pad.update();
+		this.rightPlayer.pad.update();
+		this.ball.update(this.leftPlayer, this.rightPlayer);
+		this.setScore();
+		this.gameOver();
+	}
+
+	getDrawingData()
+	{
+		let leftPlayerDrawingData = {
+			x: this.leftPlayer.pad.positionX,
+			y: this.leftPlayer.pad.positionY,
+			width: this.leftPlayer.pad.width,
+			height: this.leftPlayer.pad.height,
+			color: this.leftPlayer.color
+		};
+	
+		let rightPlayerDrawingData = {
+			x: this.rightPlayer.pad.positionX,
+			y: this.rightPlayer.pad.positionY,
+			width: this.rightPlayer.pad.width,
+			height: this.rightPlayer.pad.height,
+			color: this.rightPlayer.color
+		};
+	
+		let ballDrawingData = {
+			x: this.ball.positionX,
+			y: this.ball.positionY,
+			radius: this.ball.radius,
+			color: this.ball.color
+		};
+	
+		const paddles: Paddles = {
+			left: leftPlayerDrawingData,
+			right: rightPlayerDrawingData,
+		};
+		const ball: Partial<Ball> = ballDrawingData;
+		const game = { paddles, ball };
+		return (game);
+	}
+
+	runGame()
+	{
+		this._server.to(this.gameId).emit("update", this.getDrawingData());
+		this.update();
+		setTimeout(() => {
+			if (this.start)
+				this.runGame();
+		}, TICK_INTERVAL);
+	}
+
+	// POUR TEST REDA
 	resetgame() {
 		this.leftPlayer.score = 0
 		this.rightPlayer.score = 0

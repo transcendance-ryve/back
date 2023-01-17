@@ -20,6 +20,11 @@ export class Paddle extends Entity
 	public color: string;
 	private speed: number = PLAYERS_SPEED;
 
+	keyPressed = {
+		W: false,
+		S: false
+	}
+
 	private init()
 	{
 		if (this.color === color.blue)
@@ -33,28 +38,33 @@ export class Paddle extends Entity
 		this.speed = PLAYERS_SPEED;
 	}
 
-	keyPressed = {
-		W: false,
-		S: false
+	moveUp()
+	{
+		if (this.positionY > 7 && (this.positionY - this.speed) >= 7)
+			this.positionY -= this.speed;
+		else
+			this.positionY = 7;
 	}
 
-	standardKeysBehavior() {
-		if (this.keyPressed.W)
-		{
-			if (this.positionY > 2 && (this.positionY - this.speed) >= 2)
-				this.positionY -= this.speed;
-			else
-				this.positionY = 2;
-		}
-		if (this.keyPressed.S)
-		{
-			if (this.positionY < HEIGHT - this.height && (this.positionY + this.speed)  <= HEIGHT - this.height)
-				this.positionY += this.speed;
-			else
-			this.positionY = HEIGHT - this.height - 2
-		}
+	moveDown()
+	{
+		if (this.positionY < HEIGHT - this.height - 7 && (this.positionY + this.speed)  <= HEIGHT - this.height - 7)
+			this.positionY += this.speed;
+		else
+			this.positionY = HEIGHT - this.height - 7
 	}
-	// moveUp();
-	// moveDown();
-	// update();
+
+	standardKeysBehavior()
+	{
+		if (this.keyPressed.W)
+			this.moveUp();
+		if (this.keyPressed.S)
+			this.moveDown();
+	}
+
+	update()
+	{
+		this.standardKeysBehavior();
+	}
+
 }

@@ -1,7 +1,7 @@
 export const color =
 {
-	blue: "blue",
-	red: "red"
+	blue: "#1c5be6",
+	red: "#FF4646"
 }
 
 export const gameStatus =
@@ -26,9 +26,9 @@ export function randomNb(min: number, max: number): number
 export const HEIGHT: number = 390;
 export const WIDTH: number = 790;
 
-export const	TICK_INTERVAL: number = 1000 / 63	; // interval of time between each frame
+export const	TICK_INTERVAL: number = 1000 / 70;		// interval of time between each frame
 
-export const	START_BALL_SPEED: number = 2.5;
+export const	START_BALL_SPEED: number = 3;
 
 export const	BALL_SPEED_MULTIPLIER: number = 1.1;
 export const	BALL_SPEED_UP_EFFECT: number = 1.2;
@@ -49,15 +49,6 @@ export const	BONUS_WIDTH: number = 40;
 export const	X_BONUS_LIMIT: number = 200;
 export const	Y_BONUS_LIMIT: number = 10;
 
-/**
- * Canvas and Local Defines
- */
-/*canvas = document.getElementById('canvas');
-context = canvas.getContext("2d");
-canvasWrapper = document.getElementById("canvas-wrapper");
-canvas.width = canvasWrapper.offsetWidth;
-canvas.height = canvasWrapper.offsetHeight;
-*/
 export const	PLAYERS_HEIGHT:number = HEIGHT / 4;
 export const	PLAYERS_WIDTH:number = HEIGHT / 100;
 export const	MIN_PLAYERS_HEIGHT:number = HEIGHT / 4;
