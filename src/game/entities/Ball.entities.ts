@@ -96,29 +96,29 @@ export class Ball extends Entity
 
 	resetBall = function () {
 		// centers the ball
-		this.positionX = WIDTH / 2 - START_BALL_RADIUS / 2
-		this.positionY = HEIGHT / 2 - START_BALL_RADIUS / 2
+		this.positionX = WIDTH / 2;
+		this.positionY = HEIGHT / 2;
 	
 		// saves the direction
-		let velocityX = this.velocityX
+		let velocityX = this.velocityX;
 	
 		// makes the freeze
-		this.velocityX = 0
-		this.velocityY = 0
+		this.velocityX = 0;
+		this.velocityY = 0;
 	
 		//this.ballFreezed = true; // prevent bonuses from being displayed while the is reset
 	
 		// gives ball a new direction
 		setTimeout(() => {
 			if (velocityX < 0) {
-				this.velocityX = -START_BALL_SPEED
-				this.velocityY = START_BALL_SPEED
+				this.velocityX = -START_BALL_SPEED;
+				this.velocityY = START_BALL_SPEED;
 				if (randomNb(0, 1) > 0.5)
 					this.velocityY = -this.velocityY;
 			}
 			else {
-				this.velocityX = START_BALL_SPEED
-				this.velocityY = START_BALL_SPEED
+				this.velocityX = START_BALL_SPEED;
+				this.velocityY = START_BALL_SPEED;
 				if (randomNb(0, 1) > 0.5)
 					this.velocityY = -this.velocityY;
 			}
