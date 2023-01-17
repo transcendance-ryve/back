@@ -29,7 +29,7 @@ export interface GamesRequest {
 		accept: boolean,
 	},
 
-	timer: number,
+	timer: NodeJS.Timeout,
 }
 
 export interface Paddles {

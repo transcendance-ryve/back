@@ -23,17 +23,16 @@ export class GameGateway {
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket
 	): void {
-		this._matchmakingService.join(currentID);
-		this._server.to(socket.id).emit("joined_queue");
+		this._matchmakingService.join(currentID, this._server);
 	}
 
-	@SubscribeMessage("left_queue")
+	@SubscribeMessage("leave_queue")
 	handleLeaveMatchmaking(
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket
 	): void {
-		this._matchmakingService.leave(currentID);
-		this._server.to(socket.id).emit("left_queue");
+		this._matchmakingService.leave(currentID, this._server);
+	
 	}
 
 	@SubscribeMessage("accept_game_request")
@@ -51,8 +50,7 @@ export class GameGateway {
 		@MessageBody('matchmaking') matchmaking: boolean = true,
 		@ConnectedSocket() socket: Socket
 	): void {
-		this._matchmakingService.declineGameRequest(currentID, matchmaking);
-		this._server.to(socket.id).emit("declined_game_request");
+		this._matchmakingService.declineGameRequest(currentID, matchmaking, this._server);
 	}
 
 	/* Game events */
