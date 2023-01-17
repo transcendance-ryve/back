@@ -176,15 +176,15 @@ export class GameService {
 				player = {
 					left: {
 						...player.left,
-						score: games[i][1].game.leftScore,
+						score: games[i][1].leftPlayer.score,
 					},
 					right: {
 						...player.right,
-						score: games[i][1].game.rightScore,
+						score: games[i][1].rightPlayer.score,
 					},
 				}
 				res.push({
-					id: games[i][1].game.gameId,
+					id: games[i][1].gameId,
 					players: player,
 				});
 			}
