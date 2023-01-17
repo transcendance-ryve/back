@@ -160,23 +160,34 @@ export class GameService {
 		search?: string,
 	): Promise<any> {
 		const games = []; 
-		let res = [];
 		for (const game of this.gameIdToGame.entries())
 		{
 			let player: Players = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
 			const left: string = player.left.username.toLowerCase();
 			const right: string = player.right.username.toLowerCase();
-			if (!search || search && left.includes(search.toLocaleLowerCase()) 
+			if (!search || search && left.includes(search.toLowerCase()) 
 				|| right.includes(search.toLowerCase()))
 					games.push(game);
 		}
 		if (take > games.length)
 			take = games.length;
-		page = (games.length / take) - page;
-		console.log("page: " + page + " take: " + take + " games: " + games.length);
+		if (order === "desc")
+			page = (games.length / take) - page;
+		else
+			page++;
+		let res = await this.initCurrentGameArray(page, take, games);
+		if (order === 'asc')
+			res = res.reverse();	
+		return {res, count: games.length};
+	}
+
+	async initCurrentGameArray(page: number, take: number, games):
+	Promise<any> {
+		let res = [];
 
 		for (let i = (page - 1) * take; i < page * take; i++)
 		{
+			i = Math.floor(i);
 			if (i < 0)
 				i = 0;
 			if (i >= games.length)
@@ -185,7 +196,7 @@ export class GameService {
 			player = {
 				left: {
 					...player.left,
-					//username: i.toString(),
+					username: i.toString(),
 					score: games[i][1].leftPlayer.score,
 				},
 				right: {
@@ -193,14 +204,12 @@ export class GameService {
 					score: games[i][1].rightPlayer.score,
 				},
 			}
-			res.push({
+			res.unshift({
 				id: games[i][1].gameId,
 				players: player,
 			});
 		}
-		if (order === 'desc')
-			res = res.reverse();
-		return {res, count: games.length};
+		return res;
 	}
 
 	//Actions
@@ -216,8 +225,8 @@ export class GameService {
 	}
 
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
-		// for (let i = 0; i < 100; i++)
-		// 	this.creatFakeGame(id, opponent, server);
+		for (let i = 0; i < 100; i++)
+		 	this.creatFakeGame(id, opponent, server);
 		/*for (let i = 0; i < 50; i++)
 			this.creatFakeGame("clcx72pq8000081v68amqngoh", "clcw8b0hf0002811zyu7wbw3v", server);
 		for (let i = 0; i < 50; i++)
@@ -249,7 +258,7 @@ export class GameService {
 	async creatFakeGame(id: string, opponent: string, server: Server){
 		const gameId: string = uuidv4();
 		const game: Pong =  new Pong(gameId, id, opponent, server, this);
-		console.log("game created : " + game.gameId);
+		//console.log("game created : " + game.gameId);
 		this.gameIdToGame.set(gameId, game);
 
 	}
