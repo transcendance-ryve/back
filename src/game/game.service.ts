@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
-import { User } from "@prisma/client";
+import { Game, User } from "@prisma/client";
 import { Socket, Server } from "socket.io";
 import { Pong } from "./entities/neoPong.entities";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
@@ -250,14 +250,6 @@ export class GameService {
 		return;
 	}
 
-	// async creatFakeGame(id: string, opponent: string, server: Server){
-	// 	const gameId: string = uuidv4();
-	// 	const game: Pong =  new Pong(gameId, id, opponent, server, this);
-	// 	//console.log("game created : " + game.gameId);
-	// 	this.gameIdToGame.set(gameId, game);
-
-	// }
-
 	emitNewGameToSpectate(game: Pong, players: Players, server: Server): void {
 		const res = {
 			id: game.gameId,
@@ -319,12 +311,17 @@ export class GameService {
 		gameId: string): Promise<string> 
 	{
 		try {
+			console.log("game ended");
 			const game: Pong = this.gameIdToGame.get(gameId);
 			if (!game) {
 				throw new Error("Game not found");
 			}
 			this.emitWinner(playerOne, playerTwo, game, server);
 			server.to(this.spectateRoom).emit("gameEnded", game.gameId);
+			const check: Game = await this._prismaService.game.findUnique(
+				{ where: { id: game.gameId } });
+			if (check)
+				return;
 			await this._prismaService.game.create({
 				data: {
 					id:	game.gameId,
@@ -451,7 +448,9 @@ export class GameService {
 			this.playerIdToGame.delete(userId);
 			this.userIdToTimeout.set(userId, setTimeout(async () => {
 				if (!await this.isOnCurrentGame(userId, game.gameId))
+				{
 					this.endGame(leftPlayer, rightPlayer, server, game.gameId);
+				}
 			}, 15000));
 		}
 	}

@@ -44,6 +44,7 @@ export class Pong
 	gameId: string;
 	topScore: number = 2;
 	start: boolean = false;
+	timemout: NodeJS.Timeout;
 	/*bonuses = [
 		new Bonus("SIZE_DECREASE", "../bonuses_images/game-controller.svg"),
 		new Bonus("SIZE_INCREASE", "../bonuses_images/friends.svg"),
@@ -117,7 +118,7 @@ export class Pong
 		this.updateKeyPress();
 		this._server.to(this.gameId).emit("update", this.getDrawingData());
 		this.update();
-		setTimeout(async () => {
+		this.timemout=  setTimeout(async () => {
 			if (this.start)
 				this.gameLoop();
 		}, 16);
@@ -212,9 +213,8 @@ export class Pong
 				loose: true,
 			}
 			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
-			// this.resetgame();
-			// this.start = false;
-			// this.destructor();
+			this.start = false;
+			clearTimeout(this.timemout);
 		}
 		else if (this.rightPlayer.score === this.topScore) {
 			const playerOne: EndGamePlayer = {
@@ -230,9 +230,8 @@ export class Pong
 				loose: false,
 			}
 			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
-			// this.resetgame();
-			// this.start = false;
-			// this.destructor();
+			this.start = false;
+			clearTimeout(this.timemout);
 		}
 	}
 
