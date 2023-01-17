@@ -165,6 +165,9 @@ export class GameService {
 		{
 			games.push(game);
 		}
+		if (take > games.length)
+			take = games.length;
+		page = (games.length / take) - page;
 		for (let i = (page - 1) * take; i < page * take; i++)
 		{
 			if (i >= games.length)
