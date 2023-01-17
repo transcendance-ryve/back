@@ -5,6 +5,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import { join } from 'path';
+import { channel } from 'diagnostics_channel';
 
 
 @Injectable()
@@ -281,7 +282,7 @@ export class UsersService {
         receiverID: Prisma.UserWhereUniqueInput['id']
     ) : Promise<{sender: Partial<User>, receiver: Partial<User>}> {
         try {
-			const friendshipFirst = await this._prismaService.friendship.findFirst({
+			const friendship = await this._prismaService.friendship.findFirst({
 				where: {
 					OR: [
 						{
@@ -293,35 +294,43 @@ export class UsersService {
 							receiver_id: senderID
 						}
 					]
-				}
-			});
-
-			
-			if (!friendshipFirst)
-				throw new NotFoundException('Friend request not found');
-			
-			if (friendshipFirst.channel_id) {
-				await this._prismaService.channel.delete({
-					where: {
-						id: friendshipFirst.channel_id
-					}
-				})
-			}
-
-			const friendship: {sender: Partial<User>, receiver: Partial<User>} = await this._prismaService.friendship.delete({
-				where: {
-					id: friendshipFirst.id
 				},
 				select: {
+					id: true,
 					sender: {
 						select: { id: true, username: true, avatar: true, status: true }
 					},
 					receiver: {
 						select: { id: true, username: true, avatar: true, status: true }
 					},
-				},
+					channel_id: true
+				}
 			});
+
+			if (!friendship)
+				throw new NotFoundException('Friend request not found');
 			
+			if (friendship.channel_id) {
+				await this._prismaService.channel.delete({
+					where: {
+						id: friendship.channel_id
+					}
+				});
+			} else {
+				await this._prismaService.friendship.delete({
+					where: {
+						id: friendship.id
+					},
+					select: {
+						sender: {
+							select: { id: true, username: true, avatar: true, status: true }
+						},
+						receiver: {
+							select: { id: true, username: true, avatar: true, status: true }
+						},
+					},
+				});
+			}
 
 			let data: { sender: Partial<User>, receiver: Partial<User> } = { sender: null, receiver: null }
 			if (senderID === friendship.sender.id) {
@@ -334,6 +343,7 @@ export class UsersService {
 
             return data;
         } catch(err) {
+			console.log(err);
             throw new InternalServerErrorException('Internal server error');
 		}
     }
