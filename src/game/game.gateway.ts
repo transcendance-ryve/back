@@ -107,11 +107,14 @@ export class GameGateway {
 		this._server.to(socket.id).emit("spectate_disconnected");
 	}
 	
-	@SubscribeMessage("reconnect")
+	@SubscribeMessage("disconnect_game")
 	handleReconnect(
 		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
-	): void {}
+		@ConnectedSocket() socket: Socket,
+		@MessageBody("gameId") gameId: string
+	): void {
+
+	}
 
 	@SubscribeMessage("spectateGame")
 	handleSpectate(
