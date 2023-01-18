@@ -39,12 +39,13 @@ export class Pong
 		delete(this.leftPlayer);
 		delete(this.rightPlayer);
 	}
+
 	_gameService: GameService;
 	_server: Server;
 	gameId: string;
-	topScore: number = 5;
+	topScore: number = 2;
 	start: boolean = false;
-	timemout: NodeJS.Timeout;
+	timeout: NodeJS.Timeout;
 
 	/*bonuses = [
 		new Bonus("SIZE_DECREASE", "../bonuses_images/game-controller.svg"),
@@ -111,9 +112,9 @@ export class Pong
 				win: false,
 				loose: true,
 			}
+			clearTimeout(this.timeout);
 			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
 			this.start = false;
-			clearTimeout(this.timemout);
 		}
 		else if (this.rightPlayer.score === this.topScore) {
 			const playerOne: EndGamePlayer = {
@@ -128,9 +129,9 @@ export class Pong
 				win: true,
 				loose: false,
 			}
+			clearTimeout(this.timeout);
 			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
 			this.start = false;
-			clearTimeout(this.timemout);
 		}
 	}
 
@@ -220,7 +221,8 @@ export class Pong
 	{
 		this._server.to(this.gameId).emit("update", this.getDrawingData());
 		this.update();
-		setTimeout(() => {
+		this.timeout = setTimeout(() => {
+			console.log("game running");
 			if (this.start)
 				this.runGame();
 		}, TICK_INTERVAL);

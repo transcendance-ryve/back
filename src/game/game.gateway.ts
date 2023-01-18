@@ -16,7 +16,7 @@ import { GameService } from "./game.service";
 
 @WebSocketGateway()
 @UseGuards(JwtAuthGuard)
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect{
+export class GameGateway{
 	constructor(
 		private readonly _matchmakingService: MatchmakingService,
 		private readonly _gameService: GameService
@@ -24,9 +24,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
 	@WebSocketServer()
 	private readonly _server: Server;
-	
-	async handleConnection(socket: Socket) {
-	}
 
 	async handleDisconnect(socket: Socket) {
 		const userID = socket.data.id;
@@ -68,8 +65,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	@SubscribeMessage("decline_game_request")
 	handleDeclineGame(
 		@GetCurrentUserId() currentID: string,
-		@MessageBody('matchmaking') matchmaking: boolean = true,
-		@ConnectedSocket() socket: Socket
+		@MessageBody('matchmaking') matchmaking = true,
 	): void {
 		this._matchmakingService.declineGameRequest(currentID, matchmaking, this._server);
 	}
@@ -148,15 +144,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		this._server.to(socket.id).emit("spectate_disconnected");
 	}
 
-	@SubscribeMessage("joined_game")
-	hanflerJoinedGame(
-		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket,
-		@MessageBody("gameId") gameId: string
-	): void {
-		
-	}
-
 	@SubscribeMessage("disconnect_game")
 	handleDisconnectGame(
 		@GetCurrentUserId() currentID: string,
@@ -174,7 +161,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	) {
 		console.log("connected to game");
 		const isOnGame = await this._gameService.isOnGame(currentID);
-		console.log(isOnGame);
 		if(isOnGame)
 			this._gameService.reconnect(currentID, socket, this._server);
 		this._server.to(socket.id).emit("reconnected_to_game", isOnGame);

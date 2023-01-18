@@ -15,3 +15,18 @@ export interface InvitaionTag {
 	status: ChannelType;
 	usersCount: number;
 }
+
+export interface MessageTag {
+	content: string;
+	createdAt: Date;
+	sender: {
+		id: string,
+		username: string,
+		avatar: string,
+	}
+}
+
+export interface Messages {
+	messages: MessageTag[];
+	total: number;
+}

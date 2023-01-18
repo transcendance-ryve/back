@@ -52,7 +52,7 @@ export class ChannelController {
 	@Get('invites')
 	getChannelInvites(
 		@GetCurrentUser() currentUser: JwtPayloadDto
-	 ): Promise<InvitaionTag[] | string> {
+	): Promise<InvitaionTag[] | string> {
 		return this.channelService.getChannelInvitesByUser(currentUser.id);
 	}
 
@@ -94,7 +94,7 @@ export class ChannelController {
 	): Promise<void> {
 		console.log("createRoom called")
 		const clientSocket = UserIdToSockets.get(userId);
-		let channel: Channel | string
+		const channel: Channel | string
 		= await this.channelService.createChannelWS(
 			dto,
 			userId,
@@ -167,8 +167,11 @@ export class ChannelController {
 
 	//Return all the members of a channel
 	@Get('users/:channelId')
-	getUsersOfChannel(@Param('channelId') channelId: string) : Promise<UserTag[]>{
-		return this.channelService.getUsersOfChannel(channelId);
+	getUsersOfChannel(
+		@Param('channelId') channelId: string,
+		@GetCurrentUserId() userId: string,
+		) : Promise<UserTag[]>{
+		return this.channelService.getUsersOfChannel(channelId, userId);
 	}
 
 	@Get("messages/:channelId")
@@ -176,8 +179,9 @@ export class ChannelController {
 		@Param('channelId') channelId: string,
 		@Query('page') page: number,
 		@Query('take') take: number,
+		@GetCurrentUserId() userId: string,
 		) : Promise<any> {
-		return this.channelService.getMessagesOfChannel(channelId, page, take);
+		return this.channelService.getMessagesOfChannel(channelId, page, take, userId);
 	}
 
 	@Get('muted/:id')

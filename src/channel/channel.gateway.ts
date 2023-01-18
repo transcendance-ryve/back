@@ -76,8 +76,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@MessageBody('DMInfo') dto: DirectMessageDto,
 		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-		let channel: Channel | string | null;
-		channel = await this.channelService.createDMChannelWS(
+		const channel: Channel | string | null =
+		await this.channelService.createDMChannelWS(
 			userId,
 			dto,
 			clientSocket,
@@ -99,6 +99,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			dto,
 			userId,
 			clientSocket,
+			this._server,
 		);
 		if (typeof joinedRoom === 'string' || !joinedRoom) {
 			this._server.to(clientSocket.id).emit('joinRoomFailed', joinedRoom);
@@ -125,7 +126,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof messageSaved === 'string' || !messageSaved) {
 			this._server.to(clientSocket.id).emit('messageRoomFailed', messageSaved);
 		} else {
-			this._server.to(messageInfo.channelId).emit('incomingMessage', messageSaved);
+			this._server.to(messageInfo.channelId).emit('incomingMessage', messageSaved, messageInfo.channelId);
 		}
 	}
 
