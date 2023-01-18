@@ -125,7 +125,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		if (typeof messageSaved === 'string' || !messageSaved) {
 			this._server.to(clientSocket.id).emit('messageRoomFailed', messageSaved);
 		} else {
-			this._server.to(messageInfo.channelId).emit('incomingMessage', messageSaved);
+			this._server.to(messageInfo.channelId).emit('incomingMessage', messageSaved, messageInfo.channelId);
 		}
 	}
 
