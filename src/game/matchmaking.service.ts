@@ -33,7 +33,7 @@ export class MatchmakingService {
 			UserIdToSockets.emit(userID, server, "joined_queue");
 		}
 
-		UserIdToSockets.emit(userID, server, "matchmaking_queue_count", this.count());
+		server.emit("matchmaking_queue_count", this.count());
 	}
 
 	leave(userID: string, server: Server): void {

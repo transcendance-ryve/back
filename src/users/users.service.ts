@@ -110,23 +110,7 @@ export class UsersService {
 			if (!targetUser)
 				throw new NotFoundException('Target user not found');
 
-			const friendship: (Friendship | null) = await this._prismaService.friendship.findFirst({
-				where: {
-					OR: [
-						{ sender_id: id, receiver_id: target },
-						{ sender_id: target, receiver_id: id }
-					]
-				}
-			})
-			if (friendship) {
-				await this._prismaService.friendship.delete({
-					where: {
-						id: friendship.id
-					}
-				});
-			}
-
-			const blockedUser: Blocked = await this._prismaService.blocked.create({
+			await this._prismaService.blocked.create({
 				data: {
 					user: { connect: { id } },
 					blocked: { connect: { id: target } }
