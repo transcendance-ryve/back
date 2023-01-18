@@ -29,6 +29,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	}
 
 	async handleDisconnect(socket: Socket) {
+		const userID = socket.data.id;
+
+		console.log('userID', userID);
+	
+		this._matchmakingService.leave(userID, this._server);
 	}
 	
 	/* Matchmaking */
@@ -36,9 +41,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	@SubscribeMessage("join_queue")
 	handleJoinMatchmaking(
 		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
+		@ConnectedSocket() socket: Socket,
+		@MessageBody("bonus") bonus: boolean,
 	): void {
-		this._matchmakingService.join(currentID, this._server);
+		this._matchmakingService.join(currentID, this._server, bonus);
 	}
 
 	@SubscribeMessage("leave_queue")

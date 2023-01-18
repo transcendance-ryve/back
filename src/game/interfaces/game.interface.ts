@@ -28,6 +28,7 @@ export interface GamesRequest {
 		id: string,
 		accept: boolean,
 	},
+	bonus: boolean,
 
 	timer: NodeJS.Timeout,
 }
