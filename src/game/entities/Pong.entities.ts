@@ -50,7 +50,6 @@ export class Pong
 
 	_gameService: GameService;
 
-
 	/*
 	** Game variables
 	*/
@@ -207,10 +206,11 @@ export class Pong
 	
 	async gameLoop()
 	{
-		this.updateKeyPresses();
-		this._server.to(this.game.gameId).emit("update", this.getDrawingData());
-		this.updateStates();
-		await setTimeout(async () => {this.gameLoop();}, 16);
+		setTimeout(() => {
+			this.updateKeyPresses();
+			this._server.to(this.game.gameId).emit("update", this.getDrawingData());
+			this.updateStates();
+		}, 16);
 	}
 
 

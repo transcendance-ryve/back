@@ -112,7 +112,7 @@ export class Pong
 				win: false,
 				loose: true,
 			}
-			clearTimeout(this.timeout);
+			clearInterval(this.timeout);
 			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
 			this.start = false;
 		}
@@ -129,7 +129,7 @@ export class Pong
 				win: true,
 				loose: false,
 			}
-			clearTimeout(this.timeout);
+			clearInterval(this.timeout);
 			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
 			this.start = false;
 		}
@@ -219,11 +219,10 @@ export class Pong
 
 	runGame()
 	{
-		this._server.to(this.gameId).emit("update", this.getDrawingData());
-		this.update();
-		this.timeout = setTimeout(() => {
-			if (this.start)
-				this.runGame();
+		this.timeout = setInterval(() => {
+			if (!this.start) return;
+			this._server.to(this.gameId).emit("update", this.getDrawingData());
+			this.update();
 		}, TICK_INTERVAL);
 	}
 
