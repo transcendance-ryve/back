@@ -26,7 +26,7 @@ import { GetCurrentUserId, GetCurrentUser } from '../decorators/user.decorator';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { UsersService } from 'src/users/users.service';
 import { UserTag } from './interfaces/utils.interfaces';
-
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
 	cors: {
@@ -41,26 +41,27 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	constructor (
 		private readonly channelService: ChannelService,
 		private readonly userService: UsersService,
+		private readonly _jwtService: JwtService,
 		) {}
 
 	async handleConnection(
-		@GetCurrentUser() user,
+		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-		
-		// connected');
-		await this.channelService.connectToMyChannels(user.id);
+		const { cookie } = clientSocket.handshake?.headers;
+        const accessToken = cookie?.split('=')?.pop();
+    	const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
+		await this.channelService.connectToMyChannels(payload.id);
 		
 	}
 
 	async handleDisconnect(): Promise<void> {
-		// disconnected');
 	}
 
 	@SubscribeMessage('getRole')
 	async getRole(
-		@ConnectedSocket() clientSocket: Socket,
 		@MessageBody('channelId') channelId: string,
 		@GetCurrentUserId() userId: string,
+		
 	): Promise<void> {
 		const role = await this.channelService.getRole(userId, channelId);
 		UserIdToSockets.emit(userId, this._server, 'role', role);
@@ -76,7 +77,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@GetCurrentUserId() userId: string,
 		@MessageBody('DMInfo') dto: DirectMessageDto,
 	): Promise<void> {
-		
 		const channel: Channel | string | null =
 		await this.channelService.createDMChannelWS(
 			userId,
@@ -87,8 +87,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		} else {
 			UserIdToSockets.emit(userId, this._server, 'DMChan', channel.id);
 		}
-		
-
 	}
 	
 	@SubscribeMessage('joinRoom')
@@ -96,7 +94,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@GetCurrentUserId() userId: string,
 		@MessageBody('joinInfo') dto: JoinChannelDto,
 	): Promise<void> {
-
 		const joinedRoom = await this.channelService.joinChannelWs(
 			dto,
 			userId,
@@ -110,16 +107,13 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(dto.channelId).emit('newUserInRoom', user);
 			UserIdToSockets.emit(userId, this._server, 'joinRoomSuccess', joinedRoom.id);
 		}
-
 	}
 
 	@SubscribeMessage('messageRoom')
 	async sendMessage(
 		@GetCurrentUserId() senderId: string,
 		@MessageBody('messageInfo') messageInfo: IncomingMessageDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-
 		const messageSaved = await this.channelService.saveMessage(
 			senderId,
 			messageInfo,
@@ -130,7 +124,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		} else {
 			this._server.to(messageInfo.channelId).emit('incomingMessage', messageSaved, messageInfo.channelId);
 		}
-
 	}
 
 	@SubscribeMessage('leaveRoom')
@@ -139,7 +132,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@MessageBody('channelId') channelId: string,
 		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-
 		const userLeaving = await this.channelService.leaveChannelWS(
 			userId,
 			channelId,
@@ -151,7 +143,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			await clientSocket.leave(channelId);
 			UserIdToSockets.emit(userId, this._server, 'roomLeft');
 		}
-
 	}
 
 	@SubscribeMessage('inviteToRoom')
@@ -160,7 +151,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@MessageBody('inviteInfo') inviteInfo: InviteToChannelDto,
 		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-
 		const res = await this.channelService.inviteToChannelWS(
 			userId,
 			inviteInfo,
@@ -174,7 +164,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			UserIdToSockets.emit(userId, this._server, 'inviteToRoomSuccess', target);
 			UserIdToSockets.emit(inviteInfo.friendId, this._server, 'chanInvitationReceived', res.channel);
 		}
-
 	}
 
 	@SubscribeMessage('acceptInvitation')
@@ -202,7 +191,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	async declineInvitation(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('invitationInfo') inviteInfo: InvitationDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
 
 		const channelInvite = await this.channelService.declineChanInvitation(
@@ -223,9 +211,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	async updateRole(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('roleInfo') roleInfo: UpdateRoleDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-
 		const roleUpdated = await this.channelService.promoteUser(
 			userId,
 			roleInfo,
@@ -236,16 +222,13 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			const user : Partial<User> = await this.userService.getUser({id: roleUpdated.userId}, "id,username,avatar");
 			this._server.to(roleInfo.channelId).emit('userPromoted', user);
 		}
-
 	}
 
 	@SubscribeMessage('demoteUser')
 	async demoteUser(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('roleInfo') roleInfo: UpdateRoleDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-
 		const roleUpdated = await this.channelService.demoteUser(
 			userId,
 			roleInfo,
@@ -256,16 +239,13 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			const user : Partial<User> = await this.userService.getUser({id: roleUpdated.userId}, "id,username,avatar");
 			this._server.to(roleInfo.channelId).emit('userDemoted', user);
 		}
-
 	}
 
 	@SubscribeMessage('muteUser')
 	async muteUser(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('muteInfo') muteInfo: ModerateUserDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-
 		const userMuted = await this.channelService.muteUser(
 			userId,
 			muteInfo,
@@ -276,16 +256,13 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		} else {
 			this._server.to(muteInfo.channelId).emit('userMuted', muteInfo.targetId);
 		}
-
 	}
 
 	@SubscribeMessage('unmuteUser')
 	async unmuteUser(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('muteInfo') muteInfo: ModerateUserDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-
 		const userMuted = await this.channelService.unmuteUser(
 			userId,
 			muteInfo,
@@ -295,14 +272,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		} else {
 			this._server.to(muteInfo.channelId).emit('userUnmuted', muteInfo.targetId);
 		}
-
 	}
 
 	@SubscribeMessage('banUser')
 	async banUser(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('banInfo') banInfo: ModerateUserDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
 		const userBanned = await this.channelService.banUser(
 			userId,
@@ -322,7 +297,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	async unbanUser(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('banInfo') banInfo: ModerateUserDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
 		const userBanned = await this.channelService.unbanUser(
 			userId,
@@ -339,7 +313,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	async isBlocked(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('targetId') targetId: string,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
 		const isBlocked: boolean = await this.channelService.isBlocked(userId, targetId);
 		if (isBlocked === true)

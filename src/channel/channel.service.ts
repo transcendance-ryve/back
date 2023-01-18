@@ -156,7 +156,6 @@ export class ChannelService {
 				messages: msg,
 				total: messages.length,
 			}
-			console.log(res);
 			return res;
 		} catch (error) {
 			console.log(error.message);
@@ -502,15 +501,18 @@ export class ChannelService {
 	async connectToMyChannels(
 		userId: string,
 		) {
-		const channels: ChannelUser[] = await this.prisma.channelUser.findMany({
-			where: {
-				userId: userId
-			}
-		});
-		const clientSockets = UserIdToSockets.get(userId);
-		channels.forEach(async (channel) => {
-			clientSockets?.forEach(async socket => await socket.join(channel.channelId));
-		});
+			const channels = await this.prisma.channelUser.findMany({
+				where: {
+					userId: userId,
+				},
+				select: {
+					channelId: true,
+				},
+			});
+			const clientSockets = UserIdToSockets.get(userId);
+			channels.forEach(async (channel) => {
+				clientSockets?.forEach(async socket => await socket.join(channel.channelId));
+			});
 	}
 
 	//@brief: Create a channel
@@ -527,6 +529,8 @@ export class ChannelService {
 		avatar: Express.Multer.File,
 		_server: Server,
 	) : Promise<Channel | string>{
+		console.log()
+		console.log(userId);
 		//throw error if channel name is empty
 		try {
 			if (!dto.name || dto.name === '')
@@ -860,8 +864,8 @@ export class ChannelService {
 					},
 				}),
 			}
+			console.log(res);
 			return res;
-
 		} catch (err) {
 			console.log("err", err);
 			if (err)
