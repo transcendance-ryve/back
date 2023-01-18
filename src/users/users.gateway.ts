@@ -6,7 +6,7 @@ import { JwtAuthGuard } from "./guard/jwt.guard";
 import { UsersService } from "./users.service";
 import { UserIdToSockets } from "./userIdToSockets.service";
 import { JwtService } from "@nestjs/jwt";
-import { GetCurrentUserId } from "src/decorators/user.decorator";
+import { GetCurrentUser, GetCurrentUserId } from "src/decorators/user.decorator";
 import { userInfo } from "os";
 import { Response } from "express";
 
