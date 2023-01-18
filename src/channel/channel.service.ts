@@ -110,6 +110,7 @@ export class ChannelService {
 		userId: string,
 		): Promise<Messages> {
 		try {
+			console.log("kever");
 			await this.isChannel(channelId);
 			const messages: Message[] = await this.prisma.channel
 			.findUnique({
@@ -127,13 +128,15 @@ export class ChannelService {
 				return res;
 			}
 			page = (messages.length / take) - page;
-			let msg : MessageTag[];
+			let msg : MessageTag[] = [];
 			for (let i = (page - 1) * take; i < page * take; i++) {
 				i = Math.round(i);
 				if (i < 0)
-					i = 0;
-				if (this.isBanned(userId, messages[i].senderId))
+				i = 0;
+				if (await this.isBlocked(userId, messages[i].senderId) == true)
+				{
 					messages[i].content = 'This user is blocked';
+				}
 				msg.push({
 					content: messages[i].content,
 					createdAt: messages[i].createdAt,
@@ -153,8 +156,10 @@ export class ChannelService {
 				messages: msg,
 				total: messages.length,
 			}
+			console.log(res);
 			return res;
 		} catch (error) {
+			console.log(error.message);
 			return error;
 		}
 	}
