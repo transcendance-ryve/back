@@ -43,7 +43,7 @@ export class Pong
 	_gameService: GameService;
 	_server: Server;
 	gameId: string;
-	topScore: number = 5;
+	topScore: number = 2;
 	start: boolean = false;
 	timemout: NodeJS.Timeout;
 

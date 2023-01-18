@@ -137,10 +137,16 @@ export class GameService {
 				left: {
 					...game.player_one,
 					score: game.player_one_score,
+					level: game.player_one_level,
+					experience: game.player_one_experience,
+					next_level: game.player_one_next_level,
 				},
 				right: {
 					...game.player_two,
 					score: game.player_two_score,
+					level: game.player_two_level,
+					experience: game.player_two_experience,
+					next_level: game.player_two_next_level,
 				}
 			});
 		}
