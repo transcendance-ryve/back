@@ -324,4 +324,15 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server.to(banInfo.channelId).emit('userUnbanned', banInfo.targetId);
 		}
 	}
+
+	@SubscribeMessage('isBlocked')
+	async isBlocked(
+		@GetCurrentUserId() userId: string,
+		@MessageBody('targetId') targetId: string,
+		@ConnectedSocket() clientSocket: Socket,
+	): Promise<void> {
+		const isBlocked: boolean = await this.channelService.isBlocked(userId, targetId);
+		if (isBlocked === true)
+			this._server.to(clientSocket.id).emit('BlockStats', isBlocked);
+	}
 }
