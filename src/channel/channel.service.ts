@@ -1566,16 +1566,8 @@ export class ChannelService {
 	: Promise<boolean> {
 		const isBlocked: Blocked | null = await this.prisma.blocked.findFirst({
 			where: {
-				OR:[
-					{
 						user_id: userId,
 						blocked_id: targetId,
-					},
-					{
-						user_id: targetId,
-						blocked_id: userId,
-					}
-				]
 			}
 		});
 		if (isBlocked != null)
