@@ -30,10 +30,10 @@ export class MatchmakingService {
 			this.createGameRequest(userID, opponent, true, server, bonus);
 		else {
 			this._matchmakingQueue.push({ id: userID, bonus: bonus });
-			UserIdToSockets.get(userID).emit("joined_queue");
+			UserIdToSockets.emit(userID, server, "joined_queue");
 		}
 
-		server.emit("matchmaking_queue_count", this.count());
+		UserIdToSockets.emit(userID, server, "matchmaking_queue_count", this.count());
 	}
 
 	leave(userID: string, server: Server): void {
@@ -46,13 +46,13 @@ export class MatchmakingService {
 			
 			this.join(opponentID, server, gameRequest.bonus);
 			
-			this.deleteGameRequest(userID);
+			this.deleteGameRequest(userID, server);
 		}
 
 		if (!this.get(userID)) return;
 		this._matchmakingQueue = this._matchmakingQueue.filter((user) => user.id !== userID);
 
-		server.to(UserIdToSockets.get(userID).id).emit("left_queue");
+		UserIdToSockets.emit(userID, server, "left_queue");
 		server.emit("matchmaking_queue_count", this.count());
 	}
 
@@ -86,25 +86,25 @@ export class MatchmakingService {
 					return;
 				
 				if (gameRequest.sender.accept) this.join(gameRequest.sender.id, server, bonus);
-				else server.to(UserIdToSockets.get(gameRequest.sender.id).id).emit("left_queue");
+				else UserIdToSockets.emit(gameRequest.sender.id, server, "left_queue")
 				
 				if (gameRequest.receiver.accept) this.join(gameRequest.receiver.id, server, bonus);
-				else server.to(UserIdToSockets.get(gameRequest.receiver.id).id).emit("left_queue");
+				else UserIdToSockets.emit(gameRequest.receiver.id, server, "left_queue")
 
-				this.deleteGameRequest(userID);
+				this.deleteGameRequest(userID, server);
 			}, this._gameRequestTimer)
 		});
 
-		server.to(UserIdToSockets.get(opponent.id).id).emit("game_request");
-		server.to(UserIdToSockets.get(userID).id).emit("game_request");
+
+		UserIdToSockets.emit(opponent.id, server, "game_request");
+		UserIdToSockets.emit(userID, server, "game_request");
 	}
 
-	deleteGameRequest(userID: string): void {
+	deleteGameRequest(userID: string, server: Server): void {
 		const gameRequest = this.getGameRequest(userID);
 
-
 		if (!gameRequest) {
-			UserIdToSockets.get(userID).emit("game_request_not_found");
+			UserIdToSockets.emit(userID, server, "game_request_not_found");
 			return;
 		}
 
@@ -123,15 +123,15 @@ export class MatchmakingService {
 		else gameRequest.receiver.accept = true;
 
 		if (gameRequest.receiver.accept && gameRequest.sender.accept) {
-			UserIdToSockets.get(gameRequest.sender.id).emit("game_accepted");
-			UserIdToSockets.get(gameRequest.receiver.id).emit("game_accepted");
+			UserIdToSockets.emit(gameRequest.sender.id, server, "game_accepted");
+			UserIdToSockets.emit(gameRequest.receiver.id, server, "game_accepted");
 
-			this.deleteGameRequest(userID);
+			this.deleteGameRequest(userID, server);
 
 			this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, server);
 		}
 
-		server.to(UserIdToSockets.get(userID).id).emit("game_request_accepted");
+		UserIdToSockets.emit(userID, server, "game_request_accepted");
 	}
 
 	declineGameRequest(userID: string, inMatchmaking: boolean, server: Server): void {
@@ -140,19 +140,19 @@ export class MatchmakingService {
 		if (!gameRequest)
 			return;
 
-			UserIdToSockets.get(gameRequest.receiver.id).emit("game_canceled");
+			UserIdToSockets.emit(gameRequest.receiver.id, server, "game_canceled")
 			
 			if (inMatchmaking) {
 				if (gameRequest.sender.id === userID) {
-					this.join(gameRequest.receiver.id, server, gameRequest.bonus)
-					UserIdToSockets.get(gameRequest.receiver.id).emit("game_canceled");
+					this.join(gameRequest.receiver.id, server, gameRequest.bonus);
+					UserIdToSockets.emit(gameRequest.receiver.id, server, "game_canceled");
 				} else {
 					this.join(gameRequest.sender.id, server, gameRequest.bonus);
-					UserIdToSockets.get(gameRequest.sender.id).emit("game_canceled");
+					UserIdToSockets.emit(gameRequest.sender.id, server, "game_canceled");
 				}
 			}
 
-		this.deleteGameRequest(userID);
+		this.deleteGameRequest(userID, server);
 	}
 
 	searchOpponent(userID: string, bonus: boolean): UserInQueue | undefined {

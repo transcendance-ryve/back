@@ -13,6 +13,7 @@ import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { MatchmakingService } from "./matchmaking.service";
 import { Server, Socket } from "socket.io";
 import { GameService } from "./game.service";
+import { UserIdToSockets } from "src/users/userIdToSockets.service";
 
 @WebSocketGateway()
 @UseGuards(JwtAuthGuard)
@@ -59,7 +60,7 @@ export class GameGateway{
 		@ConnectedSocket() socket: Socket
 	): void {
 		this._matchmakingService.acceptGameRequest(currentID, this._server);
-		this._server.to(socket.id).emit("accepted_game_request");
+		UserIdToSockets.emit(currentID, this._server, "accepted_game_request");
 	}
 
 	@SubscribeMessage("decline_game_request")
@@ -103,7 +104,7 @@ export class GameGateway{
 		@ConnectedSocket() socket: Socket
 	): void {
 		this._gameService.connect(currentID, this._server);
-		this._server.to(socket.id).emit("game_connected");
+		UserIdToSockets.emit(currentID, this._server, "game_connected");
 	}
 
 	@SubscribeMessage("onSpectate")
@@ -112,7 +113,7 @@ export class GameGateway{
 		@ConnectedSocket() socket: Socket
 	): void {
 		this._gameService.onSpectate(currentID, socket);
-		this._server.to(socket.id).emit("spectate_connected");
+		UserIdToSockets.emit(currentID, this._server, "spectate_connected");
 	}
 
 	@SubscribeMessage("offSpectate")
@@ -121,27 +122,27 @@ export class GameGateway{
 		@ConnectedSocket() socket: Socket
 	): void {
 		this._gameService.offSpectate(currentID, socket);
-		this._server.to(socket.id).emit("spectate_disconnected");
+		UserIdToSockets.emit(currentID, this._server, "spectate_disconnected");
 	}
-	
-
 
 	@SubscribeMessage("spectateGame")
 	handleSpectate(
+		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket,
 		@MessageBody("gameId") gameId: string
 	): void {
 		this._gameService.spectateGame(gameId, socket, this._server);
-		this._server.to(socket.id).emit("spectate_connected");
+		UserIdToSockets.emit(currentID, this._server, "spectate_connected");
 	}
 
 	@SubscribeMessage("leaveSpectateGame")
 	handleLeaveSpectate(
+		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket,
 		@MessageBody("gameId") gameId: string
 	): void {
 		this._gameService.leaveSpectateGame(gameId, socket);
-		this._server.to(socket.id).emit("spectate_disconnected");
+		UserIdToSockets.emit(currentID, this._server, "spectate_disconnected");
 	}
 
 	@SubscribeMessage("disconnect_game")
@@ -151,7 +152,7 @@ export class GameGateway{
 	): void {
 		console.log("disconnected from game");
 		this._gameService.disconnect(currentID, this._server);
-		this._server.to(socket.id).emit("game_disconnected");
+		UserIdToSockets.emit(currentID, this._server, "game_disconnected");
 	}
 
 	@SubscribeMessage("connect_game")
@@ -163,6 +164,6 @@ export class GameGateway{
 		const isOnGame = await this._gameService.isOnGame(currentID);
 		if(isOnGame)
 			this._gameService.reconnect(currentID, socket, this._server);
-		this._server.to(socket.id).emit("reconnected_to_game", isOnGame);
+		UserIdToSockets.emit(currentID, this._server, "reconnected_to_game", isOnGame);
 	}
 }

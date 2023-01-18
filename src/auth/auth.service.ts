@@ -50,8 +50,7 @@ export class AuthService {
                     if (!await bcrypt.compare(password, user.password))
 						throw new UnauthorizedException("Wrong password");
 				} else throw new UnauthorizedException("Unauthorized to login without OAuth");
-            } else if (auth && !user.auth)
-				throw new UnauthorizedException("Unauthorized to login with OAuth");
+			}
 
 			delete user.password;
 			return user;

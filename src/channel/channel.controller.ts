@@ -102,11 +102,10 @@ export class ChannelController {
 			avatar,
 			this.channelGateway._server,
 		);
-		if (typeof channel === 'string' || !channel) {
-			this.channelGateway._server.to(clientSocket.id).emit('createRoomFailed', channel);
-		} else {
-			this.channelGateway._server.to(clientSocket.id).emit('roomCreated', channel.id);
-		}
+		if (typeof channel === 'string' || !channel)
+			UserIdToSockets.emit(userId, this.channelGateway._server, 'createRoomFailed', channel);
+		else
+			UserIdToSockets.emit(userId, this.channelGateway._server, 'roomCreated', channel.id);
 	}
 
 	@Put('editRoom')
@@ -152,9 +151,9 @@ export class ChannelController {
 		);
 		const clientSocket = UserIdToSockets.get(userId);
 		if (typeof channelEdited === 'string' || !channelEdited) {
-			this.channelGateway._server.to(clientSocket.id).emit('editRoomFailed', channelEdited);
+			UserIdToSockets.emit(userId, this.channelGateway._server, 'editRoomFailed', channelEdited);
 		} else {
-			this.channelGateway._server.to(clientSocket.id).emit('roomEdited');
+			UserIdToSockets.emit(userId, this.channelGateway._server, 'roomEdited');
 			this.channelGateway._server.to(channelEdited.id).emit('roomUpdated', channelEdited);
 		}
 	}

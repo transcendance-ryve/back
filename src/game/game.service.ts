@@ -244,10 +244,12 @@ export class GameService {
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
 		this.gameIdToGame.set(gameId, game);
-		const PlayerOneSocket: Socket = UserIdToSockets.get(id);
-		const PlayerTwoSocket: Socket = UserIdToSockets.get(opponent);
-		PlayerOneSocket.join(game.gameId);
-		PlayerTwoSocket.join(game.gameId);
+		const playerOneSockets: Socket[] = UserIdToSockets.get(id);
+		const playerTwoSockets: Socket[] = UserIdToSockets.get(opponent);
+
+		playerOneSockets.forEach(socket => socket.join(game.gameId));
+		playerTwoSockets.forEach(socket => socket.join(game.gameId));
+
 		const players: Players = await this.getPlayers(id, opponent);
 		const width = 790;
 		const height = 390;
@@ -300,19 +302,17 @@ export class GameService {
 
 			const playerUpdated: Partial<User> = await this._usersService.updateUser({id: WinnerId},
 				{wins:{ increment: 1}, played:{increment: 1} } );
-			const winnerSocket: Socket = UserIdToSockets.get(WinnerId);
-			server.to(winnerSocket.id).emit("updateUser", playerUpdated);
+			UserIdToSockets.emit(WinnerId, server, "updateUser", playerUpdated);
+
 			let looserSocket: Socket;
 			if (playerOne.win) {
 				const updatedPlayerTwo: Partial<User> =  await this._usersService.updateUser({id: playerTwo.id},
 					{loses:{ increment: 1}, played:{increment: 1}});
-				looserSocket = UserIdToSockets.get(playerTwo.id);
-				server.to(looserSocket.id).emit("updateUser", updatedPlayerTwo);
+				UserIdToSockets.emit(playerTwo.id, server, "updateUser", updatedPlayerTwo);
 			} else {
 				const updatedPlayerOne: Partial<User> = await this._usersService.updateUser({id: playerOne.id},
 					{loses:{ increment: 1}, played:{increment: 1}});
-				looserSocket = UserIdToSockets.get(playerOne.id);
-				server.to(looserSocket.id).emit("updateUser", updatedPlayerOne);
+				UserIdToSockets.emit(playerOne.id, server, "updateUser", updatedPlayerOne);
 			}
 	}
 
@@ -367,10 +367,13 @@ export class GameService {
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
 			await this.updateUserStats(playerOne, playerTwo, server);
-			const playerOneSocket: Socket = UserIdToSockets.get(playerOne.id);
-			const playerTwoSocket: Socket = UserIdToSockets.get(playerTwo.id);
-			playerOneSocket.leave(game.gameId);
-			playerTwoSocket.leave(game.gameId);
+			
+			const playerOneSockets: Socket[] = UserIdToSockets.get(playerOne.id);
+			const playerTwoSockets: Socket[] = UserIdToSockets.get(playerTwo.id);
+			
+			playerOneSockets.forEach(socket => socket.leave(game.gameId));
+			playerTwoSockets.forEach(socket => socket.leave(game.gameId));
+
 			game.resetgame();
 			game.start = false;
 			game.destructor();

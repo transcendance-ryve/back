@@ -44,11 +44,10 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		) {}
 
 	async handleConnection(
-		@ConnectedSocket() clientSocket: Socket,
 		@GetCurrentUserId() userId: string,
 	): Promise<void> {
 		// console.log('user connected');
-		await this.channelService.connectToMyChannels(userId, clientSocket);
+		await this.channelService.connectToMyChannels(userId);
 	}
 
 	async handleDisconnect(): Promise<void> {
@@ -62,7 +61,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@GetCurrentUserId() userId: string,
 	): Promise<void> {
 		const role = await this.channelService.getRole(userId, channelId);
-		this._server.to(clientSocket.id).emit('role', role);
+		UserIdToSockets.emit(userId, this._server, 'role', role);
 	}
 
 	@SubscribeMessage('ping')
@@ -74,18 +73,16 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	async createDirectMessage(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('DMInfo') dto: DirectMessageDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
 		const channel: Channel | string | null =
 		await this.channelService.createDMChannelWS(
 			userId,
 			dto,
-			clientSocket,
 		);
 		if (typeof channel === 'string' || !channel) {
-			this._server.to(clientSocket.id).emit('DMFailed', channel);
+			UserIdToSockets.emit(userId, this._server, 'DMFailed', channel);
 		} else {
-			this._server.to(clientSocket.id).emit('DMChan', channel.id);
+			UserIdToSockets.emit(userId, this._server, 'DMChan', channel.id);
 		}
 	}
 	
@@ -93,21 +90,19 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	async joinChannel(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('joinInfo') dto: JoinChannelDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
 		const joinedRoom = await this.channelService.joinChannelWs(
 			dto,
 			userId,
-			clientSocket,
 			this._server,
 		);
 		if (typeof joinedRoom === 'string' || !joinedRoom) {
-			this._server.to(clientSocket.id).emit('joinRoomFailed', joinedRoom);
+			UserIdToSockets.emit(userId, this._server, 'joinRoomFailed', joinedRoom);
 		} else {
 			const user: UserTag | string =
 			await this.channelService.getUserTag(dto.channelId, userId);
 			this._server.to(dto.channelId).emit('newUserInRoom', user);
-			this._server.to(clientSocket.id).emit('joinRoomSuccess', joinedRoom.id);
+			UserIdToSockets.emit(userId, this._server, 'joinRoomSuccess', joinedRoom.id);
 		}
 	}
 
@@ -124,7 +119,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		);
 
 		if (typeof messageSaved === 'string' || !messageSaved) {
-			this._server.to(clientSocket.id).emit('messageRoomFailed', messageSaved);
+			UserIdToSockets.emit(senderId, this._server, 'messageRoomFailed', messageSaved);
 		} else {
 			this._server.to(messageInfo.channelId).emit('incomingMessage', messageSaved, messageInfo.channelId);
 		}
@@ -142,11 +137,11 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			channelId,
 		);
 		if (!userLeaving || typeof userLeaving === 'string') {
-			this._server.to(clientSocket.id).emit('leaveRoomFailed', userLeaving);
+			UserIdToSockets.emit(userId, this._server, 'leaveRoomFailed', userLeaving);
 		} else {
 			this._server.to(channelId).emit('userLeftTheRoom', userId);
 			await clientSocket.leave(channelId);
-			this._server.to(clientSocket.id).emit('roomLeft');
+			UserIdToSockets.emit(userId, this._server, 'roomLeft');
 		}
 	}
 
@@ -166,13 +161,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			const target: UserTag | string =
 			await this.channelService.getPendingUserTag(inviteInfo.friendId);
 			this._server.to(inviteInfo.channelId).emit('invitationSent', target);
-			this._server.to(clientSocket.id).emit('inviteToRoomSuccess', target);
-			const friendSocket = UserIdToSockets.get(inviteInfo.friendId);
-			if (friendSocket) {
-				this._server
-					.to(friendSocket.id)
-					.emit('chanInvitationReceived', res.channel);
-			}
+			UserIdToSockets.emit(userId, this._server, 'inviteToRoomSuccess', target);
+			UserIdToSockets.emit(inviteInfo.friendId, this._server, 'chanInvitationReceived', res.channel);
 		}
 	}
 
@@ -180,17 +170,16 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	async acceptInvitation(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('invitationInfo') inviteInfo: InvitationDto,
-		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
 		const channelInvite = await this.channelService.acceptChanInvitation(
 			userId,
 			inviteInfo,
-			clientSocket,
 		);
 		if (typeof channelInvite === 'string' || !channelInvite) {
-			this._server.to(clientSocket.id).emit('acceptInvitationFailed', channelInvite);
+			UserIdToSockets.emit(userId, this._server, 'acceptInvitationFailed', channelInvite);
 		} else {
-			this._server.to(clientSocket.id).emit('invitationAccepted', channelInvite.id);
+			UserIdToSockets.emit(userId, this._server, 'invitationAccepted', channelInvite.id);
+
 			const user : UserTag | string =
 			await this.channelService.getUserTag(channelInvite.id, userId);
 			this._server.to(channelInvite.id).emit('newUserInRoom', user);
@@ -208,9 +197,10 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			inviteInfo,
 		);
 		if (typeof channelInvite === 'string' || !channelInvite) {
-			this._server.to(clientSocket.id).emit('declineInvitationFailed');
+			UserIdToSockets.emit(userId, this._server, 'declineInvitationFailed');
 		} else {
-			this._server.to(clientSocket.id).emit('invitationDeclined', inviteInfo.channelId);
+			UserIdToSockets.emit(userId, this._server, 'invitationDeclined', inviteInfo.channelId);
+
 			const user : Partial<User> = await this.userService.getUser({id: userId}, "id,username,avatar,status");
 			this._server.to(inviteInfo.channelId).emit('roomDeclined', user);
 		}
@@ -227,7 +217,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			roleInfo,
 		);
 		if (typeof roleUpdated === 'string' || !roleUpdated) {
-			this._server.to(clientSocket.id).emit('promoteUserFailed', roleUpdated);
+			UserIdToSockets.emit(userId, this._server, 'promoteUserFailed', roleUpdated);
 		} else {
 			const user : Partial<User> = await this.userService.getUser({id: roleUpdated.userId}, "id,username,avatar");
 			this._server.to(roleInfo.channelId).emit('userPromoted', user);
@@ -245,7 +235,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			roleInfo,
 		);
 		if (typeof roleUpdated === 'string' || !roleUpdated) {
-			this._server.to(clientSocket.id).emit('demoteUserFailed', roleUpdated);
+			UserIdToSockets.emit(userId, this._server, 'demoteUserFailed', roleUpdated);
 		} else {
 			const user : Partial<User> = await this.userService.getUser({id: roleUpdated.userId}, "id,username,avatar");
 			this._server.to(roleInfo.channelId).emit('userDemoted', user);
@@ -264,7 +254,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			this._server,
 		);
 		if (typeof userMuted === 'string' || !userMuted) {
-			this._server.to(clientSocket.id).emit('muteUserFailed', userMuted);
+			UserIdToSockets.emit(userId, this._server, 'muteUserFailed', userMuted);
 		} else {
 			this._server.to(muteInfo.channelId).emit('userMuted', muteInfo.targetId);
 		}
@@ -281,7 +271,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			muteInfo,
 		);
 		if (typeof userMuted === 'string' || !userMuted) {
-			this._server.to(clientSocket.id).emit('unmuteUserFailed', userMuted);
+			UserIdToSockets.emit(userId, this._server, 'unmuteUserFailed', userMuted);
 		} else {
 			this._server.to(muteInfo.channelId).emit('userUnmuted', muteInfo.targetId);
 		}
@@ -298,13 +288,12 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			banInfo,
 		);
 		if (typeof userBanned === 'string' || !userBanned) {
-			this._server.to(clientSocket.id).emit('banUserFailed', userBanned);
+			UserIdToSockets.emit(userId, this._server, 'banUserFailed', userBanned);
 		} else {
 			this._server.to(banInfo.channelId).emit('userBanned', userBanned);
 			const chanName: Partial<Channel> | null =
 			await this.channelService.getChannelById({id: banInfo.channelId}, "id,name");
-			UserIdToSockets.get(banInfo.targetId);
-			this._server.to(UserIdToSockets.get(banInfo.targetId).id).emit('banned', chanName);
+			UserIdToSockets.emit(banInfo.targetId, this._server, 'banned', chanName);
 		}
 	}
 
@@ -319,7 +308,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			banInfo,
 		);
 		if (typeof userBanned === 'string' || !userBanned) {
-			this._server.to(clientSocket.id).emit('unbanUserFailed', userBanned);
+			UserIdToSockets.emit(userId, this._server, 'unbanUserFailed', userBanned);
 		} else {
 			this._server.to(banInfo.channelId).emit('userUnbanned', banInfo.targetId);
 		}
@@ -333,6 +322,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	): Promise<void> {
 		const isBlocked: boolean = await this.channelService.isBlocked(userId, targetId);
 		if (isBlocked === true)
-			this._server.to(clientSocket.id).emit('blockStatus', isBlocked, targetId);
+			UserIdToSockets.emit(userId, this._server, 'blockStatus', isBlocked, targetId);
 	}
 }

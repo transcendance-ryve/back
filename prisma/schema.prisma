@@ -89,17 +89,17 @@ model Game {
 
 	player_one				User            @relation("games", fields: [player_one_id], references: [id], onDelete: Cascade)
 	player_one_id			String
-	player_one_score		Int
-	player_one_level		Int
-	player_one_experience	Int
-	player_one_next_level	Int
+	player_one_score		Int				@default(0)
+	player_one_level		Int				@default(0)
+	player_one_experience	Int 			@default(0)
+	player_one_next_level	Int 			@default(100)
 
 	player_two	  			User            @relation("gamesRequests", fields: [player_two_id], references: [id], onDelete: Cascade)
 	player_two_id 			String
-	player_two_score 		Int
-	player_two_level		Int
-	player_two_experience	Int
-	player_two_next_level	Int
+	player_two_score 		Int				@default(0)
+	player_two_level		Int				@default(0)
+	player_two_experience	Int 			@default(0)
+	player_two_next_level	Int				@default(100)
 
 	createdAt				DateTime		@default(now())
 	@@map("games")

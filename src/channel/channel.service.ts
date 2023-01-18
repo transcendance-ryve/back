@@ -496,15 +496,16 @@ export class ChannelService {
 	//@return: Promise<void>
 	async connectToMyChannels(
 		userId: string,
-		clientSocket: Socket
 	) {
 		const channels: ChannelUser[] = await this.prisma.channelUser.findMany({
 			where: {
 				userId: userId
 			}
 		});
+
+		const clientSockets = UserIdToSockets.get(userId);
 		channels.forEach(async (channel) => {
-			await clientSocket.join(channel.channelId);
+			clientSockets?.forEach(async socket => await socket.join(channel.channelId));
 		});
 	}
 
@@ -518,7 +519,7 @@ export class ChannelService {
 	async createChannelWS(
 		dto: CreateChannelDto,
 		userId: string,
-		clientSocket: Socket,
+		clientSockets: Socket[],
 		avatar: Express.Multer.File,
 		_server: Server,
 	) : Promise<Channel | string>{
@@ -562,14 +563,12 @@ export class ChannelService {
 							friendId: user.id,
 						};
 						await this.inviteToChannelWS(user.id, inviteDto);
-						const userSocket = UserIdToSockets.get(user.id);
-						if (userSocket != null)
-							_server.to(userSocket.id).emit('chanInvitationReceived', createdChannel);
+						UserIdToSockets.emit(user.id, _server, 'chanInvitationReceived', createdChannel);
 					}
 				}
 			}
 			delete createdChannel.password;
-			await clientSocket.join(createdChannel.id);
+			clientSockets?.forEach(async socket => await socket.join(createdChannel.id));
 			return createdChannel;
 		} catch (err) {
 			if (err.code === 'P2002')
@@ -589,7 +588,6 @@ export class ChannelService {
 	async createDMChannelWS(
 		userId: string,
 		dto: DirectMessageDto,
-		clientSocket: Socket,
 	) : Promise<Channel | string> {
 		try {
 			//check if dm channel already exists
@@ -665,12 +663,13 @@ export class ChannelService {
 					},
 				},
 			});
-			//join the users sockets to the channel
-			await clientSocket.join(newDMChannel.id);
-			const friendSocket = UserIdToSockets.get(dto.friendId);
-			if (friendSocket) {
-				await friendSocket.join(newDMChannel.id);
-			}
+
+			const clientSockets: Socket[] = UserIdToSockets.get(userId);
+			clientSockets?.forEach(async socket => await socket.join(newDMChannel.id));
+
+			const friendSockets = UserIdToSockets.get(dto.friendId);
+			friendSockets.forEach(async socket => await socket.join(newDMChannel.id));
+	
 			return newDMChannel;
 		} catch (err) {
 			console.log(err);
@@ -690,7 +689,6 @@ export class ChannelService {
 	async joinChannelWs(
 		channelDto: JoinChannelDto,
 		userId: string,
-		clientSocket: Socket,
 		server: Server,
 	) : Promise<Channel | string> {
 		try {
@@ -767,7 +765,10 @@ export class ChannelService {
 					},
 				},
 			});
-			await clientSocket.join(channelDto.channelId);
+
+			const clientSockets: Socket[] = UserIdToSockets.get(userId);
+			clientSockets?.forEach(async socket => await socket.join(channelDto.channelId));
+
 			delete joinedChannel.password;
 			//delete the invitation if the user is invited
 			const isInvited: ChannelInvitation | null = await this.prisma.channelInvitation.findFirst({
@@ -782,8 +783,7 @@ export class ChannelService {
 						id: isInvited.id,
 					},
 				});
-				server.to(UserIdToSockets.get(userId).id)
-					.emit('chanInvitationDeleted');
+				UserIdToSockets.emit(userId, server, 'chanInvitationDeleted');
 			}
 			return joinedChannel;
 		} catch (err) {
@@ -998,7 +998,6 @@ export class ChannelService {
 	async acceptChanInvitation(
 		userId: string,
 		dto: InvitationDto,
-		clientSocket: Socket,
 	) : Promise<Channel | string> {
 		try {
 			//Check if invitation exists
@@ -1056,7 +1055,8 @@ export class ChannelService {
 					id: invitation.id,
 				},
 			});
-			await clientSocket.join(invitation.channelId);
+			const clientSockets = UserIdToSockets.get(userId);
+			clientSockets?.forEach(async socket => await socket.join(invitation.channelId));
 			joinedChannel.password = '';
 			return joinedChannel;
 		} catch (err) {

@@ -41,11 +41,10 @@ export class AuthController {
 		let user: Partial<User> = await this._authService.login(email, null, true);
 
 		if (!user) {
-			const { secret } = await this._authService.generateTFA(username);
-			user = await this._authService.register(username, email, null, secret, avatarURL, true);
+			const { secret } = await this._authService.generateTFA(("42_" + username));
+			user = await this._authService.register(("42_" + username), email, null, secret, avatarURL, true);
 		} else if (user && user.tfa_enabled) {
 			const token = await this._authService.createTFAToken(user.id);
-			
 			return { tfa: true, token, id: user.id }
 		}
 

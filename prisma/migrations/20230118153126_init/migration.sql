@@ -62,8 +62,15 @@ CREATE TABLE "games" (
     "id" TEXT NOT NULL,
     "player_one_id" TEXT NOT NULL,
     "player_one_score" INTEGER NOT NULL,
+    "player_one_level" INTEGER NOT NULL,
+    "player_one_experience" INTEGER NOT NULL,
+    "player_one_next_level" INTEGER NOT NULL,
     "player_two_id" TEXT NOT NULL,
     "player_two_score" INTEGER NOT NULL,
+    "player_two_level" INTEGER NOT NULL,
+    "player_two_experience" INTEGER NOT NULL,
+    "player_two_next_level" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "games_pkey" PRIMARY KEY ("id")
 );
@@ -146,6 +153,9 @@ CREATE UNIQUE INDEX "friendships_sender_id_receiver_id_key" ON "friendships"("se
 
 -- CreateIndex
 CREATE UNIQUE INDEX "blocked_users_user_id_blocked_id_key" ON "blocked_users"("user_id", "blocked_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "games_id_key" ON "games"("id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "channels_name_key" ON "channels"("name");
