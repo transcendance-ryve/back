@@ -333,6 +333,6 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 	): Promise<void> {
 		const isBlocked: boolean = await this.channelService.isBlocked(userId, targetId);
 		if (isBlocked === true)
-			this._server.to(clientSocket.id).emit('blockStatus', isBlocked);
+			this._server.to(clientSocket.id).emit('blockStatus', isBlocked, targetId);
 	}
 }
