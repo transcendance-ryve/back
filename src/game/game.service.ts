@@ -421,37 +421,39 @@ export class GameService {
 	async disconnect(userId: string, userSocket: Socket, server: Server): Promise<void> {
 		if (await this.isOnGame(userId)) {
 			const game: Pong = this.playerIdToGame.get(userId);
-			const players: Players = await this.getPlayersByGameId(game.gameId);
-			const leftPlayer: EndGamePlayer = {
-				id: players.left.id,
-				score: players.left.score,
-				win: false,
-				loose: true,
-			}
-			const rightPlayer: EndGamePlayer = {
-				id: players.right.id,
-				score: players.right.score,
-				win: false,
-				loose: true,
-			}
-			if (players.left.id === userId) {
-				leftPlayer.loose = true;
-				leftPlayer.win = false;
-				rightPlayer.loose = false;
-				rightPlayer.win = true;
-			} else {
-				leftPlayer.loose = false;
-				leftPlayer.win = true;
-				rightPlayer.loose = true;
-				rightPlayer.win = false;
-			}
-			this.playerIdToGame.delete(userId);
-			this.userIdToTimeout.set(userId, setTimeout(async () => {
-				if (!await this.isOnCurrentGame(userId, game.gameId))
-				{
-					this.endGame(leftPlayer, rightPlayer, server, game.gameId);
+			if (game) {
+				const players: Players = await this.getPlayersByGameId(game.gameId);
+				const leftPlayer: EndGamePlayer = {
+					id: players.left.id,
+					score: players.left.score,
+					win: false,
+					loose: true,
 				}
-			}, 15000));
+				const rightPlayer: EndGamePlayer = {
+					id: players.right.id,
+					score: players.right.score,
+					win: false,
+					loose: true,
+				}
+				if (players.left.id === userId) {
+					leftPlayer.loose = true;
+					leftPlayer.win = false;
+					rightPlayer.loose = false;
+					rightPlayer.win = true;
+				} else {
+					leftPlayer.loose = false;
+					leftPlayer.win = true;
+					rightPlayer.loose = true;
+					rightPlayer.win = false;
+				}
+				this.playerIdToGame.delete(userId);
+				this.userIdToTimeout.set(userId, setTimeout(async () => {
+					if (!await this.isOnCurrentGame(userId, game.gameId))
+					{
+						this.endGame(leftPlayer, rightPlayer, server, game.gameId);
+					}
+				}, 15000));
+			}
 		}
 	}
 
