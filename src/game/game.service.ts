@@ -434,6 +434,8 @@ export class GameService {
 				this.playerIdToGame.set(userId, game);
 				userSocket.join(game.gameId);
 				const players: Players = await this.getPlayersByGameId(game.gameId);
+				players.left.score = game.leftPlayer.score;
+				players.right.score = game.rightPlayer.score;
 				const width = 790;
 				const height = 390;
 				const res: StartInfo = {
