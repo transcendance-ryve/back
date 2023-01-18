@@ -315,8 +315,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@MessageBody('targetId') targetId: string,
 	): Promise<void> {
 		const isBlocked: boolean = await this.channelService.isBlocked(userId, targetId);
-		if (isBlocked === true)
-			UserIdToSockets.emit(userId, this._server, 'blockStatus', isBlocked, targetId);
+		UserIdToSockets.emit(userId, this._server, 'blockStatus', isBlocked, targetId);
 	}
 
 	@SubscribeMessage('isBlockedRelation')
