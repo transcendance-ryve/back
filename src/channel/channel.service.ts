@@ -802,39 +802,49 @@ export class ChannelService {
 			if (isMuted === true)
 				throw new Error('You are muted');
 			//save the message
-			const messageObj: { messages: Message[] } =
-				await this.prisma.channel.update({
-					where: {
-						id: messageInfo.channelId,
-					},
-					data: {
-						messages: {
-							create: {
-								senderId: userId,
-								content: messageInfo.content,
-							},
+			await this.prisma.channel.update({
+				where: {
+					id: messageInfo.channelId,
+				},
+				data: {
+					messages: {
+						create: {
+							senderId: userId,
+							content: messageInfo.content,
 						},
+					},
+				},
+			});
+			const messageObj =
+			await this.prisma.channel.findMany({
+				where: {
+					id: messageInfo.channelId,
+				},
+				select: {
+					messages: {
+						take: 1,
+						skip: 0,
+						orderBy: {
+							createdAt: 'desc',
+						},
+					},
+				},
+			});
+			const message = messageObj[messageObj.length - 1].messages;
+			const res = {
+				content: message[0].content,
+				createdAt: message[0].createdAt,
+				sender:  await this.prisma.user.findFirst({
+					where: {
+						id: message[0].senderId,
 					},
 					select: {
-						messages: true,
+						id: true,
+						username: true,
+						avatar: true,
 					},
-				});
-				console.log(messageInfo.content);
-				const message: Message = messageObj.messages[messageObj.messages.length - 1];
-				const res = {
-					content: message.content,
-					createdAt: message.createdAt,
-					sender:  await this.prisma.user.findFirst({
-						where: {
-							id: message.senderId,
-						},
-						select: {
-							id: true,
-							username: true,
-							avatar: true,
-						},
-					}),
-				}
+				}),
+			}
 			return res;
 
 		} catch (err) {
