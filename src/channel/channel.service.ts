@@ -822,7 +822,6 @@ export class ChannelService {
 				},
 				select: {
 					name: true,
-					status: true,
 					messages: {
 						take: 1,
 						skip: 0,
@@ -834,7 +833,6 @@ export class ChannelService {
 			});
 			const res = {
 				channelName: messageObj[messageObj.length - 1].name,
-				channelStatus: messageObj[messageObj.length - 1].status,
 				content: messageObj[messageObj.length - 1].messages[0].content,
 				createdAt: messageObj[messageObj.length - 1].messages[0].createdAt,
 				sender:  await this.prisma.user.findFirst({
