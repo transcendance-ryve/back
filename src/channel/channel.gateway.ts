@@ -99,6 +99,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			dto,
 			userId,
 			clientSocket,
+			this._server,
 		);
 		if (typeof joinedRoom === 'string' || !joinedRoom) {
 			this._server.to(clientSocket.id).emit('joinRoomFailed', joinedRoom);

@@ -684,6 +684,7 @@ export class ChannelService {
 		channelDto: JoinChannelDto,
 		userId: string,
 		clientSocket: Socket,
+		server: Server,
 	) : Promise<Channel | string> {
 		try {
 			const isBanned: boolean = await this.isBanned(userId, channelDto.channelId);
@@ -774,6 +775,8 @@ export class ChannelService {
 						id: isInvited.id,
 					},
 				});
+				server.to(UserIdToSockets.get(userId).id)
+					.emit('chanInvitationDeleted');
 			}
 			return joinedChannel;
 		} catch (err) {
