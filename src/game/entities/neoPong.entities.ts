@@ -39,6 +39,7 @@ export class Pong
 		delete(this.leftPlayer);
 		delete(this.rightPlayer);
 	}
+
 	_gameService: GameService;
 	_server: Server;
 	gameId: string;

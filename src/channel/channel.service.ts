@@ -815,7 +815,7 @@ export class ChannelService {
 					},
 				},
 			});
-			const messageObj =
+			const messageObj: { messages: Message[] }[] =
 			await this.prisma.channel.findMany({
 				where: {
 					id: messageInfo.channelId,
@@ -830,7 +830,7 @@ export class ChannelService {
 					},
 				},
 			});
-			const message = messageObj[messageObj.length - 1].messages;
+			const message: Message[] = messageObj[messageObj.length - 1].messages;
 			const res = {
 				content: message[0].content,
 				createdAt: message[0].createdAt,

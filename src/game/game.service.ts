@@ -108,7 +108,13 @@ export class GameService {
 			orderBy: { createdAt: order === 'asc' ? 'asc' : 'desc' } ,
 			select: {
 				player_one_score: true,
+				player_one_level: true,
+				player_one_experience: true,
+				player_one_next_level: true,
 				player_two_score: true,
+				player_two_level: true,
+				player_two_experience: true,
+				player_two_next_level: true,
 				player_one: {
 					select: {
 						id: true,
@@ -304,6 +310,37 @@ export class GameService {
 			}
 	}
 
+	async addGameHistory(playerOne: EndGamePlayer, playerTwo: EndGamePlayer, game: Pong)
+	{
+		const check: Game = await this._prismaService.game.findUnique(
+			{ where: { id: game.gameId } });
+		if (check)
+			false;
+		const player_one: User = await this._prismaService.user.findUnique(
+			{ where: { id: playerOne.id } });
+		const player_two: User = await this._prismaService.user.findUnique(
+			{ where: { id: playerTwo.id } });
+		if (!player_one || !player_two)
+			throw new Error("User not found");
+		await this._prismaService.game.create({
+			data: {
+				id:	game.gameId,
+				player_one: { connect: { id: playerOne.id } },
+				player_one_score: playerOne.score,
+				player_one_level: player_one.level,
+				player_one_experience: player_one.experience,
+				player_one_next_level: player_one.next_level,
+				
+				player_two: { connect: { id: playerTwo.id } },
+				player_two_score: playerTwo.score,
+				player_two_level: player_two.level,
+				player_two_experience: player_two.experience,
+				player_two_next_level: player_two.next_level,
+			}
+		});
+		return true;
+	}
+
 	async endGame(
 		playerOne: EndGamePlayer,
 		playerTwo: EndGamePlayer,
@@ -318,19 +355,22 @@ export class GameService {
 			}
 			this.emitWinner(playerOne, playerTwo, game, server);
 			server.to(this.spectateRoom).emit("gameEnded", game.gameId);
-			const check: Game = await this._prismaService.game.findUnique(
-				{ where: { id: game.gameId } });
-			if (check)
-				return;
-			await this._prismaService.game.create({
-				data: {
-					id:	game.gameId,
-					player_one: { connect: { id: playerOne.id } },
-					player_one_score: playerOne.score,
-					player_two: { connect: { id: playerTwo.id } },
-					player_two_score: playerTwo.score,
-				}
-			});
+			if (await this.addGameHistory(playerOne, playerTwo, game) === false)
+				return ;
+			// const check: Game = await this._prismaService.game.findUnique(
+			// 	{ where: { id: game.gameId } });
+			// if (check)
+			// 	return;
+			
+			// await this._prismaService.game.create({
+			// 	data: {
+			// 		id:	game.gameId,
+			// 		player_one: { connect: { id: playerOne.id } },
+			// 		player_one_score: playerOne.score,
+			// 		player_two: { connect: { id: playerTwo.id } },
+			// 		player_two_score: playerTwo.score,
+			// 	}
+			// });
 			this.gameIdToGame.delete(game.gameId);
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
