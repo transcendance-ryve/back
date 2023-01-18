@@ -76,8 +76,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@MessageBody('DMInfo') dto: DirectMessageDto,
 		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-		let channel: Channel | string | null;
-		channel = await this.channelService.createDMChannelWS(
+		const channel: Channel | string | null =
+		await this.channelService.createDMChannelWS(
 			userId,
 			dto,
 			clientSocket,

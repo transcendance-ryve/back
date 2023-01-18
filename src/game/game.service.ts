@@ -175,7 +175,7 @@ export class GameService {
 		const games = []; 
 		for (const game of this.gameIdToGame.entries())
 		{
-			let player: Players = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
+			const player: Players = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
 			const left: string = player.left.username.toLowerCase();
 			const right: string = player.right.username.toLowerCase();
 			if (!search || search && left.includes(search.toLowerCase()) 
@@ -196,7 +196,7 @@ export class GameService {
 
 	async initCurrentGameArray(page: number, take: number, games):
 	Promise<any> {
-		let res = [];
+		const res = [];
 
 		for (let i = (page - 1) * take; i < page * take; i++)
 		{
@@ -249,8 +249,8 @@ export class GameService {
 		PlayerOneSocket.join(game.gameId);
 		PlayerTwoSocket.join(game.gameId);
 		const players: Players = await this.getPlayers(id, opponent);
-		const width: number  = 790;
-		const height: number = 390;
+		const width = 790;
+		const height = 390;
 		const res: StartInfo = {
 			players,
 			width,
@@ -363,20 +363,6 @@ export class GameService {
 			server.to(this.spectateRoom).emit("gameEnded", game.gameId);
 			if (await this.addGameHistory(playerOne, playerTwo, game) === false)
 				return ;
-			// const check: Game = await this._prismaService.game.findUnique(
-			// 	{ where: { id: game.gameId } });
-			// if (check)
-			// 	return;
-			
-			// await this._prismaService.game.create({
-			// 	data: {
-			// 		id:	game.gameId,
-			// 		player_one: { connect: { id: playerOne.id } },
-			// 		player_one_score: playerOne.score,
-			// 		player_two: { connect: { id: playerTwo.id } },
-			// 		player_two_score: playerTwo.score,
-			// 	}
-			// });
 			this.gameIdToGame.delete(game.gameId);
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
@@ -409,8 +395,8 @@ export class GameService {
 		const game: Pong = this.gameIdToGame.get(gameId);
 		if (game) {
 			const players: Players = await this.getPlayers(game.leftPlayer.id, game.rightPlayer.id);
-			const width: number  = 790;
-			const height: number = 390;
+			const width = 790;
+			const height = 390;
 			const res: StartInfo = {
 				players,
 				width,
@@ -428,8 +414,6 @@ export class GameService {
 			userSocket.leave(game.gameId);
 		}
 	}
-
-	async leave(id: string): Promise<void> {}
 
 	async reconnect(userId: string, userSocket: Socket, server: Server): Promise<void> {
 		console.log(await this.isOnGame(userId));
@@ -450,8 +434,8 @@ export class GameService {
 				this.playerIdToGame.set(userId, game);
 				userSocket.join(game.gameId);
 				const players: Players = await this.getPlayersByGameId(game.gameId);
-				const width: number  = 790;
-				const height: number = 390;
+				const width = 790;
+				const height = 390;
 				const res: StartInfo = {
 					players,
 					width,

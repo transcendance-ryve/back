@@ -9,6 +9,7 @@ import {
 	ChannelInvitation,
 	ChannelAction,
 	Friendship,
+	Blocked
 } from '@prisma/client';
 import {
 	CreateChannelDto,
@@ -24,13 +25,10 @@ import {
 import { Socket, Server } from 'socket.io';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { join } from 'path';
-import { UserTag, InvitaionTag } from './interfaces/utils.interfaces';
+import { UserTag, InvitaionTag, MessageTag, Messages } from './interfaces/utils.interfaces';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import { Prisma } from '@prisma/client';
-
-
-
 
 @Injectable()
 export class ChannelService {
@@ -38,7 +36,7 @@ export class ChannelService {
 		private readonly prisma: PrismaService
 		) {}
 
-	private staticPath: string = 'http://localhost:3000/';
+	private staticPath = 'http://localhost:3000/';
 	//Getter
 
 	//@brief: Get all the channels of a user except
@@ -109,7 +107,8 @@ export class ChannelService {
 		channelId: string,
 		page: number,
 		take: number,
-		): Promise<any> {
+		userId: string,
+		): Promise<Messages> {
 		try {
 			await this.isChannel(channelId);
 			const messages: Message[] = await this.prisma.channel
@@ -123,16 +122,19 @@ export class ChannelService {
 				take = messages.length;
 			if (messages.length == 0)
 			{
-				const res: any = [];
-				return { res, total: 0 };
+				const msg: MessageTag[] = [];
+				const res: Messages = { messages: msg, total: 0 };
+				return res;
 			}
 			page = (messages.length / take) - page;
-			let res : any = [];
+			let msg : MessageTag[];
 			for (let i = (page - 1) * take; i < page * take; i++) {
 				i = Math.round(i);
 				if (i < 0)
 					i = 0;
-				res.push({
+				if (this.isBanned(userId, messages[i].senderId))
+					messages[i].content = 'This user is blocked';
+				msg.push({
 					content: messages[i].content,
 					createdAt: messages[i].createdAt,
 					sender: await this.prisma.user.findFirst({
@@ -147,8 +149,11 @@ export class ChannelService {
 						}),
 				});
 			}
-			const total: number = messages.length;
-			return { res, total };
+			const res: Messages = {
+				messages: msg,
+				total: messages.length,
+			}
+			return res;
 		} catch (error) {
 			return error;
 		}
@@ -190,7 +195,7 @@ export class ChannelService {
 	//@brief: Get all the users of a channel
 	//@param: channelId: string
 	//@return: Promise<UserTag[]>
-	async getUsersOfChannel(channelId: string):
+	async getUsersOfChannel(channelId: string, userId: string):
 	Promise<UserTag[]>
 	{
 		try {
@@ -210,8 +215,9 @@ export class ChannelService {
 					role: true,
 				},
 			});
-			const res: UserTag[] = [];
+			const res = [];
 			for (const user of users) {
+				let isBlocked: boolean = await this.isBlocked(userId, user.user.id);
 				res.push({
 					id: user.user.id,
 					username: user.user.username,
@@ -219,6 +225,7 @@ export class ChannelService {
 					role: user.role,
 					isMute: await this.isMute(user.user.id, channelId),
 					isBan: await this.isBanned(user.user.id, channelId),
+					isBlocked: isBlocked,
 				});
 			}
 			return res;
@@ -333,7 +340,7 @@ export class ChannelService {
 					},
 				},
 			});
-			let res: InvitaionTag[] =  invites.map((invite) => invite.channel);
+			const res: InvitaionTag[] =  invites.map((invite) => invite.channel);
 			return res;
 		} catch (err) {
 			return(err).message;
@@ -550,12 +557,12 @@ export class ChannelService {
 				{
 					//invite users to channel
 					for (const user of users) {
-						let inviteDto: InviteToChannelDto = {
+						const inviteDto: InviteToChannelDto = {
 							channelId: createdChannel.id,
 							friendId: user.id,
 						};
-						let chanInvite = await this.inviteToChannelWS(user.id, inviteDto);
-						let userSocket = UserIdToSockets.get(user.id);
+						await this.inviteToChannelWS(user.id, inviteDto);
+						const userSocket = UserIdToSockets.get(user.id);
 						if (userSocket != null)
 							_server.to(userSocket.id).emit('chanInvitationReceived', createdChannel);
 					}
@@ -873,7 +880,7 @@ export class ChannelService {
 			await this.isChannel(channelId);
 
 			//remove user from channel users
-			let leavingUser: ChannelUser = await this.prisma.channelUser.delete({
+			const leavingUser: ChannelUser = await this.prisma.channelUser.delete({
 				where: {
 					userId_channelId: {
 						userId: userId,
@@ -1231,7 +1238,7 @@ export class ChannelService {
 				if (chan.avatar !== `${this.staticPath}default.png`)
 					fs.unlinkSync(join(process.cwd(), 'data/avatars/', chan.avatar.split('/').pop()));
 			}
-			let tmp: string = chan.avatar;
+			const tmp: string = chan.avatar;
 			//Update channel
 			const updatedChannel: Partial<Channel> | null =
 			await this.prisma.channel.update({
@@ -1386,7 +1393,6 @@ export class ChannelService {
 			if (isBanned != null)
 				throw new Error('User is already banned');
 			//Create ban action
-			const bannedUser: ChannelAction | null =
 			await this.prisma.channelAction.create({
 				data: {
 					senderId: userId,
@@ -1551,4 +1557,26 @@ export class ChannelService {
 			return true;
 		return false;
 	}
+
+	async isBlocked(userId: string, targetId: string)
+	: Promise<boolean> {
+		const isBlocked: Blocked | null = await this.prisma.blocked.findFirst({
+			where: {
+				OR:[
+					{
+						user_id: userId,
+						blocked_id: targetId,
+					},
+					{
+						user_id: targetId,
+						blocked_id: userId,
+					}
+				]
+			}
+		});
+		if (isBlocked != null)
+			return true;
+		return false;
+	}
+
 }

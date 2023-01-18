@@ -3,9 +3,7 @@ import { GameService } from "./game.service"
 import { GetCurrentUser } from 'src/decorators/user.decorator';
 import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
 import { Get, Query } from '@nestjs/common';
-import { Game } from "@prisma/client";
 import { JwtAuthGuard } from 'src/users/guard/jwt.guard';
-import { query } from "express";
 
 @UseGuards(JwtAuthGuard)
 @Controller('game')
