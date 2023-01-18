@@ -222,7 +222,6 @@ export class Pong
 		this._server.to(this.gameId).emit("update", this.getDrawingData());
 		this.update();
 		this.timeout = setTimeout(() => {
-			console.log("game running");
 			if (this.start)
 				this.runGame();
 		}, TICK_INTERVAL);

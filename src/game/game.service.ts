@@ -448,7 +448,7 @@ export class GameService {
 		}
 	}
 
-	async disconnect(userId: string, userSocket: Socket, server: Server): Promise<void> {
+	async disconnect(userId: string, server: Server): Promise<void> {
 		console.log("user disconnected");
 		if (await this.isOnGame(userId)) {
 			const game: Pong = this.playerIdToGame.get(userId);

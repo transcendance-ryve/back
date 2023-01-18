@@ -150,7 +150,7 @@ export class GameGateway{
 		@ConnectedSocket() socket: Socket,
 	): void {
 		console.log("disconnected from game");
-		this._gameService.disconnect(currentID, socket, this._server);
+		this._gameService.disconnect(currentID, this._server);
 		this._server.to(socket.id).emit("game_disconnected");
 	}
 
