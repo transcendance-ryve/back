@@ -79,6 +79,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 	@SubscribeMessage('leave_game')
 	async handleLeaveGame(socket: Socket) {
+
 		const { id } = socket.data;
 		if (!id) return;
 

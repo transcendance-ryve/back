@@ -501,13 +501,12 @@ export class ChannelService {
 	//@return: Promise<void>
 	async connectToMyChannels(
 		userId: string,
-	) {
+		) {
 		const channels: ChannelUser[] = await this.prisma.channelUser.findMany({
 			where: {
 				userId: userId
 			}
 		});
-
 		const clientSockets = UserIdToSockets.get(userId);
 		channels.forEach(async (channel) => {
 			clientSockets?.forEach(async socket => await socket.join(channel.channelId));
