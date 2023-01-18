@@ -209,7 +209,6 @@ export class GameService {
 			player = {
 				left: {
 					...player.left,
-					username: i.toString(),
 					score: games[i][1].leftPlayer.score,
 				},
 				right: {
