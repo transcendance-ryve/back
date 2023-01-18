@@ -815,12 +815,14 @@ export class ChannelService {
 					},
 				},
 			});
-			const messageObj: { messages: Message[] }[] =
+			const messageObj =
 			await this.prisma.channel.findMany({
 				where: {
 					id: messageInfo.channelId,
 				},
 				select: {
+					name: true,
+					status: true,
 					messages: {
 						take: 1,
 						skip: 0,
@@ -830,13 +832,14 @@ export class ChannelService {
 					},
 				},
 			});
-			const message: Message[] = messageObj[messageObj.length - 1].messages;
 			const res = {
-				content: message[0].content,
-				createdAt: message[0].createdAt,
+				channelName: messageObj[messageObj.length - 1].name,
+				channelStatus: messageObj[messageObj.length - 1].status,
+				content: messageObj[messageObj.length - 1].messages[0].content,
+				createdAt: messageObj[messageObj.length - 1].messages[0].createdAt,
 				sender:  await this.prisma.user.findFirst({
 					where: {
-						id: message[0].senderId,
+						id: messageObj[messageObj.length - 1].messages[0].senderId,
 					},
 					select: {
 						id: true,
