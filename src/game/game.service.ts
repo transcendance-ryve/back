@@ -237,53 +237,44 @@ export class GameService {
 		}
 	}
 
-	async create(id: string, opponent: string, server: Server): Promise<string> {
-		try{ 
-			if (this.playerIdToGame.has(id) || this.playerIdToGame.has(opponent))
-				return "Player already in game";
-			const gameId: string = uuidv4();
-			const game: Pong =  new Pong(gameId, id, opponent, server, this);
-			// console.log("game created : " + game.gameId);
-			this.playerIdToGame.set(id, game);
-			this.playerIdToGame.set(opponent, game);
-			this.gameIdToGame.set(gameId, game);
-			const playerOneSockets: Socket[] = UserIdToSockets.get(id);
-			const playerTwoSockets: Socket[] = UserIdToSockets.get(opponent);
-			
-			playerOneSockets.forEach(socket => socket.join(game.gameId));
-			playerTwoSockets.forEach(socket => socket.join(game.gameId));
-
-			const players: Players = await this.getPlayers(id, opponent);
-			const width = 790;
-			const height = 390;
-			const preGameTime: number = 5000;
-			await this._usersService.updateUser({ id: id }, { status: Status.INGAME });
-			await this._usersService.updateUser({ id: opponent }, { status: Status.INGAME });
-			const startTime: number = Date.now() + preGameTime;
-			const res: StartInfo = {
-				players,
-				width,
-				height,
-				startTime,
-			}
+	async create(id: string, opponent: string, server: Server): Promise<boolean> {
+		if (this.playerIdToGame.has(id) || this.playerIdToGame.has(opponent))
+			return false;
+		const gameId: string = uuidv4();
+		const game: Pong =  new Pong(gameId, id, opponent, server, this);
+		// console.log("game created : " + game.gameId);
+		this.playerIdToGame.set(id, game);
+		this.playerIdToGame.set(opponent, game);
+		this.gameIdToGame.set(gameId, game);
+		const playerOneSockets: Socket[] = UserIdToSockets.get(id);
+		const playerTwoSockets: Socket[] = UserIdToSockets.get(opponent);
 		
-			this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
-				id: players.left.id, status: Status.INGAME, username: players.left.username, avatar: players.left.avatar });
-			this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
-				id: players.left.id, status: Status.INGAME, username: players.left.username, avatar: players.left.avatar });
-
-			server.to(game.gameId).emit("start", res);
-			setTimeout(() => {
-				this.emitNewGameToSpectate(game, players, server);
-				game.runGame();
-			}, preGameTime);
-			return "Game created";
-		} catch (err) {
-			console.log(err);
-			if (err)
-				return err.message;
-			return "Internal server error(game creation)";
+		playerOneSockets.forEach(socket => socket.join(game.gameId));
+		playerTwoSockets.forEach(socket => socket.join(game.gameId));
+		const players: Players = await this.getPlayers(id, opponent);
+		const width = 790;
+		const height = 390;
+		const preGameTime: number = 5000;
+		await this._usersService.updateUser({ id: id }, { status: Status.INGAME });
+		await this._usersService.updateUser({ id: opponent }, { status: Status.INGAME });
+		const startTime: number = Date.now() + preGameTime;
+		const res: StartInfo = {
+			players,
+			width,
+			height,
+			startTime,
 		}
+	
+		this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
+			id: players.left.id, status: Status.INGAME, username: players.left.username, avatar: players.left.avatar });
+		this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
+			id: players.left.id, status: Status.INGAME, username: players.left.username, avatar: players.left.avatar });
+		server.to(game.gameId).emit("start", res);
+		setTimeout(() => {
+			this.emitNewGameToSpectate(game, players, server);
+			game.runGame();
+		}, preGameTime);
+		return true;
 	}
 
 	emitNewGameToSpectate(game: Pong, players: Players, server: Server): void {

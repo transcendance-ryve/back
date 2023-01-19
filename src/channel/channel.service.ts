@@ -39,7 +39,7 @@ import {
 export default class ChannelService {
 	private readonly prisma: PrismaService = new PrismaService();
 
-	private staticPath = 'http:// localhost:3000/avatars/';
+	private staticPath = 'http://localhost:3000/avatars/';
 	//  Getter
 
 	// 	@brief: Get all the channels of a user except
@@ -211,8 +211,7 @@ export default class ChannelService {
 				},
 			});
 			const res = [];
-			await users.reduce(async (acc, user) => {
-				console.log(user.user);
+			await Promise.all(users.map(async (user) => {
 				res.push({
 					id: user.user.id,
 					username: user.user.username,
@@ -222,8 +221,7 @@ export default class ChannelService {
 					isBan: await this.isBanned(user.user.id, channelId),
 					isBlocked: await this.isBlocked(userId, user.user.id),
 				});
-				return acc;
-			}, []);
+			}));
 			console.log(res);
 			return res;
 		} catch (error) {
@@ -236,14 +234,13 @@ export default class ChannelService {
 	// 	@param: channelId: string, userId: string
 	// 	@return: Promise<UserTag | string>
 	async getUserTag(channelId: string, userId: string):
-	Promise<UserTag | string>
-	{
-		try{
-		await this.isChannel(channelId);
+	Promise<UserTag | string> {
+		try {
+			await this.isChannel(channelId);
 			const user: any = await this.prisma.channelUser.findFirst({
 				where: {
-					channelId: channelId,
-					userId: userId,
+					channelId,
+					userId,
 				},
 				select: {
 					user: {
@@ -266,7 +263,7 @@ export default class ChannelService {
 				role: user.role,
 				isMute: await this.isMute(user.user.id, channelId),
 				isBan: await this.isBanned(user.user.id, channelId),
-				};
+			};
 			return res;
 		} catch (error) {
 			return error.message;
@@ -277,8 +274,7 @@ export default class ChannelService {
 	// @param: channelId: string
 	// @return: Promise<UserTag[]>
 	async getPendingUserTag(userId: string):
-	Promise<UserTag | string>
-	{
+	Promise<UserTag | string> {
 		try {
 			const user: any = await this.prisma.user.findFirst({
 				where: {
@@ -311,8 +307,7 @@ export default class ChannelService {
 	// @param: userId: string
 	// @return: Promise<any>
 	async getChannelInvitesByUser(userId: string):
-	Promise<InvitaionTag[] | string>
-	{
+	Promise<InvitaionTag[] | string> {
 		try {
 			const invites: {
 				channel: {
@@ -338,10 +333,10 @@ export default class ChannelService {
 					},
 				},
 			});
-			const res: InvitaionTag[] =  invites.map((invite) => invite.channel);
+			const res: InvitaionTag[] = invites.map((invite) => invite.channel);
 			return res;
 		} catch (err) {
-			return(err).message;
+			return (err.message);
 		}
 	}
 
@@ -349,7 +344,7 @@ export default class ChannelService {
 	// @param: channelId: string
 	// @return: Promise<any>
 	async getMutedUsersOfChannel(channelId: string):
-	Promise<any>{
+	Promise<any> {
 		try {
 			await this.isChannel(channelId);
 			const mutedUsers: {
@@ -359,7 +354,7 @@ export default class ChannelService {
 				};
 			}[] = await this.prisma.channelAction.findMany({
 				where: {
-					channelId: channelId,
+					channelId,
 					type: 'MUTE',
 				},
 				select: {
@@ -381,7 +376,7 @@ export default class ChannelService {
 	// @param: channelId: string
 	// @return: Promise<any>
 	async getBannedUsersOfChannel(channelId: string):
-	Promise<any>{
+	Promise<any> {
 		try {
 			await this.isChannel(channelId);
 			const users: {
@@ -390,10 +385,9 @@ export default class ChannelService {
 					username: string;
 					avatar: string;
 				};
-			}[] =
-				await this.prisma.channelAction.findMany({
+			}[] = await this.prisma.channelAction.findMany({
 				where: {
-					channelId: channelId,
+					channelId,
 					type: 'BAN',
 				},
 				select: {
@@ -407,7 +401,7 @@ export default class ChannelService {
 				},
 			});
 			const res: UserTag[] = [];
-			for (const user of users) {
+			await Promise.all(users.map(async (user) => {
 				res.push({
 					id: user.target.id,
 					username: user.target.username,
@@ -416,7 +410,7 @@ export default class ChannelService {
 					isMute: await this.isMute(user.target.id, channelId),
 					isBan: await this.isBanned(user.target.id, channelId),
 				});
-			}
+			}));
 			return res;
 		} catch (error) {
 			return error.message;
@@ -428,15 +422,14 @@ export default class ChannelService {
 	// @param: channelId: string
 	// @return: Promise<string>
 	async getRole(userId: string, channelId: string):
-	Promise<string>{
+	Promise<string> {
 		try {
 			await this.isChannel(channelId);
-			const role: Partial<ChannelUser> =
-			await this.prisma.channelUser.findUnique({
+			const role: Partial<ChannelUser> = await this.prisma.channelUser.findUnique({
 				where: {
 					userId_channelId: {
-						userId: userId,
-						channelId: channelId,
+						userId,
+						channelId,
 					},
 				},
 				select: {
@@ -453,11 +446,11 @@ export default class ChannelService {
 	// @param: channelId: string
 	// @return: Promise<any>
 	async getPendingInvitesOfChannel(channelId: string):
-	Promise<any>{
+	Promise<any> {
 		try {
 			const users = await this.prisma.channelInvitation.findMany({
 				where: {
-					channelId: channelId,
+					channelId,
 				},
 				select: {
 					invitedUser: {
@@ -470,7 +463,8 @@ export default class ChannelService {
 				},
 			});
 			const res: UserTag[] = [];
-			for (const user of users) {
+
+			await Promise.all(users.map(async (user) => {
 				res.push({
 					id: user.invitedUser.id,
 					username: user.invitedUser.username,
@@ -479,7 +473,17 @@ export default class ChannelService {
 					isMute: await this.isMute(user.invitedUser.id, channelId),
 					isBan: await this.isBanned(user.invitedUser.id, channelId),
 				});
-			}
+			}));
+			// for (const user of users) {
+			// 	res.push({
+			// 		id: user.invitedUser.id,
+			// 		username: user.invitedUser.username,
+			// 		avatar: user.invitedUser.avatar,
+			// 		role: null,
+			// 		isMute: await this.isMute(user.invitedUser.id, channelId),
+			// 		isBan: await this.isBanned(user.invitedUser.id, channelId),
+			// 	});
+			// }
 			return res;
 		} catch (error) {
 			return error.message;
@@ -494,19 +498,19 @@ export default class ChannelService {
 	// @return: Promise<void>
 	async connectToMyChannels(
 		userId: string,
-		) {
-			const channels = await this.prisma.channelUser.findMany({
-				where: {
-					userId: userId,
-				},
-				select: {
-					channelId: true,
-				},
-			});
-			const clientSockets = UserIdToSockets.get(userId);
-			channels.forEach(async (channel) => {
-				clientSockets?.forEach(async socket => await socket.join(channel.channelId));
-			});
+	) {
+		const channels = await this.prisma.channelUser.findMany({
+			where: {
+				userId,
+			},
+			select: {
+				channelId: true,
+			},
+		});
+		const clientSockets = UserIdToSockets.get(userId);
+		channels.forEach(async (channel) => {
+			clientSockets?.forEach(async (socket) => socket.join(channel.channelId));
+		});
 	}
 
 	// @brief: Create a channel
@@ -522,13 +526,11 @@ export default class ChannelService {
 		clientSockets: Socket[],
 		avatar: Express.Multer.File,
 		_server: Server,
-	) : Promise<Channel | string>{
+	) : Promise<Channel | string> {
 		// throw error if channel name is empty
 		try {
-			if (!dto.name || dto.name === '')
-				throw new Error('Channel name is required');
-			if (dto.status === 'PROTECTED' && !dto.password)
-				throw new Error('Password is required');
+			if (!dto.name || dto.name === '') throw new Error('Channel name is required');
+			if (dto.status === 'PROTECTED' && !dto.password) throw new Error('Password is required');
 			if (dto.status === 'PROTECTED' && dto.password.length > 0) {
 				dto.password = await bcrypt.hash(dto.password, 10);
 			}
@@ -538,8 +540,8 @@ export default class ChannelService {
 					...dto,
 					avatar: avatar ? this.staticPath + avatar.filename : this.staticPath + 'default.png',
 					users: {
-						create:{
-							userId: userId,
+						create: {
+							userId,
 							role: 'OWNER',
 						},
 					},
@@ -547,35 +549,32 @@ export default class ChannelService {
 			});
 			if (dto.users != null) {
 				// check if users exist
-				const users: User[]  | null = await this.prisma.user.findMany({
+				const users: User[] | null = await this.prisma.user.findMany({
 					where: {
 						id: {
 							in: dto.users.id,
 						},
 					},
 				});
-				if(users != null)
-				{
+				if (users != null) {
 					// invite users to channel
-					for (const user of users) {
+					users.forEach(async (user) => {
 						const inviteDto: InviteToChannelDto = {
 							channelId: createdChannel.id,
 							friendId: user.id,
 						};
 						await this.inviteToChannelWS(user.id, inviteDto);
 						UserIdToSockets.emit(user.id, _server, 'chanInvitationReceived', createdChannel);
-					}
+					});
 				}
 			}
 			delete createdChannel.password;
-			clientSockets?.forEach(async socket => await socket.join(createdChannel.id));
+			clientSockets?.forEach(async (socket) => socket.join(createdChannel.id));
 			return createdChannel;
 		} catch (err) {
-			if (err.code === 'P2002')
-				return 'Channel name already exists';
-			if (err === 'string' && err == 'Error: WrongData')
-				return 'WrongData';
-			console.log("err", err);
+			if (err.code === 'P2002') return 'Channel name already exists';
+			if (err === 'string' && err === 'Error: WrongData') return 'WrongData';
+			console.log('err', err);
 			return 'Internal server error: error creating channel';
 		}
 	}
