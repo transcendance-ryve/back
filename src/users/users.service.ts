@@ -26,7 +26,7 @@ export class UsersService {
             if (!avatar)
                 throw new NotFoundException('Avatar not found');
 
-			const staticPath = "http://localhost:3000/";
+			const staticPath = "http://localhost:3000/avatars/";
 
 			const user: User = await this._prismaService.user.findUnique({ where: { id } });
 			if (user.avatar !== `${staticPath}default.png`)

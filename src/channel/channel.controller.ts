@@ -162,7 +162,7 @@ export class ChannelController {
 	async isBlocked(
 		@GetCurrentUserId() userId: string,
 		@Body('targetId') targetId: string,
-	) {
+	) : Promise<string> {
 		const isBlocked: boolean | string = await this.channelService.isBlockedRelation(userId, targetId);
 		if (isBlocked === "target_blocked")
 			return ('targetBlocked');
