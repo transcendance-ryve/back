@@ -267,8 +267,8 @@ export class GameService {
 	
 		this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
 			id: players.left.id, status: Status.INGAME, username: players.left.username, avatar: players.left.avatar });
-		this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
-			id: players.left.id, status: Status.INGAME, username: players.left.username, avatar: players.left.avatar });
+		this._usersGateway._emitToFriends(players.right.id, 'user_in_game', {
+			id: players.right.id, status: Status.INGAME, username: players.right.username, avatar: players.right.avatar });
 		server.to(game.gameId).emit("start", res);
 		setTimeout(() => {
 			this.emitNewGameToSpectate(game, players, server);
