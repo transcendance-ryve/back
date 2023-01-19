@@ -1,19 +1,20 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/prisma.service";
-import { Game, User } from "@prisma/client";
+import { Game, User, Status } from "@prisma/client";
 import { Socket, Server } from "socket.io";
 import { Pong } from "./entities/neoPong.entities";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 import { UsersService } from "src/users/users.service";
 import { Players, StartInfo, EndGamePlayer } from "./interfaces/game.interface";
 import { v4 as uuidv4 } from 'uuid';
-
+import { UsersGateway } from "src/users/users.gateway";
 
 @Injectable()
 export class GameService {
 	constructor(
 		private readonly _prismaService: PrismaService,
 		private readonly _usersService: UsersService,
+		private readonly _usersGateway: UsersGateway,
 		) {}
 	
 	playerIds: string[] = [];
@@ -239,27 +240,40 @@ export class GameService {
 	async create(id: string, opponent: string, server: Server): Promise<Pong> {
 		const gameId: string = uuidv4();
 		const game: Pong =  new Pong(gameId, id, opponent, server, this);
-		console.log("game created : " + game.gameId);
+		// console.log("game created : " + game.gameId);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
 		this.gameIdToGame.set(gameId, game);
 		const playerOneSockets: Socket[] = UserIdToSockets.get(id);
 		const playerTwoSockets: Socket[] = UserIdToSockets.get(opponent);
-
+	
 		playerOneSockets.forEach(socket => socket.join(game.gameId));
 		playerTwoSockets.forEach(socket => socket.join(game.gameId));
 
 		const players: Players = await this.getPlayers(id, opponent);
 		const width = 790;
 		const height = 390;
+		const preGameTime: number = 5000;
+		await this._usersService.updateUser({ id: id }, { status: Status.INGAME });
+		await this._usersService.updateUser({ id: opponent }, { status: Status.INGAME });
+		const startTime: number = Date.now() + preGameTime;
 		const res: StartInfo = {
 			players,
 			width,
 			height,
+			startTime,
 		}
+	
+		this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
+			id: players.left.id, status: Status.INGAME, username: players.left.username, avatar: players.left.avatar });
+		this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
+			id: players.left.id, status: Status.INGAME, username: players.left.username, avatar: players.left.avatar });
+
 		server.to(game.gameId).emit("start", res);
-		this.emitNewGameToSpectate(game, players, server);
-		game.runGame();
+		setTimeout(() => {
+			this.emitNewGameToSpectate(game, players, server);
+			game.runGame();
+		}, preGameTime);
 		return;
 	}
 
@@ -366,13 +380,20 @@ export class GameService {
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
 			await this.updateUserStats(playerOne, playerTwo, server);
-			
+			await this._usersService.updateUser({ id: playerOne.id }, { status: Status.ONLINE });
+			await this._usersService.updateUser({ id: playerTwo.id }, { status: Status.ONLINE });
 			const playerOneSockets: Socket[] = UserIdToSockets.get(playerOne.id);
 			const playerTwoSockets: Socket[] = UserIdToSockets.get(playerTwo.id);
 			
-			playerOneSockets.forEach(socket => socket.leave(game.gameId));
-			playerTwoSockets.forEach(socket => socket.leave(game.gameId));
+			if (playerOneSockets && playerOneSockets.length > 0)
+				playerOneSockets.forEach(socket => socket.leave(game.gameId));
+			if (playerTwoSockets && playerTwoSockets.length > 0)
+				playerTwoSockets.forEach(socket => socket.leave(game.gameId));
 
+			this._usersGateway._emitToFriends(playerOne.id, 'user_left_game', {
+				id: playerOne.id, status: Status.INGAME});
+			this._usersGateway._emitToFriends(playerTwo.id, 'user_left_game', {
+				id: playerTwo.id, status: Status.INGAME});
 			game.resetgame();
 			game.start = false;
 			game.destructor();

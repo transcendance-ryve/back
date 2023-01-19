@@ -17,6 +17,7 @@ export interface StartInfo {
 	players: Players,
 	width: number,
 	height: number,
+	startTime?: number,
 }
 
 export interface GamesRequest {

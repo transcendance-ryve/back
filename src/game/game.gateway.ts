@@ -22,7 +22,6 @@ export class GameGateway{
 	constructor(
 		private readonly _matchmakingService: MatchmakingService,
 		private readonly _gameService: GameService,
-		private readonly _usersService: UsersService,
 		) {}
 
 	@WebSocketServer()
@@ -32,6 +31,7 @@ export class GameGateway{
 		const userID = socket.data.id;
 
 		this._matchmakingService.leave(userID, this._server);
+		this._gameService.disconnect(userID, this._server);
 	}
 	
 	/* Matchmaking */

@@ -25,7 +25,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 	@WebSocketServer() private _server: Server;
 
-	private _emitToFriends(id: string, event: string, data: any) {
+	_emitToFriends(id: string, event: string, data: any) {
 		this._usersService.getFriends(id).then((friends: Partial<User>[]) => {
 			friends.forEach((friend: Partial<User>) => {
 				UserIdToSockets.emit(friend.id, this._server, event, data);

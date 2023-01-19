@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import {
+	Prisma,
 	Channel,
 	ChannelUser,
 	User,
@@ -9,8 +10,13 @@ import {
 	ChannelInvitation,
 	ChannelAction,
 	Friendship,
-	Blocked
+	Blocked,
 } from '@prisma/client';
+import * as fs from 'fs';
+import * as bcrypt from 'bcrypt';
+import { join } from 'path';
+import { UserIdToSockets } from 'src/users/userIdToSockets.service';
+import { Socket, Server } from 'socket.io';
 import {
 	CreateChannelDto,
 	DirectMessageDto,
@@ -22,41 +28,38 @@ import {
 	EditChannelDto,
 	ModerateUserDto,
 } from './dto';
-import { Socket, Server } from 'socket.io';
-import { UserIdToSockets } from 'src/users/userIdToSockets.service';
-import { join } from 'path';
-import { UserTag, InvitaionTag, MessageTag, Messages } from './interfaces/utils.interfaces';
-import * as bcrypt from 'bcrypt';
-import * as fs from 'fs';
-import { Prisma } from '@prisma/client';
+import {
+	UserTag,
+	InvitaionTag,
+	MessageTag,
+	Messages,
+} from './interfaces/utils.interfaces';
 
 @Injectable()
-export class ChannelService {
-	constructor(
-		private readonly prisma: PrismaService
-		) {}
+export default class ChannelService {
+	private readonly prisma: PrismaService = new PrismaService();
 
-	private staticPath = 'http://localhost:3000/avatars/';
-	//Getter
+	private staticPath = 'http:// localhost:3000/avatars/';
+	//  Getter
 
-	//@brief: Get all the channels of a user except
-	//the private ones and the ones the user is already in
-	//@Param: name: string
-	//@param: userId: string
-	//@return: Promise<Channel[]>
+	// 	@brief: Get all the channels of a user except
+	// 	the private ones and the ones the user is already in
+	// 	@Param: name: string
+	// 	@param: userId: string
+	// 	@return: Promise<Channel[]>
 	getChannels(
 		name: string,
 		userId: string,
-	) : Promise<Channel[]> {
-		if (!name)
-			return;
+	) : Promise<Channel[] | null> {
+		if (!name) return null;
 		return this.prisma.channel.findMany({
 			where: {
 				NOT: {
-					OR:[
-						{ status: 'PRIVATE',}, 
-						{ users: {
-							some: { userId: userId, },
+					OR: [
+						{ status: 'PRIVATE' },
+						{
+							users: {
+								some: { userId },
 							},
 						},
 					],
@@ -69,93 +72,82 @@ export class ChannelService {
 		});
 	}
 
-	//@brief: Get all the channels of a user
-	//@param: userId: string
-	//@return: Promise<Channel[]>
+	// 	@brief: Get all the channels of a user
+	// 	@param: userId: string
+	// 	@return: Promise<Channel[]>
 	async getChannelById(
 		where: Prisma.ChannelWhereUniqueInput,
 		selected?: string,
-		) : Promise<Partial<Channel> | null>
-		{
-			const select: Prisma.ChannelSelect = selected?.split(',').reduce((acc, cur) => {
-				acc[cur] = true;
-				return acc;
-			}, {});
-
-			try {
-				const channel: Partial<Channel> | null = await this.prisma.channel.findUnique({
-					where,
-					select: (selected && selected.length > 0) ? select : undefined,
-				});
-
-				if (!channel)
-					throw new Error('Channel not found');
-				
-				delete channel.password;
-				return channel;
-			} catch (err) {
-				if (err)
-					throw new Error(err.message);
-				throw new Error("Internal server error")
-			}
+	) : Promise<Partial<Channel> | null> {
+		const select: Prisma.ChannelSelect = selected?.split(',').reduce((acc, cur) => {
+			acc[cur] = true;
+			return acc;
+		}, {});
+		try {
+			const channel: Partial<Channel> | null = await this.prisma.channel.findUnique({
+				where,
+				select: (selected && selected.length > 0) ? select : undefined,
+			});
+			if (!channel) throw new Error('Channel not found');
+			delete channel.password;
+			return channel;
+		} catch (err) {
+			if (err) throw new Error(err.message);
+			throw new Error('Internal server error');
 		}
+	}
 
-	//@brief: Get all the messages of a channel
-	//@param: channelId: string
-	//@return: Promise<Message[]>
+	// 	@brief: Get all the messages of a channel
+	// 	@param: channelId: string
+	// 	@return: Promise<Message[]>
 	async getMessagesOfChannel(
 		channelId: string,
 		page: number,
 		take: number,
 		userId: string,
-		): Promise<Messages> {
+	): Promise<Messages> {
 		try {
-			console.log("kever");
 			await this.isChannel(channelId);
 			const messages: Message[] = await this.prisma.channel
-			.findUnique({
-				where: {
-					id: channelId,
-				},
-			})
-			.messages();
-			if (take > messages.length)
-				take = messages.length;
-			if (messages.length == 0)
-			{
+				.findUnique({
+					where: {
+						id: channelId,
+					},
+				})
+				.messages();
+			if (take > messages.length) take = messages.length;
+			if (messages.length === 0) {
 				const msg: MessageTag[] = [];
 				const res: Messages = { messages: msg, total: 0 };
 				return res;
 			}
 			page = (messages.length / take) - page;
-			let msg : MessageTag[] = [];
+			const msg : MessageTag[] = [];
 			for (let i = (page - 1) * take; i < page * take; i++) {
 				i = Math.round(i);
-				if (i < 0)
-				i = 0;
-				if (await this.isBlocked(userId, messages[i].senderId) == true)
-				{
+				if (i < 0) i = 0;
+				if (await this.isBlocked(userId, messages[i].senderId) === true) {
 					messages[i].content = 'This user is blocked';
 				}
 				msg.push({
 					content: messages[i].content,
 					createdAt: messages[i].createdAt,
 					sender: await this.prisma.user.findFirst({
-							where: {
-								id: messages[i].senderId,
-							},
-							select: {
-								id: true,
-								username: true,
-								avatar: true,
-							},
-						}),
+						where: {
+							id: messages[i].senderId,
+						},
+						select: {
+							id: true,
+							username: true,
+							avatar: true,
+						},
+					}),
 				});
 			}
 			const res: Messages = {
 				messages: msg,
 				total: messages.length,
-			}
+			};
 			return res;
 		} catch (error) {
 			console.log(error.message);
@@ -163,16 +155,16 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Get all the channels of a user
-	//@param: userId: string
-	//@return: Promise<Channel[]>
+	//  @brief: Get all the channels of a user
+	//  @param: userId: string
+	//  @return: Promise<Channel[]>
 	async getChannelsByUserId(userId: string):
 	Promise<Partial<Channel>[]> {
 		const channels: Partial<Channel>[] = await this.prisma.channel.findMany({
 			where: {
 				users: {
 					some: {
-						userId: userId,
+						userId,
 					},
 				},
 			},
@@ -196,17 +188,16 @@ export class ChannelService {
 		return channels;
 	}
 
-	//@brief: Get all the users of a channel
-	//@param: channelId: string
-	//@return: Promise<UserTag[]>
+	//  @brief: Get all the users of a channel
+	//  @param: channelId: string
+	//  @return: Promise<UserTag[]>
 	async getUsersOfChannel(channelId: string, userId: string):
-	Promise<UserTag[]>
-	{
+	Promise<UserTag[]> {
 		try {
 			await this.isChannel(channelId);
 			const users: any[] = await this.prisma.channelUser.findMany({
 				where: {
-					channelId: channelId,
+					channelId,
 				},
 				select: {
 					user: {
@@ -220,8 +211,8 @@ export class ChannelService {
 				},
 			});
 			const res = [];
-			for (const user of users) {
-				let isBlocked: boolean = await this.isBlocked(userId, user.user.id);
+			await users.reduce(async (acc, user) => {
+				console.log(user.user);
 				res.push({
 					id: user.user.id,
 					username: user.user.username,
@@ -229,18 +220,21 @@ export class ChannelService {
 					role: user.role,
 					isMute: await this.isMute(user.user.id, channelId),
 					isBan: await this.isBanned(user.user.id, channelId),
-					isBlocked: isBlocked,
+					isBlocked: await this.isBlocked(userId, user.user.id),
 				});
-			}
+				return acc;
+			}, []);
+			console.log(res);
 			return res;
 		} catch (error) {
+			console.log(error);
 			return error;
 		}
 	}
 
-	//@brief: Get some information of a user in a channel
-	//@param: channelId: string, userId: string
-	//@return: Promise<UserTag | string>
+	// 	@brief: Get some information of a user in a channel
+	// 	@param: channelId: string, userId: string
+	// 	@return: Promise<UserTag | string>
 	async getUserTag(channelId: string, userId: string):
 	Promise<UserTag | string>
 	{
@@ -279,9 +273,9 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Get all the users invited in a channel
-	//@param: channelId: string
-	//@return: Promise<UserTag[]>
+	// @brief: Get all the users invited in a channel
+	// @param: channelId: string
+	// @return: Promise<UserTag[]>
 	async getPendingUserTag(userId: string):
 	Promise<UserTag | string>
 	{
@@ -313,9 +307,9 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Get some information on the channels the user is invited in
-	//@param: userId: string
-	//@return: Promise<any>
+	// @brief: Get some information on the channels the user is invited in
+	// @param: userId: string
+	// @return: Promise<any>
 	async getChannelInvitesByUser(userId: string):
 	Promise<InvitaionTag[] | string>
 	{
@@ -351,9 +345,9 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Get the list of muted users in a channel
-	//@param: channelId: string
-	//@return: Promise<any>
+	// @brief: Get the list of muted users in a channel
+	// @param: channelId: string
+	// @return: Promise<any>
 	async getMutedUsersOfChannel(channelId: string):
 	Promise<any>{
 		try {
@@ -383,9 +377,9 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Get the list of banned users in a channel
-	//@param: channelId: string
-	//@return: Promise<any>
+	// @brief: Get the list of banned users in a channel
+	// @param: channelId: string
+	// @return: Promise<any>
 	async getBannedUsersOfChannel(channelId: string):
 	Promise<any>{
 		try {
@@ -429,10 +423,10 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Get the role of a user in a channel
-	//@param: userId: string
-	//@param: channelId: string
-	//@return: Promise<string>
+	// @brief: Get the role of a user in a channel
+	// @param: userId: string
+	// @param: channelId: string
+	// @return: Promise<string>
 	async getRole(userId: string, channelId: string):
 	Promise<string>{
 		try {
@@ -455,9 +449,9 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Get the list of pending invites in a channel
-	//@param: channelId: string
-	//@return: Promise<any>
+	// @brief: Get the list of pending invites in a channel
+	// @param: channelId: string
+	// @return: Promise<any>
 	async getPendingInvitesOfChannel(channelId: string):
 	Promise<any>{
 		try {
@@ -492,12 +486,12 @@ export class ChannelService {
 		}
 	}
 
-	//Actions
+	// Actions
 
-	//@brief: Connect a user to all the channels he is in
-	//@param: userId: string
-	//@param: clientSocket: Socket
-	//@return: Promise<void>
+	// @brief: Connect a user to all the channels he is in
+	// @param: userId: string
+	// @param: clientSocket: Socket
+	// @return: Promise<void>
 	async connectToMyChannels(
 		userId: string,
 		) {
@@ -515,13 +509,13 @@ export class ChannelService {
 			});
 	}
 
-	//@brief: Create a channel
-	//@param: dto: CreateChannelDto
-	//@param: userId: string
-	//@param: clientSocket: Socket
-	//@param: avatar: Express.Multer.File
-	//@param: _server: Server
-	//@return: Promise<Channel | string>
+	// @brief: Create a channel
+	// @param: dto: CreateChannelDto
+	// @param: userId: string
+	// @param: clientSocket: Socket
+	// @param: avatar: Express.Multer.File
+	// @param: _server: Server
+	// @return: Promise<Channel | string>
 	async createChannelWS(
 		dto: CreateChannelDto,
 		userId: string,
@@ -529,9 +523,7 @@ export class ChannelService {
 		avatar: Express.Multer.File,
 		_server: Server,
 	) : Promise<Channel | string>{
-		console.log()
-		console.log(userId);
-		//throw error if channel name is empty
+		// throw error if channel name is empty
 		try {
 			if (!dto.name || dto.name === '')
 				throw new Error('Channel name is required');
@@ -540,7 +532,7 @@ export class ChannelService {
 			if (dto.status === 'PROTECTED' && dto.password.length > 0) {
 				dto.password = await bcrypt.hash(dto.password, 10);
 			}
-			//try to create channel
+			// try to create channel
 			const createdChannel: Channel = await this.prisma.channel.create({
 				data: {
 					...dto,
@@ -554,7 +546,7 @@ export class ChannelService {
 				},
 			});
 			if (dto.users != null) {
-				//check if users exist
+				// check if users exist
 				const users: User[]  | null = await this.prisma.user.findMany({
 					where: {
 						id: {
@@ -564,7 +556,7 @@ export class ChannelService {
 				});
 				if(users != null)
 				{
-					//invite users to channel
+					// invite users to channel
 					for (const user of users) {
 						const inviteDto: InviteToChannelDto = {
 							channelId: createdChannel.id,
@@ -588,17 +580,17 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Create a direct message channel
-	//@param: userId: string
-	//@param: dto: DirectMessageDto
-	//@param: clientSocket: Socket
-	//@return: Promise<Channel | string>
+	// @brief: Create a direct message channel
+	// @param: userId: string
+	// @param: dto: DirectMessageDto
+	// @param: clientSocket: Socket
+	// @return: Promise<Channel | string>
 	async createDMChannelWS(
 		userId: string,
 		dto: DirectMessageDto,
 	) : Promise<Channel | string> {
 		try {
-			//check if dm channel already exists
+			// check if dm channel already exists
 			const isAlreadyDm: Friendship | null =
 			await this.prisma.friendship.findFirst({
 				where: {
@@ -623,7 +615,7 @@ export class ChannelService {
 				});
 				return dmChannel;
 			}
-			//create new dm channel
+			// create new dm channel
 			const newDMChannel: Channel = await this.prisma.channel.create({
 				data: {
 					status: 'DIRECTMESSAGE',
@@ -640,7 +632,7 @@ export class ChannelService {
 					usersCount: 2,
 				},
 			});
-			//update friendship
+			// update friendship
 			const friendShip: Partial<Friendship> | null =
 			await this.prisma.friendship.findFirst({
 				where: {
@@ -689,11 +681,11 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Join a channel
-	//@param: channelDto: JoinChannelDto
-	//@param: userId: string
-	//@param: clientSocket: Socket
-	//@return: Promise<Channel | string>
+	// @brief: Join a channel
+	// @param: channelDto: JoinChannelDto
+	// @param: userId: string
+	// @param: clientSocket: Socket
+	// @return: Promise<Channel | string>
 	async joinChannelWs(
 		channelDto: JoinChannelDto,
 		userId: string,
@@ -703,7 +695,7 @@ export class ChannelService {
 			const isBanned: boolean = await this.isBanned(userId, channelDto.channelId);
 			if (isBanned)
 				throw new Error('You are banned from this channel');
-			//Check if user is invited on private channels
+			// Check if user is invited on private channels
 			if (channelDto.status === 'PRIVATE') {
 				const isInvited: ChannelInvitation | null = await this.prisma.channelInvitation.findFirst({
 					where: {
@@ -717,7 +709,7 @@ export class ChannelService {
 						id: isInvited.id,
 					},
 				});
-			}// check if user have the good password for protected channels
+			}//  check if user have the good password for protected channels
 			else if (channelDto.status === 'PROTECTED') {
 				if (!channelDto.password)
 					throw new Error('Password is required');
@@ -742,7 +734,7 @@ export class ChannelService {
 						throw new Error('Wrong password');
 				}
 			}
-			//Check if channel exists
+			// Check if channel exists
 			const chan : Partial<Channel> | null =
 			await this.prisma.channel.findFirst({
 				where: {
@@ -757,7 +749,7 @@ export class ChannelService {
 				throw new Error('channel not found');
 			if (chan.status != channelDto.status)
 				throw new Error('WrongData');
-			//Join the channel
+			// Join the channel
 			const joinedChannel: Channel = await this.prisma.channel.update({
 				where: {
 					id: channelDto.channelId,
@@ -778,7 +770,7 @@ export class ChannelService {
 			clientSockets?.forEach(async socket => await socket.join(channelDto.channelId));
 
 			delete joinedChannel.password;
-			//delete the invitation if the user is invited
+			// delete the invitation if the user is invited
 			const isInvited: ChannelInvitation | null = await this.prisma.channelInvitation.findFirst({
 				where: {
 					invitedUserId: userId,
@@ -804,22 +796,22 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: save a message in a channel
-	//@param: userId: string
-	//@param: messageInfo: IncomingMessageDto
-	//@return: Promise<Message[] | string>
+	// @brief: save a message in a channel
+	// @param: userId: string
+	// @param: messageInfo: IncomingMessageDto
+	// @return: Promise<Message[] | string>
 	async saveMessage(
 		userId: string,
 		messageInfo: IncomingMessageDto,
 	) {
 		try {
-			//check if channel exists
+			// check if channel exists
 			await this.isChannel(messageInfo.channelId); 
-			//check if user is muted
+			// check if user is muted
 			const isMuted : boolean = await this.isMute(userId, messageInfo.channelId);
 			if (isMuted === true)
 				throw new Error('You are muted');
-			//save the message
+			// save the message
 			await this.prisma.channel.update({
 				where: {
 					id: messageInfo.channelId,
@@ -864,7 +856,6 @@ export class ChannelService {
 					},
 				}),
 			}
-			console.log(res);
 			return res;
 		} catch (err) {
 			console.log("err", err);
@@ -874,10 +865,10 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: leave a channel
-	//@param: userId: string
-	//@param: channelId: string
-	//@return: Promise<ChannelUser | string>
+	// @brief: leave a channel
+	// @param: userId: string
+	// @param: channelId: string
+	// @return: Promise<ChannelUser | string>
 	async leaveChannelWS(
 		userId: string,
 		channelId: string,
@@ -887,7 +878,7 @@ export class ChannelService {
 				throw new Error('WrongData');
 			await this.isChannel(channelId);
 
-			//remove user from channel users
+			// remove user from channel users
 			const leavingUser: ChannelUser = await this.prisma.channelUser.delete({
 				where: {
 					userId_channelId: {
@@ -910,7 +901,7 @@ export class ChannelService {
 					users: true,
 				},
 			});
-			//delete channel if no users left
+			// delete channel if no users left
 			if (channelUsers.users.length == 0) {
 				await this.prisma.channel.delete({
 					where: {
@@ -929,16 +920,16 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: invite a user to a channel
-	//@param: userId: string
-	//@param: dto: InviteToChannelDto
-	//@return: Promise<any>
+	// @brief: invite a user to a channel
+	// @param: userId: string
+	// @param: dto: InviteToChannelDto
+	// @return: Promise<any>
 	async inviteToChannelWS(
 		userId: string,
 		dto: InviteToChannelDto,
 	) : Promise<any> {
 		try {
-			//Check if user exists
+			// Check if user exists
 			const user: User | null = await this.prisma.user.findUnique({
 				where: {
 					id: dto.friendId,
@@ -947,7 +938,7 @@ export class ChannelService {
 			if (user == null)
 				throw new Error('User not found');
 			await this.isChannel(dto.channelId);
-			//Check if user is already in channel
+			// Check if user is already in channel
 			const channelUser: ChannelUser | null =
 				await this.prisma.channelUser.findUnique({
 					where: {
@@ -959,7 +950,7 @@ export class ChannelService {
 				});
 			if (channelUser != null)
 				throw new Error('User already in channel');
-			//Check if channel exists
+			// Check if channel exists
 			const channel: Partial<Channel> | null = await this.prisma.channel.findUnique({
 				where: {
 					id: dto.channelId,
@@ -974,7 +965,7 @@ export class ChannelService {
 			});
 			if (channel == null)
 				throw new Error('Channel not found');
-			//Create channel invitation
+			// Create channel invitation
 			const channelInvite: ChannelInvitation | null =
 				await this.prisma.channelInvitation.create({
 					data: {
@@ -998,17 +989,17 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: accept a channel invitation
-	//@param: userId: string
-	//@param: dto: InvitationDto
-	//@param: clientSocket: Socket
-	//@return: Promise<Channel | string>
+	// @brief: accept a channel invitation
+	// @param: userId: string
+	// @param: dto: InvitationDto
+	// @param: clientSocket: Socket
+	// @return: Promise<Channel | string>
 	async acceptChanInvitation(
 		userId: string,
 		dto: InvitationDto,
 	) : Promise<Channel | string> {
 		try {
-			//Check if invitation exists
+			// Check if invitation exists
 			const invitation: ChannelInvitation | null =
 				await this.prisma.channelInvitation.findUnique({
 					where: {
@@ -1021,7 +1012,7 @@ export class ChannelService {
 			if (invitation == null)
 				throw new Error('Invitation not found');
 			await this.isChannel(invitation.channelId);
-			//Check if user is already in channel
+			// Check if user is already in channel
 			const channelUser: ChannelUser | null =
 				await this.prisma.channelUser.findUnique({
 					where: {
@@ -1033,7 +1024,7 @@ export class ChannelService {
 				});
 			if (channelUser != null)
 				throw new Error('User already in channel');
-			//Check if channel exists
+			// Check if channel exists
 			const channel: Channel | null = await this.prisma.channel.findUnique({
 				where: {
 					id: invitation.channelId,
@@ -1041,7 +1032,7 @@ export class ChannelService {
 			});
 			if (channel == null)
 				throw new Error('Channel not found');
-			//Add user to channel
+			// Add user to channel
 			const joinedChannel: Channel = await this.prisma.channel.update({
 				where: {
 					id: invitation.channelId,
@@ -1057,7 +1048,7 @@ export class ChannelService {
 					},
 				},
 			});
-			//Delete invitation
+			// Delete invitation
 			await this.prisma.channelInvitation.delete({
 				where: {
 					id: invitation.id,
@@ -1075,16 +1066,16 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: decline a channel invitation
-	//@param: userId: string
-	//@param: dto: InvitationDto
-	//@return: Promise<boolean | string>
+	// @brief: decline a channel invitation
+	// @param: userId: string
+	// @param: dto: InvitationDto
+	// @return: Promise<boolean | string>
 	async declineChanInvitation(
 		userId: string,
 		dto: InvitationDto,
 	): Promise<boolean | string> {
 		try {
-			//Check if invitation exists
+			// Check if invitation exists
 			const invitation: ChannelInvitation | null =
 			await this.prisma.channelInvitation.findUnique({
 				where: {
@@ -1096,7 +1087,7 @@ export class ChannelService {
 			});
 			if (invitation == null)
 				throw new Error('Invitation not found');
-			//Delete invitation
+			// Delete invitation
 			await this.prisma.channelInvitation.delete({
 				where: {
 					id: invitation.id,
@@ -1109,26 +1100,26 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: promote a user to admin
-	//@param: userId: string
-	//@param: dto: UpdateRoleDto
-	//@return: Promise<ChannelUser | string>
+	// @brief: promote a user to admin
+	// @param: userId: string
+	// @param: dto: UpdateRoleDto
+	// @return: Promise<ChannelUser | string>
 	async promoteUser(
 		userId: string,
 		dto: UpdateRoleDto,
 	) : Promise<ChannelUser | string> {
 		try {
-			//Check if sender exists
+			// Check if sender exists
 			const senderRole: string | null = 
 			await this.getRole(userId, dto.channelId);
 			if (senderRole === 'MEMBER')
 				throw new Error('User dont have permission to update role');
-			//Check if target exists and is not owner or admin
+			// Check if target exists and is not owner or admin
 			const targetRole: string | null =
 			await this.getRole(dto.userId, dto.channelId);
 			if (targetRole === 'OWNER' || targetRole === 'ADMIN')
 				throw new Error('User is owner or admin');
-			//Update role
+			// Update role
 			const updatedChannelUser: ChannelUser | null =
 			await this.prisma.channelUser.update({
 				where: {
@@ -1141,7 +1132,7 @@ export class ChannelService {
 					role: "ADMIN",
 				},
 			});
-			//Unmute user if muted
+			// Unmute user if muted
 			const isMute =
 			await this.prisma.channelAction.findFirst({
 				where: {
@@ -1166,26 +1157,26 @@ export class ChannelService {
 			
 	}
 
-	//@brief: demote a user to member
-	//@param: userId: string
-	//@param: dto: UpdateRoleDto
-	//@return: Promise<ChannelUser | string>
+	// @brief: demote a user to member
+	// @param: userId: string
+	// @param: dto: UpdateRoleDto
+	// @return: Promise<ChannelUser | string>
 	async demoteUser(
 		userId: string,
 		dto: UpdateRoleDto,
 	) : Promise<ChannelUser | string> {
 		try {
-			//Check if user exists
+			// Check if user exists
 			const senderRole: string | null = 
 			await this.getRole(userId, dto.channelId);
 			if (senderRole !== 'OWNER')
 				throw new Error('User dont have permission to demote user');
-			//Check if user exists and is not owner or admin
+			// Check if user exists and is not owner or admin
 			const targetRole: string | null =
 			await this.getRole(dto.userId, dto.channelId);
 			if (targetRole === 'OWNER')
 				throw new Error('Cannot demote owner');
-			//Update role
+			// Update role
 			const updatedChannelUser: ChannelUser | null =
 			await this.prisma.channelUser.update({
 				where: {
@@ -1208,23 +1199,23 @@ export class ChannelService {
 		}		
 	}
 
-	//@brief: edit a channel
-	//@param: userId: string
-	//@param: dto: EditChannelDto
-	//@param: avatar: Express.Multer.File
-	//@return: Promise<Channel | string>
+	// @brief: edit a channel
+	// @param: userId: string
+	// @param: dto: EditChannelDto
+	// @param: avatar: Express.Multer.File
+	// @return: Promise<Channel | string>
 	async editChannel(
 		userId: string,
 		dto: EditChannelDto,
 		avatar: Express.Multer.File,
 	) : Promise<Partial<Channel> | string> {
 		try {
-			//Check if sender have the right to edit channel
+			// Check if sender have the right to edit channel
 			const senderRole: string | null =
 			await this.getRole(userId, dto.channelId);
 			if (senderRole === 'MEMBER')
 				throw new Error('User dont have permission to edit channel');
-			//Check if password is provided if new channel is protected
+			// Check if password is provided if new channel is protected
 			if (dto.status === 'PROTECTED')
 			{
 				if (dto.password == null)
@@ -1240,14 +1231,14 @@ export class ChannelService {
 					id: dto.channelId,
 				},
 			});
-			//Delete old avatar if new one is provided
+			// Delete old avatar if new one is provided
 			if (avatar)
 			{
 				if (chan.avatar !== `${this.staticPath}default.png`)
 					fs.unlinkSync(join(process.cwd(), 'data/avatars/', chan.avatar.split('/').pop()));
 			}
 			const tmp: string = chan.avatar;
-			//Update channel
+			// Update channel
 			const updatedChannel: Partial<Channel> | null =
 			await this.prisma.channel.update({
 				where: {
@@ -1276,22 +1267,22 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Mute a user of a channel
-	//@param: userId: string
-	//@param: dto: ModerateUserDto
-	//@param: _server: Server
-	//@return: Promise<ChannelAction | string>
+	// @brief: Mute a user of a channel
+	// @param: userId: string
+	// @param: dto: ModerateUserDto
+	// @param: _server: Server
+	// @return: Promise<ChannelAction | string>
 	async muteUser(
 		userId: string,
 		dto: ModerateUserDto,
 		_server: Server,
 	): Promise<ChannelAction | string> {
 		try {
-			//Check if user have permission to mute user and if target is not a admin or owner
+			// Check if user have permission to mute user and if target is not a admin or owner
 			const check = await this.checkIsValideModeration(userId, dto);
 			if (check != true)
 				throw new Error(check);
-			//Check if user is already muted
+			// Check if user is already muted
 			const isMuted: ChannelAction | null = await this.prisma.channelAction.findFirst({
 				where: {
 					targetId: dto.targetId,
@@ -1300,10 +1291,10 @@ export class ChannelService {
 			});
 			if (isMuted != null)
 				throw new Error('User is already muted');
-			//Set mute duration
-			const MueDurationInMs: number = 10 * 1000; //10s
+			// Set mute duration
+			const MueDurationInMs: number = 10 * 1000; // 10s
 			const MuteExpiration: Date = new Date(Date.now() + MueDurationInMs);
-			//Create mute action
+			// Create mute action
 			const mutedUser: ChannelAction | null =
 			await this.prisma.channelAction.create({
 				data: {
@@ -1314,7 +1305,7 @@ export class ChannelService {
 					type: 'MUTE',
 				},
 			});
-			//Unmute user after the mute duration
+			// Unmute user after the mute duration
 			setTimeout(async () => {
 				const mutedUser: ChannelAction | null =
 				await this.prisma.channelAction.findFirst({
@@ -1339,20 +1330,20 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Unmute a user of a channel
-	//@param: userId: string
-	//@param: dto: ModerateUserDto
-	//@return: Promise<ChannelAction | string>
+	// @brief: Unmute a user of a channel
+	// @param: userId: string
+	// @param: dto: ModerateUserDto
+	// @return: Promise<ChannelAction | string>
 	async unmuteUser(
 		userId: string,
 		dto: ModerateUserDto,
 	): Promise<ChannelAction | string> {
 		try {
-			//Check if user have permission to mute user and if target is not a admin or owner
+			// Check if user have permission to mute user and if target is not a admin or owner
 			const check = await this.checkIsValideModeration(userId, dto);
 			if (check != true)
 				throw new Error(check);
-			//Check if user is muted
+			// Check if user is muted
 			const isMuted: ChannelAction | null = await this.prisma.channelAction.findFirst({
 				where: {
 					targetId: dto.targetId,
@@ -1362,7 +1353,7 @@ export class ChannelService {
 			});
 			if (isMuted == null)
 				throw new Error('User is not muted');
-			//Unmute user
+			// Unmute user
 			const unmutedUser: ChannelAction | null =
 			await this.prisma.channelAction.delete({
 				where: {
@@ -1377,20 +1368,20 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Ban a user of a channel
-	//@param: userId: string
-	//@param: dto: ModerateUserDto
-	//@return: Promise<ChannelAction | string>
+	// @brief: Ban a user of a channel
+	// @param: userId: string
+	// @param: dto: ModerateUserDto
+	// @return: Promise<ChannelAction | string>
 	async banUser(
 		userId: string,
 		dto: ModerateUserDto,
 	): Promise<UserTag | string> {
 		try {
-			//Check if user have permission to mute user and if target is not a admin or owner
+			// Check if user have permission to mute user and if target is not a admin or owner
 			const check = await this.checkIsValideModeration(userId, dto);
 			if (check != true)
 				throw new Error(check);
-			//Check if user is already banned
+			// Check if user is already banned
 			const isBanned: ChannelAction | null = await this.prisma.channelAction.findFirst({
 				where: {
 					targetId: dto.targetId,
@@ -1400,7 +1391,7 @@ export class ChannelService {
 			});
 			if (isBanned != null)
 				throw new Error('User is already banned');
-			//Create ban action
+			// Create ban action
 			await this.prisma.channelAction.create({
 				data: {
 					senderId: userId,
@@ -1409,9 +1400,9 @@ export class ChannelService {
 					type: 'BAN',
 				},
 			});
-			//Get user tag to return
+			// Get user tag to return
 			const user: UserTag | string = await this.getUserTag(dto.channelId, dto.targetId);
-			//Remove user from channel
+			// Remove user from channel
 			await this.prisma.channelUser.delete({
 				where: {
 					userId_channelId: {
@@ -1420,7 +1411,7 @@ export class ChannelService {
 					},
 				},
 			});
-			//Decrement channel users count
+			// Decrement channel users count
 			await this.prisma.channel.update({
 				where: {
 					id: dto.channelId,
@@ -1439,20 +1430,20 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Unban a user of a channel
-	//@param: userId: string
-	//@param: dto: ModerateUserDto
-	//@return: Promise<ChannelAction | string>
+	// @brief: Unban a user of a channel
+	// @param: userId: string
+	// @param: dto: ModerateUserDto
+	// @return: Promise<ChannelAction | string>
 	async unbanUser(
 		userId: string,
 		dto: ModerateUserDto,
 	): Promise<ChannelAction | string> {
 		try {
-			//Check if user have permission to mute user and if target is not a admin or owner
+			// Check if user have permission to mute user and if target is not a admin or owner
 			const check = await this.checkIsValideModeration(userId, dto);
 			if (check != true)
 				throw new Error(check);
-			//Check if user is banned
+			// Check if user is banned
 			const isBanned: ChannelAction | null = await this.prisma.channelAction.findFirst({
 				where: {
 					targetId: dto.targetId,
@@ -1462,7 +1453,7 @@ export class ChannelService {
 			});
 			if (isBanned == null)
 				throw new Error('User is not banned');
-			//Unban user
+			// Unban user
 			const unbannedUser: ChannelAction | null =
 			await this.prisma.channelAction.delete({
 				where: {
@@ -1477,9 +1468,9 @@ export class ChannelService {
 		}
 	}
 
-	// utils
-	//@brief: Check if channel exist
-	//@param: channelId: string
+	//  utils
+	// @brief: Check if channel exist
+	// @param: channelId: string
 	async isChannel(channelId: string) {
 		const channel: Channel | null = await this.prisma.channel.findUnique({
 			where: {
@@ -1490,11 +1481,11 @@ export class ChannelService {
 			throw new Error('Channel not found');
 	}
 
-	//@brief: Check if user have permission to moderate, 
-	//if target is not admin or owner, if channel exist and if channel is not a DM
-	//@param: userId: string
-	//@param: moderateInfo: ModerateUserDto
-	//@return: Promise<boolean | string>
+	// @brief: Check if user have permission to moderate, 
+	// if target is not admin or owner, if channel exist and if channel is not a DM
+	// @param: userId: string
+	// @param: moderateInfo: ModerateUserDto
+	// @return: Promise<boolean | string>
 	async checkIsValideModeration(
 		userId: string,
 		moderateInfo: ModerateUserDto,
@@ -1526,10 +1517,10 @@ export class ChannelService {
 		}
 	}
 
-	//@brief: Check if user is muted
-	//@param: userId: string
-	//@param: channelId: string
-	//@return: Promise<boolean>
+	// @brief: Check if user is muted
+	// @param: userId: string
+	// @param: channelId: string
+	// @return: Promise<boolean>
 	async isMute(
 		userId: string,
 		channelId: string,
@@ -1546,10 +1537,10 @@ export class ChannelService {
 		return false;
 	}
 
-	//@brief: Check if user is banned
-	//@param: userId: string
-	//@param: channelId: string
-	//@return: Promise<boolean>
+	// @brief: Check if user is banned
+	// @param: userId: string
+	// @param: channelId: string
+	// @return: Promise<boolean>
 	async isBanned(
 		userId: string,
 		channelId: string,

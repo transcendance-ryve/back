@@ -1,11 +1,11 @@
-import { Body, Controller, UseGuards } from "@nestjs/common"
-import { GameService } from "./game.service"
+import { Body, Controller, UseGuards } from '@nestjs/common'
+import { UsersService } from 'src/users/users.service';
+import { JwtAuthGuard } from 'src/users/guard/jwt.guard';
+import { GameService } from './game.service'
 import { GetCurrentUser } from 'src/decorators/user.decorator';
 import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
 import { Get, Query } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/users/guard/jwt.guard';
-import { MatchmakingService } from "./matchmaking.service";
-import { UsersService } from "src/users/users.service";
+import { MatchmakingService } from './matchmaking.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('game')
@@ -23,7 +23,7 @@ export class GameController {
 		const gameRequests = this._matchmakingService.getGameRequests(currentUser.id, false);
 		
 		const requests = await Promise.all(gameRequests.map(async gameRequest => {
-			const user = await this._userService.getUser({ id: gameRequest.sender }, "id,username,avatar,status");
+			const user = await this._userService.getUser({ id: gameRequest.sender }, 'id,username,avatar,status');
 			return {
 				id: user.id,
 				username: user.username,

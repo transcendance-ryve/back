@@ -1,4 +1,4 @@
-import { ChannelService } from './channel.service';
+import ChannelService from './channel.service';
 import { Channel, User } from '@prisma/client';
 import {
 	DirectMessageDto,

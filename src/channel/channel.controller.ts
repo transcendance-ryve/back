@@ -11,23 +11,22 @@ import {
 	UploadedFile,
 	Query,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../users/guard/jwt.guard';
-import { Channel } from '@prisma/client';
-import { ChannelService } from './channel.service';
-import { GetCurrentUserId } from 'src/decorators/user.decorator';
-import { GetCurrentUser } from 'src/decorators/user.decorator';
-import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
-import { ChannelGateway } from './channel.gateway';
+import { UserIdToSockets } from 'src/users/userIdToSockets.service';
+import { extname } from 'path';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { CreateChannelDto, EditChannelDto, TargetDto } from './dto';
-import { UserIdToSockets } from 'src/users/userIdToSockets.service';
+import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
+import { Channel } from '@prisma/client';
+import { GetCurrentUserId, GetCurrentUser } from 'src/decorators/user.decorator';
+import { JwtAuthGuard } from '../users/guard/jwt.guard';
+import ChannelService from './channel.service';
+import { ChannelGateway } from './channel.gateway';
+import { CreateChannelDto, EditChannelDto } from './dto';
 import { InvitaionTag, UserTag } from './interfaces/utils.interfaces';
 
 @UseGuards(JwtAuthGuard)
 @Controller('channels')
-export class ChannelController {
+export default class ChannelController {
 	constructor(
 		private readonly channelService: ChannelService,
 		private readonly channelGateway: ChannelGateway
@@ -87,6 +86,7 @@ export class ChannelController {
             }
         }),
     )
+
 	async createChannel(
 		@GetCurrentUserId() userId: string,
 		@Body('createInfo') dto: CreateChannelDto,
@@ -139,6 +139,7 @@ export class ChannelController {
             }
         }),
     )
+
 	async editChannel(
 		@GetCurrentUserId() userId: string,
 		@Body('editInfo') editInfo: EditChannelDto,
@@ -163,8 +164,6 @@ export class ChannelController {
 		@GetCurrentUserId() userId: string,
 		@Param('targetId') target: string,
 	) : Promise<string> {
-		console.log("targetId: ", target);
-		console.log("userId: ", userId);
 		const isBlocked: boolean | string = await this.channelService.isBlockedRelation(userId, target);
 		if (isBlocked === "target_blocked")
 			return ('targetBlocked');
@@ -203,7 +202,7 @@ export class ChannelController {
 	getMutedUsers(@Param('id') channelId: string): Promise<any> {
 		return this.channelService.getMutedUsersOfChannel(channelId);
 	}
-	
+
 	@Get('banned/:id')
 	getBannedUsers(@Param('id') channelId: string): Promise<any> {
 		return this.channelService.getBannedUsersOfChannel(channelId);

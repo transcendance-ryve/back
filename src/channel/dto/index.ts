@@ -8,4 +8,3 @@ export * from './Invitation.dto';
 export * from './UpdateRole.dto';
 export * from './EditChannel.dto';
 export * from './ModerateUser.dto';
-export * from './Target.dto';
