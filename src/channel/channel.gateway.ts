@@ -319,7 +319,7 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		UserIdToSockets.emit(userId, this._server, 'blockStatus', isBlocked, targetId);
 	}
 
-	@SubscribeMessage('isBlockedRelation')
+	/*@SubscribeMessage('isBlockedRelation')
 	async isBlockedRelation(
 		@GetCurrentUserId() userId: string,
 		@MessageBody('targetId') targetId: string,
@@ -331,5 +331,5 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 			UserIdToSockets.emit(userId, this._server, 'userBlocked', targetId);
 		else
 			UserIdToSockets.emit(userId, this._server, 'noBlockedRelation');
-	}
+	}*/
 }

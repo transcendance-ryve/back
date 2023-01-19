@@ -158,6 +158,20 @@ export class ChannelController {
 		}
 	}
 
+	@Get('isBlocked')
+	async isBlocked(
+		@GetCurrentUserId() userId: string,
+		@Body('targetId') targetId: string,
+	) {
+		const isBlocked: boolean | string = await this.channelService.isBlockedRelation(userId, targetId);
+		if (isBlocked === "target_blocked")
+			return ('targetBlocked');
+		else if (isBlocked === "user_blocked")
+			return ('userBlocked');
+		else
+			return('noBlockedRelation');
+	}
+
 	//return a channel by id
 	@Get(':id')
 	getChannelById(@Param('id') id: string) : Promise<Partial<Channel> | null> {
@@ -196,19 +210,5 @@ export class ChannelController {
 	@Get('pending/:id')
 	getPendingInvites(@Param('id') channelId: string): Promise<any> {
 		return this.channelService.getPendingInvitesOfChannel(channelId);
-	}
-
-	@Get('isBlocked')
-	async isBlocked(
-		@GetCurrentUserId() userId: string,
-		@Body('targetId') targetId: string,
-	) {
-		const isBlocked: boolean | string = await this.channelService.isBlockedRelation(userId, targetId);
-		if (isBlocked === "target_blocked")
-			return ('targetBlocked');
-		else if (isBlocked === "user_blocked")
-			return ('userBlocked');
-		else
-			return('noBlockedRelation');
 	}
 }

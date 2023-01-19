@@ -36,7 +36,7 @@ export class ChannelService {
 		private readonly prisma: PrismaService
 		) {}
 
-	private staticPath = 'http://localhost:3000/';
+	private staticPath = 'http://localhost:3000/avatars/';
 	//Getter
 
 	//@brief: Get all the channels of a user except
