@@ -4,7 +4,6 @@ import {
 	DirectMessageDto,
 	IncomingMessageDto,
 	JoinChannelDto,
-	LeaveChannelDto,
 	InviteToChannelDto,
 	InvitationDto,
 	UpdateRoleDto,
@@ -22,7 +21,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtAuthGuard } from '../users/guard/jwt.guard';
 import { UseGuards } from '@nestjs/common';
-import { GetCurrentUserId, GetCurrentUser } from '../decorators/user.decorator';
+import { GetCurrentUserId } from '../decorators/user.decorator';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { UsersService } from 'src/users/users.service';
 import { UserTag } from './interfaces/utils.interfaces';
@@ -48,6 +47,8 @@ export class ChannelGateway implements OnGatewayConnection, OnGatewayDisconnect{
 		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
 		const { cookie } = clientSocket.handshake?.headers;
+		if (!cookie.includes('access_token'))
+			return;
         const accessToken = cookie?.split('=')?.pop();
     	const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
 		await this.channelService.connectToMyChannels(payload.id);

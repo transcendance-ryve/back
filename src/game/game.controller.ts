@@ -1,4 +1,4 @@
-import { Controller, UseGuards } from "@nestjs/common"
+import { Body, Controller, UseGuards } from "@nestjs/common"
 import { GameService } from "./game.service"
 import { GetCurrentUser } from 'src/decorators/user.decorator';
 import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
@@ -44,13 +44,14 @@ export class GameController {
 		@Query('page') page: string,
 		@Query('take') take: string,
 		@Query('order') order: string,
+		@Body('userId') userId: string,
 	) {
-		const games = await this._gameService.getGameHistory(currentUser.id,
+		const games = await this._gameService.getGameHistory(userId,
 			search || undefined,
 			order,
 			Number(page) || undefined,
 			Number(take) || undefined,);
-		const count = await this._gameService.getGameHistoryCount(currentUser.id);
+		const count = await this._gameService.getGameHistoryCount(userId);
 		return {games, count};
 	}
 
