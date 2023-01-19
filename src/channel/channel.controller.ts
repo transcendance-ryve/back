@@ -21,7 +21,7 @@ import { ChannelGateway } from './channel.gateway';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { CreateChannelDto, EditChannelDto } from './dto';
+import { CreateChannelDto, EditChannelDto, TargetDto } from './dto';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { InvitaionTag, UserTag } from './interfaces/utils.interfaces';
 
@@ -158,12 +158,14 @@ export class ChannelController {
 		}
 	}
 
-	@Get('isBlocked')
+	@Get('isBlocked/:targetId')
 	async isBlocked(
 		@GetCurrentUserId() userId: string,
-		@Body('targetId') targetId: string,
+		@Param('targetId') target: string,
 	) : Promise<string> {
-		const isBlocked: boolean | string = await this.channelService.isBlockedRelation(userId, targetId);
+		console.log("targetId: ", target);
+		console.log("userId: ", userId);
+		const isBlocked: boolean | string = await this.channelService.isBlockedRelation(userId, target);
 		if (isBlocked === "target_blocked")
 			return ('targetBlocked');
 		else if (isBlocked === "user_blocked")
