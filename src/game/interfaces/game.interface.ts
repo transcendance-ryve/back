@@ -29,6 +29,8 @@ export interface GamesRequest {
 		accept: boolean,
 	},
 	bonus: boolean,
+	matchmaking: boolean,
+	startTime: number,
 
 	timer: NodeJS.Timeout,
 }

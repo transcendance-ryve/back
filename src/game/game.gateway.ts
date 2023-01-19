@@ -14,13 +14,15 @@ import { MatchmakingService } from "./matchmaking.service";
 import { Server, Socket } from "socket.io";
 import { GameService } from "./game.service";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
+import { UsersService } from "src/users/users.service";
 
 @WebSocketGateway()
 @UseGuards(JwtAuthGuard)
 export class GameGateway{
 	constructor(
 		private readonly _matchmakingService: MatchmakingService,
-		private readonly _gameService: GameService
+		private readonly _gameService: GameService,
+		private readonly _usersService: UsersService,
 		) {}
 
 	@WebSocketServer()
@@ -29,8 +31,6 @@ export class GameGateway{
 	async handleDisconnect(socket: Socket) {
 		const userID = socket.data.id;
 
-		console.log('userID', userID);
-	
 		this._matchmakingService.leave(userID, this._server);
 	}
 	
@@ -39,7 +39,6 @@ export class GameGateway{
 	@SubscribeMessage("join_queue")
 	handleJoinMatchmaking(
 		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket,
 		@MessageBody("bonus") bonus: boolean,
 	): void {
 		this._matchmakingService.join(currentID, this._server, bonus);
@@ -48,25 +47,41 @@ export class GameGateway{
 	@SubscribeMessage("leave_queue")
 	handleLeaveMatchmaking(
 		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
 	): void {
 		this._matchmakingService.leave(currentID, this._server);
-	
+	}
+
+	@SubscribeMessage("send_game_request")
+	async handleSendGameRequest(
+		@GetCurrentUserId() currentID: string,
+		@ConnectedSocket() socket: Socket,
+		@MessageBody("opponent") opponentID: string,
+		@MessageBody("bonus") bonus: boolean,
+
+	): Promise<void> {
+		this._matchmakingService.createGameRequest(
+			currentID,
+			opponentID,
+			false,
+			this._server,
+			bonus
+		);
 	}
 
 	@SubscribeMessage("accept_game_request")
 	handleAcceptGame(
 		@GetCurrentUserId() currentID: string,
-		@ConnectedSocket() socket: Socket
+		@ConnectedSocket() socket: Socket,
+		@MessageBody("matchmaking") matchmaking: boolean,
 	): void {
-		this._matchmakingService.acceptGameRequest(currentID, this._server);
+		this._matchmakingService.acceptGameRequest(currentID, this._server, matchmaking);
 		UserIdToSockets.emit(currentID, this._server, "accepted_game_request");
 	}
 
 	@SubscribeMessage("decline_game_request")
 	handleDeclineGame(
 		@GetCurrentUserId() currentID: string,
-		@MessageBody('matchmaking') matchmaking = true,
+		@MessageBody('matchmaking') matchmaking: boolean,
 	): void {
 		this._matchmakingService.declineGameRequest(currentID, matchmaking, this._server);
 	}
