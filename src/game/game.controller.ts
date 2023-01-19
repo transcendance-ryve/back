@@ -1,28 +1,37 @@
-import { Body, Controller, UseGuards } from '@nestjs/common'
+import {
+	Controller,
+	Param,
+	UseGuards,
+	Get,
+	Query,
+} from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { JwtAuthGuard } from 'src/users/guard/jwt.guard';
-import { GameService } from './game.service'
-import { GetCurrentUser } from 'src/decorators/user.decorator';
 import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
-import { Get, Query } from '@nestjs/common';
+import { GetCurrentUser } from 'src/decorators/user.decorator';
+import { GameService } from './game.service';
 import { MatchmakingService } from './matchmaking.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('game')
-export class GameController {
+export default class GameController {
 	constructor(
+		// eslint-disable-next-line no-unused-vars
 		private readonly _gameService: GameService,
+		// eslint-disable-next-line no-unused-vars
 		private readonly _matchmakingService: MatchmakingService,
+		// eslint-disable-next-line no-unused-vars
 		private readonly _userService: UsersService,
-	){}
+	// eslint-disable-next-line no-empty-function
+	) {}
 
 	@Get('game_requests')
 	async getGameRequests(
 		@GetCurrentUser() currentUser: JwtPayloadDto,
-	){
+	) {
 		const gameRequests = this._matchmakingService.getGameRequests(currentUser.id, false);
-		
-		const requests = await Promise.all(gameRequests.map(async gameRequest => {
+
+		const requests = await Promise.all(gameRequests.map(async (gameRequest) => {
 			const user = await this._userService.getUser({ id: gameRequest.sender }, 'id,username,avatar,status');
 			return {
 				id: user.id,
@@ -31,20 +40,19 @@ export class GameController {
 				status: user.status,
 				bonus: gameRequest.bonus,
 				startTime: gameRequest.startTime,
-			}
+			};
 		}));
 
 		return requests;
 	}
 
-	@Get ('history')
+	@Get ('history/:userId')
 	async getGameHistory(
-		@GetCurrentUser() currentUser: JwtPayloadDto,
+		@Param('userId') userId: string,
 		@Query('search') search: string,
 		@Query('page') page: string,
 		@Query('take') take: string,
 		@Query('order') order: string,
-		@Body('userId') userId: string,
 	) {
 		const games = await this._gameService.getGameHistory(userId,
 			search || undefined,

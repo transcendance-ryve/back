@@ -1,11 +1,12 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsString } from 'class-validator';
 
+// eslint-disable-next-line import/prefer-default-export
 export class InviteToChannelDto {
 	@IsNotEmpty()
 	@IsString()
-	channelId: string;
+		channelId: string;
 
 	@IsNotEmpty()
 	@IsString()
-	friendId: string;
+		friendId: string;
 }

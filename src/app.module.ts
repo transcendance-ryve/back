@@ -3,7 +3,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { ChannelModule } from './channel/channel.module';
+import ChannelModule from './channel/channel.module';
 import { GameModule } from './game/game.module';
 
 

@@ -68,7 +68,7 @@ export class GameService {
 		order: string,
 		page?: number,
 		take?: number,
-		) {
+	) {
 		const games = await this._prismaService.game.findMany({
 			where: {
 				AND: [
