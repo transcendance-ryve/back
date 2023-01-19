@@ -4,7 +4,7 @@ import { Status } from "@prisma/client";
 import { Server } from "socket.io";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 import { UsersService } from "src/users/users.service";
-import { GameService } from "./game.service";
+import GameService from "./game.service";
 import { GamesRequest } from "./interfaces/game.interface";
 
 interface UserInQueue {

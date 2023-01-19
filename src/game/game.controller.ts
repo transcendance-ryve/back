@@ -9,7 +9,7 @@ import { UsersService } from 'src/users/users.service';
 import { JwtAuthGuard } from 'src/users/guard/jwt.guard';
 import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
 import { GetCurrentUser } from 'src/decorators/user.decorator';
-import { GameService } from './game.service';
+import GameService from './game.service';
 import { MatchmakingService } from './matchmaking.service';
 
 @UseGuards(JwtAuthGuard)
@@ -46,7 +46,7 @@ export default class GameController {
 		return requests;
 	}
 
-	@Get ('history/:userId')
+	@Get('history/:userId')
 	async getGameHistory(
 		@Param('userId') userId: string,
 		@Query('search') search: string,
@@ -54,13 +54,15 @@ export default class GameController {
 		@Query('take') take: string,
 		@Query('order') order: string,
 	) {
-		const games = await this._gameService.getGameHistory(userId,
+		const games = await this._gameService.getGameHistory(
+			userId,
 			search || undefined,
 			order,
 			Number(page) || undefined,
-			Number(take) || undefined,);
+			Number(take) || undefined,
+		);
 		const count = await this._gameService.getGameHistoryCount(userId);
-		return {games, count};
+		return { games, count };
 	}
 
 	@Get('current')
@@ -69,12 +71,12 @@ export default class GameController {
 		@Query('page') page: number,
 		@Query('take') take: number,
 		@Query('search') search: string,
-	){
+	) {
 		return this._gameService.getCurrentGame(
 			order,
 			page,
 			take,
-			search || undefined
+			search || undefined,
 		);
 	}
 }

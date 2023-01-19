@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { GameService } from "../game.service";
+import GameService from "../game.service";
 import { Paddles, EndGamePlayer } from "../interfaces/game.interface";
 import { Player } from "./Player.entities";
 import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT, PLAYERS_WIDTH, START_BALL_RADIUS, TICK_INTERVAL } from "./utils.entities";
