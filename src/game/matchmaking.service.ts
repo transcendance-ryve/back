@@ -188,6 +188,7 @@ export class MatchmakingService {
 		if (!gameRequest)
 			return;
 
+		this.deleteGameRequest(userID, server, inMatchmaking);
 		if (inMatchmaking) {
 			if (gameRequest.sender.id === userID) {
 				this.join(gameRequest.receiver.id, server, gameRequest.bonus);
@@ -196,10 +197,7 @@ export class MatchmakingService {
 				this.join(gameRequest.sender.id, server, gameRequest.bonus);
 				UserIdToSockets.emit(gameRequest.sender.id, server, "game_canceled");
 			}
-		}
-
-		this.deleteGameRequest(userID, server, inMatchmaking);
-		if (!inMatchmaking) {
+		} else {
 			const receiver = await this._usersService.getUser({ id: gameRequest.receiver.id }, "id,username,avatar");
 			UserIdToSockets.emit(gameRequest.sender.id, server, "game_request_declined", receiver);
 			UserIdToSockets.emit(gameRequest.receiver.id, server, "game_request_decline", { id: gameRequest.sender.id });
