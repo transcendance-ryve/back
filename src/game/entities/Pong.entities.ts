@@ -34,9 +34,8 @@ import {
 	MAX_BALL_SPEED,
 	BALL_SPEED_MULTIPLIER,
 	} from "./utils.entities";
-import { GameService } from "../game.service";
+import GameService from "../game.service";
 import { Paddles, Ball, EndGamePlayer } from "../interfaces/game.interface";
-import { UserIdToSockets } from "src/users/userIdToSockets.service";
 
 export class Pong
 {
