@@ -19,7 +19,7 @@ export class AuthService {
         private readonly _prismaService: PrismaService
     ) {}
 
-	private _staticPath = "http://localhost:3000/";
+	private _staticPath = "http://localhost:3000/avatars/";
 
 	async createToken(data: JwtPayloadDto) : Promise<string> {
 		return this._jwtService.signAsync({
@@ -93,6 +93,8 @@ export class AuthService {
 				});
 			}
         } catch(err) {
+			console.log(err);
+
             throw new UnauthorizedException("User already exist");
         }
     }

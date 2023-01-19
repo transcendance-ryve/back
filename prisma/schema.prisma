@@ -17,7 +17,7 @@ model User {
 	password		String
 	auth			Boolean					@default(false)
 	
-	avatar			String					@default("http://localhost:3000/default.png")
+	avatar			String					@default("http://localhost:3000/avatars/default.png")
 
 	status          Status          		@default(OFFLINE)
 
