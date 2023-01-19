@@ -68,7 +68,6 @@ export default class GameGateway {
 		);
 	}
 
-<<<<<<< HEAD
 	@SubscribeMessage("join_play")
 	handleOnPlay(
 		@GetCurrentUserId() currentID: string,
@@ -88,9 +87,6 @@ export default class GameGateway {
 	}
 
 	@SubscribeMessage("accept_game_request")
-=======
-	@SubscribeMessage('accept_game_request')
->>>>>>> 41025668c81e90a0682ae415a005d1d7f5367c98
 	handleAcceptGame(
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket,
