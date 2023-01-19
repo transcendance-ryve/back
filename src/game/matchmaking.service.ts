@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { WebSocketServer } from "@nestjs/websockets";
+import { Status } from "@prisma/client";
 import { Server } from "socket.io";
 import { UserIdToSockets } from "src/users/userIdToSockets.service";
 import { UsersService } from "src/users/users.service";
@@ -21,7 +22,7 @@ export class MatchmakingService {
 	private _matchmakingQueue: UserInQueue[] = [];
 	private _gamesRequest: GamesRequest[] = [];
 
-	private _gameRequestTimer: number = 30000;
+	private _gameRequestTimer: number = 10000;
 
 	join(userID: string, server: Server, bonus: boolean): void {
 		if (this.get(userID))
@@ -93,10 +94,9 @@ export class MatchmakingService {
 			bonus: bonus,
 			matchmaking: inMatchmaking,
 			startTime: Date.now(),
-			
+
 			timer: setTimeout(() => {
 				const gameRequest = this.getGameRequest(userID, inMatchmaking);
-
 				if (!gameRequest)
 					return;
 				
@@ -107,8 +107,8 @@ export class MatchmakingService {
 					if (gameRequest.receiver.accept) this.join(gameRequest.receiver.id, server, bonus);
 					else UserIdToSockets.emit(gameRequest.receiver.id, server, "left_queue")
 				}
-
-				UserIdToSockets.emit(gameRequest.receiver.id, server, "game_canceled", { id: gameRequest.sender.id });
+				
+				UserIdToSockets.emit(gameRequest.receiver.id, server, "game_request_timeup", { id: gameRequest.sender.id });
 				this.deleteGameRequest(userID, server, inMatchmaking);
 			}, this._gameRequestTimer)
 		});
@@ -142,26 +142,43 @@ export class MatchmakingService {
 	async acceptGameRequest(userID: string, server: Server, inMatchmaking: boolean): Promise<void> {
 		const gameRequest = this.getGameRequest(userID, inMatchmaking);
 
-		if (!gameRequest) {
-			return;
-		}
-
-		if (gameRequest.sender.id === userID) gameRequest.sender.accept = true;
-		else gameRequest.receiver.accept = true;
-
-		if (gameRequest.receiver.accept && gameRequest.sender.accept) {
-			UserIdToSockets.emit(gameRequest.sender.id, server, "game_accepted");
-			UserIdToSockets.emit(gameRequest.receiver.id, server, "game_accepted");
-
-			this.deleteGameRequest(userID, server, inMatchmaking);
-
-			this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, server);
-		}
+		if (!gameRequest) return;
 
 		if (!inMatchmaking) {
-			const receiver = await this._usersService.getUser({ id: gameRequest.receiver.id }, "id,username,avatar");
-			UserIdToSockets.emit(gameRequest.sender.id, server, "game_request_accepted", receiver);
-			UserIdToSockets.emit(gameRequest.receiver.id, server, "game_request_accept", { id: gameRequest.sender.id });
+			gameRequest.receiver.accept = true;
+
+			const gameCreated = await this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, server);
+			
+			const sender = await this._usersService.getUser({ id: gameRequest.sender.id }, "status");
+			const receiver = await this._usersService.getUser({ id: gameRequest.receiver.id }, "id,username,avatar,status");
+
+			if (!gameCreated) {
+				gameRequest.receiver.accept = false;
+
+				if (sender.status === Status.INGAME)
+					UserIdToSockets.emit(gameRequest.receiver.id, server, "game_request_error", "Opponent is in game");
+				else if (sender.status === Status.OFFLINE)
+					UserIdToSockets.emit(gameRequest.receiver.id, server, "game_request_error", "Opponent is offline");
+			} else {				
+				UserIdToSockets.emit(gameRequest.sender.id, server, "game_request_accepted", receiver);
+				UserIdToSockets.emit(gameRequest.receiver.id, server, "game_request_accept", { id: gameRequest.sender.id });
+
+				this.deleteGameRequest(userID, server, inMatchmaking);
+			}
+		} else {
+			if (gameRequest.sender.id === userID) gameRequest.sender.accept = true;
+			else gameRequest.receiver.accept = true;
+
+			UserIdToSockets.emit(userID, server, "accepted_game_request");
+
+			if (gameRequest.receiver.accept && gameRequest.sender.accept) {
+				await this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, server);
+
+				UserIdToSockets.emit(gameRequest.sender.id, server, "game_accepted");
+				UserIdToSockets.emit(gameRequest.receiver.id, server, "game_accepted");
+				
+				this.deleteGameRequest(userID, server, inMatchmaking);
+			}
 		}
 	}
 

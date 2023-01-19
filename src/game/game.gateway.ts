@@ -75,7 +75,6 @@ export class GameGateway{
 		@MessageBody("matchmaking") matchmaking: boolean,
 	): void {
 		this._matchmakingService.acceptGameRequest(currentID, this._server, matchmaking);
-		UserIdToSockets.emit(currentID, this._server, "accepted_game_request");
 	}
 
 	@SubscribeMessage("decline_game_request")
