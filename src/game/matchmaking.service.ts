@@ -36,19 +36,18 @@ export class MatchmakingService {
 			UserIdToSockets.emit(userID, server, "joined_queue");
 		}
 
-		server.emit("matchmaking_queue_count", this.count());
+		server.to("matchmaking").emit("matchmaking_queue_count", this.count());
 	}
 
 	leave(userID: string, server: Server): void {
 		const gameRequest = this.getGameRequest(userID, true);
 		if (gameRequest) {
-			
 			let opponentID: string;
 			if (gameRequest.sender.id === userID) opponentID = gameRequest.receiver.id;
 			else opponentID = gameRequest.sender.id;
-			
+
 			this.join(opponentID, server, gameRequest.bonus);
-			
+
 			this.deleteGameRequest(userID, server, true);
 		}
 
@@ -56,7 +55,7 @@ export class MatchmakingService {
 		this._matchmakingQueue = this._matchmakingQueue.filter((user) => user.id !== userID);
 
 		UserIdToSockets.emit(userID, server, "left_queue");
-		server.emit("matchmaking_queue_count", this.count());
+		server.to("matchmaking").emit("matchmaking_queue_count", this.count());
 	}
 
 	get(userID: string): boolean {

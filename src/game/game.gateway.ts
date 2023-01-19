@@ -68,6 +68,24 @@ export class GameGateway{
 		);
 	}
 
+	@SubscribeMessage("join_play")
+	handleOnPlay(
+		@GetCurrentUserId() currentID: string,
+	): void {
+		const sockets = UserIdToSockets.get(currentID);
+		sockets.forEach(socket => socket.join("matchmaking"));
+
+		this._server.to("matchmaking").emit("matchmaking_queue_count", this._matchmakingService.count());
+	}
+
+	@SubscribeMessage("leave_play")
+	handleOnLeavePlay(
+		@GetCurrentUserId() currentID: string,
+	): void {
+		const sockets = UserIdToSockets.get(currentID);
+		sockets.forEach(socket => socket.leave("matchmaking"));
+	}
+
 	@SubscribeMessage("accept_game_request")
 	handleAcceptGame(
 		@GetCurrentUserId() currentID: string,
