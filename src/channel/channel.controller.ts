@@ -197,4 +197,18 @@ export class ChannelController {
 	getPendingInvites(@Param('id') channelId: string): Promise<any> {
 		return this.channelService.getPendingInvitesOfChannel(channelId);
 	}
+
+	@Get('isBlocked')
+	async isBlocked(
+		@GetCurrentUserId() userId: string,
+		@Body('targetId') targetId: string,
+	) {
+		const isBlocked: boolean | string = await this.channelService.isBlockedRelation(userId, targetId);
+		if (isBlocked === "target_blocked")
+			return ('targetBlocked');
+		else if (isBlocked === "user_blocked")
+			return ('userBlocked');
+		else
+			return('noBlockedRelation');
+	}
 }
