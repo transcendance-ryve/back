@@ -1579,4 +1579,28 @@ export class ChannelService {
 		return false;
 	}
 
+	async isBlockedRelation(userId: string, targetId: string)
+	: Promise<string | boolean> {
+		const isBlocked: Blocked | null = await this.prisma.blocked.findFirst({
+			where: {
+				OR: [
+					{
+						user_id: userId,
+						blocked_id: targetId,
+					},
+					{
+						user_id: targetId,
+						blocked_id: userId,
+					},
+				],
+			},
+		});
+		if (isBlocked === null)
+			return false;
+		if (isBlocked.user_id === userId && isBlocked.blocked_id === targetId)
+			return "target_blocked";
+		else if (isBlocked.user_id === targetId && isBlocked.blocked_id === userId)
+			return "user_blocked";
+		return false;
+	}
 }
