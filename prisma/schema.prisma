@@ -110,7 +110,7 @@ model Channel {
 	name		String?			@unique
 	status		ChannelType		@default(PUBLIC)
 	password	String?
-	avatar		String			@default("http://localhost:3000/default.png")
+	avatar		String			@default("http://localhost:3000/avatars/default.png")
 	usersCount	Int				@default(1)
 
 	createdAt	DateTime		@default(now())

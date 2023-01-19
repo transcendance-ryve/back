@@ -10,7 +10,7 @@ import { GameModule } from './game/game.module';
 @Module({
     imports: [
 		ServeStaticModule.forRoot({
-			rootPath: join(__dirname, '..', 'data', 'avatars')
+			rootPath: join(__dirname, '..', 'data')
 		}),
         UsersModule,
         AuthModule,
