@@ -237,14 +237,14 @@ export default class GameService {
 			const playerOne = this.playerIds[0];
 			const playerTwo = this.playerIds[1];
 			this.playerIds = [];
-			await this.create(playerOne, playerTwo, server);
+			await this.create(playerOne, playerTwo, server, true);
 		}
 	}
 
-	async create(id: string, opponent: string, server: Server): Promise<boolean> {
+	async create(id: string, opponent: string, server: Server, bonus: boolean): Promise<boolean> {
 		if (this.playerIdToGame.has(id) || this.playerIdToGame.has(opponent)) return false;
 		const gameId: string = uuidv4();
-		const game: Pong = new Pong(gameId, id, opponent, server, this, true);
+		const game: Pong = new Pong(gameId, id, opponent, server, this, bonus);
 		// console.log('game created : ' + game.gameId);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
