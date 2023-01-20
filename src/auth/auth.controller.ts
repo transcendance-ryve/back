@@ -165,10 +165,11 @@ export class AuthController {
 		
 		if (secret !== user.tfa_token)
 			throw new UnauthorizedException('Invalid token');
-		await this._authService.deleteTFAToken(id);
-		
+			
 		this._authService.verifyTFA(user.tfa_secret, code);
-
+		
+		await this._authService.deleteTFAToken(id);
+			
 		const token = await this._authService.createToken({
 			id: user.id,
 			username: user.username,
