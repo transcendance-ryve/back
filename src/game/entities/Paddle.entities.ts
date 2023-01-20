@@ -7,6 +7,7 @@ import {
 	PLAYERS_WIDTH,
 	WIDTH
 } from "./utils.entities";
+import { Pong } from "./neoPong.entities"
 
 export class Paddle extends Entity
 {
@@ -18,7 +19,12 @@ export class Paddle extends Entity
 	};
 
 	public color: string;
-	private speed: number = PLAYERS_SPEED;
+	public speed: number = PLAYERS_SPEED;
+	public playerSpeedSlowered = false;
+	public increased = false;
+	public decreased = false;
+	public counterIncreaseEffect = false;
+	public counterDecreaseEffect = false;
 
 	keyPressed = {
 		W: false,
@@ -62,9 +68,34 @@ export class Paddle extends Entity
 			this.moveDown();
 	}
 
-	update()
+	reverseKeysBehavior()
 	{
-		this.standardKeysBehavior();
+		if (this.keyPressed.W)
+			this.moveDown();
+		if (this.keyPressed.S)
+			this.moveUp();
 	}
 
+	slowerPlayerSpeed(pong: Pong)
+	{
+		if (pong.caughtBy[pong.SLOWER_BONUS] == 'R' && this.color == color.blue)
+			this.speed *= 0.7;
+		if (pong.caughtBy[pong.SLOWER_BONUS] == 'L' && this.color == color.red)
+			this.speed *= 0.7;
+	}
+
+	update(pong: Pong)
+	{
+		if (pong.bonusCaught[pong.SLOWER_BONUS] && !this.playerSpeedSlowered)
+		{
+			this.playerSpeedSlowered = true;
+			this.slowerPlayerSpeed(pong);
+		}
+		if (pong.caughtBy[pong.REVERSE_KEYS_BONUS] == 'R' && this.color == color.blue)
+			this.reverseKeysBehavior();
+		else if (pong.caughtBy[pong.REVERSE_KEYS_BONUS] == 'L' && this.color == color.red)
+			this.reverseKeysBehavior();
+		else
+			this.standardKeysBehavior();
+	}
 }
