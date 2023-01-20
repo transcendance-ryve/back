@@ -257,7 +257,7 @@ export default class GameService {
 		const players: Players = await this.getPlayers(id, opponent);
 		const width = 790;
 		const height = 390;
-		const preGameTime: number = 5000;
+		const preGameTime = 5000;
 		await this._usersService.updateUser({ id }, { status: Status.INGAME });
 		await this._usersService.updateUser({ id: opponent }, { status: Status.INGAME });
 		const startTime: number = Date.now() + preGameTime;
