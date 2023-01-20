@@ -2,29 +2,22 @@ import { Server } from "socket.io";
 import { GameService } from "../game.service";
 import { Paddles, EndGamePlayer } from "../interfaces/game.interface";
 import { Player } from "./Player.entities";
-import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT, PLAYERS_WIDTH, START_BALL_RADIUS, TICK_INTERVAL } from "./utils.entities";
+import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT,
+	PLAYERS_WIDTH, START_BALL_RADIUS, TICK_INTERVAL,
+	NB_BONUS, BONUSES_START, RAND_GEN_AREA_X,
+	BONUS_LIFETIME, BONUSES_INTERVAL, PLAYERS_SPEED,
+	PLAYER_SHRINK_MULTIPLIER, PLAYERS_SHRINK_POSITION_FIX,
+	PLAYERS_SHRINK_POSITION_FIX2, PLAYERS_MIN_HEIGHT,
+	PLAYER_INCREASE_MULTIPLIER, PLAYERS_GROWTH_POSITION_FIX,
+	PLAYERS_MAX_HEIGHT} from "./utils.entities";
 import { Ball } from "./Ball.entities";
-
-
-/*class Bonus extends Entity {
-
-	constructor(effect: string, imSrc: string){
-		super();
-		this.effect = effect;
-		this.image = new Image();
-		this.image.src = imSrc;
-	}
-	effect: string;
-	image: HTMLImageElement;
-	lifetime: number = BONUS_LIFETIME;
-
-	// update(); // check si la balle est sur le bonus
-}*/
+import { Bonus } from "./Bonus.entities"
+import { emit } from "process";
 
 export class Pong
 {
 	constructor(gameId:string, leftPlayerID: string,
-		rightPlayerID: string, _server: Server, _gameService: GameService)
+		rightPlayerID: string, _server: Server, _gameService: GameService, bonusesActivated: boolean)
 	{
 		this.leftPlayer = new Player(leftPlayerID, color.blue);
 		this.rightPlayer = new Player(rightPlayerID, color.red);
@@ -32,6 +25,7 @@ export class Pong
 		this._server = _server;
 		this.gameId = gameId;
 		this.start = true;
+		this.bonusesActivated = bonusesActivated;
 	}
 
 	destructor(){
@@ -44,22 +38,296 @@ export class Pong
 	gameId: string;
 	topScore: number = 5;
 	start: boolean = false;
-	timemout: NodeJS.Timeout;
+	timeout: NodeJS.Timeout;
 
-	/*bonuses = [
-		new Bonus("SIZE_DECREASE", "../bonuses_images/game-controller.svg"),
-		new Bonus("SIZE_INCREASE", "../bonuses_images/friends.svg"),
-		new Bonus("REVERSE_KEYS_BONUS", "../bonuses_images/bell.svg"),
-		new Bonus("SLOWER_BONUS", "../bonuses_images/Play.svg"),
-		new Bonus("SNIPER_BONUS", "../bonuses_images/Eye.svg"),
-	];*/
-
+	bonuses: Bonus[] = [];
 	ball = new Ball();
 	leftPlayer: Player;
 	rightPlayer: Player;
+	bonusesActivated: boolean;
 
 	// generateBonusSurMap();
 	// removeBonusSurMap();
+
+//-------------BONUS VARIABLES---------------//
+	mapBonus = new Map();
+
+	SIZE_DECREASE: number;
+	SIZE_INCREASE: number;
+	REVERSE_KEYS_BONUS: number;
+	SLOWER_BONUS: number;
+	SNIPER_BONUS: number;
+
+
+	playerIncreased = false;
+	playerDecreased = false;
+	throwSniperShot = false;
+
+	displayBonus: boolean[] = [];
+	bonusCountDownLaunched: boolean[] = [];
+	randBonusPosSet: boolean[] = [];
+	bonusCaught: boolean[] = [];
+	caughtBy: string[] = [];
+	timeOver: boolean[] = [];
+	gameStartTimer = Date.now();
+	timeOutIDs: NodeJS.Timeout[] = [];
+	// ballFreezed = false;
+
+//-------------BONUS VARIABLES---------------//
+
+	resetPlayersHeight()
+	{
+		// decreases players heights if they have been increased
+		if (this.playerIncreased) {
+			if (this.rightPlayer.pad.height > PLAYERS_HEIGHT)
+			{
+				this.rightPlayer.pad.height *= PLAYER_SHRINK_MULTIPLIER;
+				this.rightPlayer.pad.positionY += PLAYERS_SHRINK_POSITION_FIX;
+
+				// gives PLAYER_HEIGHT to the player when its height is close enough to stop modifying it
+				if ((this.rightPlayer.pad.height > PLAYERS_HEIGHT - 2) && (this.rightPlayer.pad.height < PLAYERS_HEIGHT + 2))
+					this.rightPlayer.pad.height = PLAYERS_HEIGHT;
+			}
+			if (this.leftPlayer.pad.height > PLAYERS_HEIGHT)
+			{
+				this.leftPlayer.pad.height *= PLAYER_SHRINK_MULTIPLIER;
+				this.leftPlayer.pad.positionY += PLAYERS_SHRINK_POSITION_FIX;
+
+				// gives PLAYER_HEIGHT to the player when its height is close enough to stop modifying it
+				if ((this.leftPlayer.pad.height > PLAYERS_HEIGHT - 2) && (this.leftPlayer.pad.height < PLAYERS_HEIGHT + 2))
+					this.leftPlayer.pad.height = PLAYERS_HEIGHT;
+			}
+		}
+
+		// increases players heights if they have been decreased
+		if (this.playerDecreased) {
+			if (this.rightPlayer.pad.height < PLAYERS_HEIGHT)
+			{
+				this.rightPlayer.pad.height *= PLAYER_INCREASE_MULTIPLIER;
+				this.rightPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
+
+				// gives PLAYER_HEIGHT to the player when its height is close enough to stop modifying it
+				if ((this.rightPlayer.pad.height > PLAYERS_HEIGHT - 2) && (this.rightPlayer.pad.height < PLAYERS_HEIGHT + 2))
+					this.rightPlayer.pad.height = PLAYERS_HEIGHT;
+			}
+			if (this.leftPlayer.pad.height < PLAYERS_HEIGHT)
+			{
+				this.leftPlayer.pad.height *= PLAYER_INCREASE_MULTIPLIER;
+				this.leftPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
+
+				// gives PLAYER_HEIGHT to the player when its height is close enough to stop modifying it
+				if ((this.leftPlayer.pad.height > PLAYERS_HEIGHT - 2) && (this.leftPlayer.pad.height < PLAYERS_HEIGHT + 2))
+					this.leftPlayer.pad.height = PLAYERS_HEIGHT;
+			}
+		}
+	}
+
+	decreasePlayerSize()
+	{
+		// decreases the right player's height if it has been decreased previously and returns
+		if (this.caughtBy[this.SIZE_DECREASE] == 'L' && this.rightPlayer.pad.increased == true && this.rightPlayer.pad.counterDecreaseEffect == false)
+		{
+			if (this.rightPlayer.pad.height > PLAYERS_HEIGHT)
+			{
+				// fixes height
+				this.rightPlayer.pad.height *= PLAYER_SHRINK_MULTIPLIER;
+				this.rightPlayer.pad.positionY += PLAYERS_SHRINK_POSITION_FIX;
+				
+				// disables all this.rightPlayer ifs in increasePlayerSize() as height must not change anymore
+				this.rightPlayer.pad.counterIncreaseEffect = true;
+				this.rightPlayer.pad.decreased = true;
+			}
+			return;
+		}
+
+		// decreases the left player's height if it has been decreased previously and returns
+		if (this.caughtBy[this.SIZE_DECREASE] == 'R' && this.leftPlayer.pad.increased == true && this.leftPlayer.pad.counterDecreaseEffect == false)
+		{
+			if (this.leftPlayer.pad.height > PLAYERS_HEIGHT)
+			{
+				// fixes height
+				this.leftPlayer.pad.height *= PLAYER_SHRINK_MULTIPLIER;
+				this.leftPlayer.pad.positionY += PLAYERS_SHRINK_POSITION_FIX;
+
+				// disables all this.leftPlayer ifs in increasePlayerSize() as height must not change anymore
+				this.leftPlayer.pad.counterIncreaseEffect = true;
+				this.leftPlayer.pad.decreased = true;
+			}
+			return;
+		}
+
+		// decreases the left player's height if it is the first bonus taken that modifies the left player's height
+		if (this.caughtBy[this.SIZE_DECREASE] == 'R' && this.leftPlayer.pad.height > PLAYERS_MIN_HEIGHT && this.leftPlayer.pad.increased == false)
+		{
+			this.leftPlayer.pad.decreased = true;
+			this.leftPlayer.pad.height *= PLAYER_SHRINK_MULTIPLIER;
+			this.leftPlayer.pad.positionY += PLAYERS_SHRINK_POSITION_FIX2;
+		}
+
+		// decreases the right player's height if it is the first bonus taken that modifies the right player's height
+		else if (this.caughtBy[this.SIZE_DECREASE] == 'L' && this.rightPlayer.pad.height > PLAYERS_MIN_HEIGHT && this.rightPlayer.pad.increased == false)
+		{
+			this.rightPlayer.pad.decreased = true;
+			this.rightPlayer.pad.height *= PLAYER_SHRINK_MULTIPLIER;
+			this.rightPlayer.pad.positionY += PLAYERS_SHRINK_POSITION_FIX2;
+
+		}
+	}
+
+	increasePlayerSize()
+	{
+		// increases the left player's height if it has been decreased previously and returns
+		if (this.caughtBy[this.SIZE_INCREASE] == 'L' && this.leftPlayer.pad.decreased == true && this.leftPlayer.pad.counterIncreaseEffect == false)
+		{
+			if (this.leftPlayer.pad.height < PLAYERS_HEIGHT)
+			{
+				// fixes height
+				this.leftPlayer.pad.height *= PLAYER_INCREASE_MULTIPLIER;
+				this.leftPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
+				
+				// disables all this.leftPlayer ifs in decreasePlayerSize() as height must not change anymore
+				this.leftPlayer.pad.counterDecreaseEffect = true;
+				this.leftPlayer.pad.increased = true;
+			}
+			return;
+		}
+
+		// increases the right player's height if it has been decreased previously and returns
+		if (this.caughtBy[this.SIZE_INCREASE] == 'R' && this.rightPlayer.pad.decreased == true && this.rightPlayer.pad.counterIncreaseEffect == false)
+		{
+			if (this.rightPlayer.pad.height < PLAYERS_HEIGHT)
+			{
+				// fixes height
+				this.rightPlayer.pad.height *= PLAYER_INCREASE_MULTIPLIER;
+				this.rightPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
+				
+				// disables all this.rightPlayer ifs in decreasePlayerSize() as height must not change anymore
+				this.rightPlayer.pad.counterDecreaseEffect = true;
+				this.rightPlayer.pad.increased = true;
+			}
+			return;
+		}
+
+		// increases the right player's height if it is the first bonus taken that modifies the right player's height
+		if (this.caughtBy[this.SIZE_INCREASE] == 'R' && this.rightPlayer.pad.height < PLAYERS_MAX_HEIGHT && this.rightPlayer.pad.decreased == false)
+		{
+			this.rightPlayer.pad.increased = true;
+			this.rightPlayer.pad.height *= PLAYER_INCREASE_MULTIPLIER;
+			this.rightPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
+		}
+
+		// increases the left player's height if it is the first bonus taken that modifies the left player's height
+		else if (this.caughtBy[this.SIZE_INCREASE] == 'L' && this.leftPlayer.pad.height < PLAYERS_MAX_HEIGHT && this.leftPlayer.pad.decreased == false)
+		{
+			this.leftPlayer.pad.increased = true;
+			this.leftPlayer.pad.height *= PLAYER_INCREASE_MULTIPLIER;
+			this.leftPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
+		}
+	}
+
+
+	handleBallInBonusArea()
+	{
+		for (let i = 0; i < NB_BONUS; i++)
+		{
+			if (this.displayBonus[i] && this.randBonusPosSet[i] && ((this.ball.positionY) >= this.mapBonus.get(i).positionY
+				&& (this.ball.positionY) <= (this.mapBonus.get(i).positionY + this.mapBonus.get(i).height))
+				&& ((this.ball.positionX) >= this.mapBonus.get(i).positionX
+				&& (this.ball.positionX) <= (this.mapBonus.get(i).positionX + this.mapBonus.get(i).width)))
+			{
+				this.bonusCaught[i] = true;
+				if (this.ball.velocityX > 0)
+					this.caughtBy[i] = 'L';
+				else if (this.ball.velocityX < 0)
+					this.caughtBy[i] = 'R';
+				if (i == this.SNIPER_BONUS)
+					this.throwSniperShot = true;
+			}
+		}
+		if (this.bonusCaught[this.SIZE_INCREASE])
+			this.increasePlayerSize();
+		if (this.bonusCaught[this.SIZE_DECREASE])
+			this.decreasePlayerSize();
+	}
+
+
+
+	resetBonuses()
+	{
+		this.leftPlayer.pad.playerSpeedSlowered = false;
+		this.rightPlayer.pad.playerSpeedSlowered = false;
+		this.leftPlayer.pad.speed = PLAYERS_SPEED;
+		this.rightPlayer.pad.speed = PLAYERS_SPEED;
+
+		for (let i = 0; i < NB_BONUS * 2; i++)
+			clearTimeout(this.timeOutIDs[i]);
+		this.initBonusesVars();
+		this.leftPlayer.pad.increased = false;
+		this.leftPlayer.pad.decreased = false;
+		this.leftPlayer.pad.counterIncreaseEffect = false;
+		this.leftPlayer.pad.counterDecreaseEffect = false;
+		this.rightPlayer.pad.increased = false;
+		this.rightPlayer.pad.decreased = false;
+		this.rightPlayer.pad.counterIncreaseEffect = false;
+		this.rightPlayer.pad.counterDecreaseEffect = false;
+
+		// if previous shot has been scored with a sniper shot, this var can be set on false now
+		this.ball.saveState.dataSaved = false;
+
+		if (this.ball.isFreezed())
+			this.gameStartTimer = Date.now();
+	}
+
+
+	sendBonusData(bonus: Bonus)
+	{
+		bonus.setRandBonusPos(this.ball);
+		let bonusData = {
+			name: bonus.effect,
+			imgURL: bonus.imagePath,
+			x: bonus.positionX,
+			y: bonus.positionY,
+			h: bonus.height,
+			w: bonus.width
+		}
+		this._server.to(this.gameId).emit("bonus_spawn", bonusData);
+	}
+
+	drawBonus()
+	{
+		const millis = (Date.now() - this.gameStartTimer) / 1000;
+		if (millis > BONUSES_START) {
+
+
+			for (let i = 0; i < NB_BONUS; i++) {
+				if (this.displayBonus[i] && !this.ball.isFreezed()) {
+					if (!this.randBonusPosSet[i] && ((this.ball.positionX > RAND_GEN_AREA_X)
+						&& (this.ball.positionX < WIDTH - RAND_GEN_AREA_X)))
+					{
+							this.sendBonusData(this.mapBonus.get(i));
+							this.randBonusPosSet[i] = true;
+					}
+					if (this.randBonusPosSet[i]) {
+						// context?.drawImage(this.bonus.mapBonusImages.get(i), this.bonus.positionX, this.bonus.positionY, this.bonus.height, this.bonus.width);
+						if (!this.bonusCountDownLaunched[i]) {
+							this.bonusCountDownLaunched[i] = true;
+							this.timeOutIDs[i] = setTimeout(() => {
+								this.timeOver[i] = true;
+							}, BONUS_LIFETIME);
+						}
+						if (this.bonusCaught[i] || this.timeOver[i]) {
+							this.displayBonus[i] = false;
+							this._server.to(this.gameId).emit("bonus_despawn");
+							this.timeOutIDs[i + 1] = setTimeout(() => {
+								if (i < NB_BONUS - 1)
+									this.displayBonus[i + 1] = true;
+							}, BONUSES_INTERVAL * 1000);
+						}
+					}
+				}
+			}
+		}
+	}
 
 	keyDown(key: string, playerId: string)
 	{
@@ -113,7 +381,7 @@ export class Pong
 			}
 			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
 			this.start = false;
-			clearTimeout(this.timemout);
+			clearInterval(this.timeout);
 		}
 		else if (this.rightPlayer.score === this.topScore) {
 			const playerOne: EndGamePlayer = {
@@ -130,19 +398,21 @@ export class Pong
 			}
 			this._gameService.endGame(playerOne, playerTwo, this._server, this.gameId);
 			this.start = false;
-			clearTimeout(this.timemout);
+			clearInterval(this.timeout);
 		}
 	}
 
-	setScore() {
+	setScore()
+	{
 		if (this.ball.positionX > WIDTH - (this.rightPlayer.pad.width)) {
 			this.leftPlayer.score++;
-			this.ball.resetBall();
-			// //if (this.bonusCaught[SIZE_INCREASE])
-			// 	this.playerIncreased = true;
-			// if (this.bonusCaught[SIZE_DECREASE])
-			// 	this.playerDecreased = true;
-			// //this.resetBonuses();
+			this.ball.resetBall(this);
+			this._server.to(this.gameId).emit("bonus_despawn");
+			if (this.bonusCaught[this.SIZE_INCREASE])
+				this.playerIncreased = true;
+			if (this.bonusCaught[this.SIZE_DECREASE])
+				this.playerDecreased = true;
+			this.resetBonuses();
 			const data = {
 				id: this.leftPlayer.id,
 				score: this.leftPlayer.score,
@@ -154,12 +424,13 @@ export class Pong
 		}
 		else if (this.ball.positionX < this.rightPlayer.pad.width) {
 			this.rightPlayer.score++;
-			this.ball.resetBall();
-			// if (this.bonusCaught[SIZE_INCREASE])
-			// 	this.playerIncreased = true;
-			// if (this.bonusCaught[SIZE_DECREASE])
-			// 	this.playerDecreased = true;
-			// this.resetBonuses();
+			this.ball.resetBall(this);							
+			this._server.to(this.gameId).emit("bonus_despawn");
+			if (this.bonusCaught[this.SIZE_INCREASE])
+				this.playerIncreased = true;
+			if (this.bonusCaught[this.SIZE_DECREASE])
+				this.playerDecreased = true;
+			this.resetBonuses();
 			const data = {
 				id: this.rightPlayer.id,
 				score: this.rightPlayer.score
@@ -175,11 +446,15 @@ export class Pong
 	update()
 	{
 		// this.updateKeyPress();
-		this.leftPlayer.pad.update();
-		this.rightPlayer.pad.update();
-		this.ball.update(this.leftPlayer, this.rightPlayer);
+		this.leftPlayer.pad.update(this);
+		this.rightPlayer.pad.update(this);
+		this.ball.update(this.leftPlayer, this.rightPlayer, this.throwSniperShot, this.caughtBy[this.SNIPER_BONUS], this);
+		this.handleBallInBonusArea();
+		if (this.bonusesActivated)
+			this.drawBonus();
 		this.setScore();
 		this.gameOver();
+		this.resetPlayersHeight();
 	}
 
 	getDrawingData()
@@ -216,14 +491,88 @@ export class Pong
 		return (game);
 	}
 
+	initMapBonuses()
+	{
+		this.mapBonus.set(this.SIZE_DECREASE,
+			new Bonus("SIZE_DECREASE", this.SIZE_DECREASE));
+
+		this.mapBonus.set(this.SIZE_INCREASE,
+			new Bonus("SIZE_INCREASE", this.SIZE_INCREASE));
+
+		this.mapBonus.set(this.REVERSE_KEYS_BONUS,
+			new Bonus("REVERSE_KEYS_BONUS", this.REVERSE_KEYS_BONUS));
+		
+		this.mapBonus.set(this.SLOWER_BONUS,
+			new Bonus("SLOWER_BONUS", this.SLOWER_BONUS));
+		
+		this.mapBonus.set(this.SNIPER_BONUS,
+			new Bonus("SNIPER_BONUS", this.SNIPER_BONUS));
+	}
+
+	genSingleRandNumber(tab: number[])
+	{
+		let nb = Math.floor(Math.random() * NB_BONUS); // generate random number from 0 to 4
+		while (tab.indexOf(nb) != -1) // while nb is in tab
+			nb = Math.floor(Math.random() * NB_BONUS); // generate new number
+		return (nb);
+	}
+
+	setRandBonusesOrder()
+	{
+		let tab:number[] = [];
+		
+		this.SIZE_DECREASE = this.genSingleRandNumber(tab);
+		tab.push(this.SIZE_DECREASE);
+		
+		this.SIZE_INCREASE = this.genSingleRandNumber(tab);
+		tab.push(this.SIZE_INCREASE);
+		
+		this.REVERSE_KEYS_BONUS = this.genSingleRandNumber(tab);
+		tab.push(this.REVERSE_KEYS_BONUS);
+		
+		this.SLOWER_BONUS = this.genSingleRandNumber(tab);
+		tab.push(this.SLOWER_BONUS);
+		
+		this.SNIPER_BONUS = this.genSingleRandNumber(tab);
+		tab.push(this.SNIPER_BONUS);
+	}
+
+	initBonusesVars()
+	{
+		this.setRandBonusesOrder();
+		this.initMapBonuses();
+		for (let i = 0; i < NB_BONUS * 2; i++)
+		{
+			// this.timeOutIDs[i] = 0;
+			if (i < NB_BONUS)
+			{
+				this.timeOver[i] = false;
+				this.caughtBy[i] = "no one";
+				this.bonusCaught[i] = false;
+				this.randBonusPosSet[i] = false;
+				this.bonusCountDownLaunched[i] = false;
+			}
+
+			if (i === 0)
+				this.displayBonus[i] = true;
+			else
+				this.displayBonus[i] = false;
+		}
+	}
+
+	gameLoop()
+	{
+		this.timeout = setInterval(() => {
+			if (!this.start) return;
+			this._server.to(this.gameId).emit("update", this.getDrawingData());
+			this.update();
+		}, TICK_INTERVAL);
+	}
+
 	runGame()
 	{
-		this._server.to(this.gameId).emit("update", this.getDrawingData());
-		this.update();
-		setTimeout(() => {
-			if (this.start)
-				this.runGame();
-		}, TICK_INTERVAL);
+		this.initBonusesVars();
+		this.gameLoop();
 	}
 
 	// POUR TEST REDA
