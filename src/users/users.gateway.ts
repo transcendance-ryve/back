@@ -63,7 +63,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		setTimeout(async () => {
 			const user = await this._usersService.getUser({ id });
 
-			if (user.status === Status.ONLINE) return;
+			if (user.status === Status.ONLINE || user.status === Status.INGAME) return;
 			this._emitToFriends(user.id, 'user_disconnected', { id: user.id, status: user.status, username: user.username, avatar: user.avatar });
 		}, 5000);
 	}
