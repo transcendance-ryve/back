@@ -19,12 +19,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 						req.handshake?.headers.cookie &&
 						req.handshake.headers.cookie.length > 0
 						) {
-							const JWToken = req.handshake.headers.cookie.split('=').pop();
-							if (JWToken) {
-								return JWToken;
-							} else {
-								return null;
-							}
+							const access_token = req.handshake.headers.cookie.split('=').pop();
+							if (access_token)
+								return access_token;
+
+							return null;
 						}
 				},
 				(req: Request) => {
@@ -44,6 +43,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
 async validate(payload: JwtPayloadDto) {
+		const user = await this._userService.getUser({ id: payload.id });
+		if (!user)
+			throw new UnauthorizedException("User not found");
+
         return payload;
     }
 }

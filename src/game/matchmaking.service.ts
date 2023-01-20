@@ -92,6 +92,7 @@ export class MatchmakingService {
 			receiver: { id: opponentID, accept: false },
 			bonus: bonus,
 			matchmaking: inMatchmaking,
+			timeup: Date.now() + this._gameRequestTimer,
 			startTime: Date.now(),
 
 			timer: setTimeout(() => {
@@ -222,7 +223,8 @@ export class MatchmakingService {
 				sender: gameRequest.sender.id,
 				receiver: gameRequest.receiver.id,
 				bonus: gameRequest.bonus,
-				startTime: gameRequest.startTime
+				startTime: gameRequest.startTime,
+				timeup: gameRequest.timeup
 			}
 		})
 	}
