@@ -147,7 +147,7 @@ export class MatchmakingService {
 		if (!inMatchmaking) {
 			gameRequest.receiver.accept = true;
 
-			const gameCreated = await this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, server);
+			const gameCreated = await this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, server, gameRequest.bonus);
 			
 			const sender = await this._usersService.getUser({ id: gameRequest.sender.id }, "status");
 			const receiver = await this._usersService.getUser({ id: gameRequest.receiver.id }, "id,username,avatar,status");
@@ -172,7 +172,7 @@ export class MatchmakingService {
 			UserIdToSockets.emit(userID, server, "accepted_game_request");
 
 			if (gameRequest.receiver.accept && gameRequest.sender.accept) {
-				await this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, server);
+				await this.GameService.create(gameRequest.sender.id, gameRequest.receiver.id, server, gameRequest.bonus);
 
 				UserIdToSockets.emit(gameRequest.sender.id, server, "game_accepted");
 				UserIdToSockets.emit(gameRequest.receiver.id, server, "game_accepted");
