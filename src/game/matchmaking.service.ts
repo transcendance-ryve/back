@@ -122,7 +122,8 @@ export class MatchmakingService {
 				id: sender.id,
 				username: sender.username,
 				avatar: sender.avatar,
-				status: sender.status
+				status: sender.status,
+				timeup: Date.now() + this._gameRequestTimer
 			});
 		}
 	}
@@ -217,7 +218,7 @@ export class MatchmakingService {
 		return this._gamesRequest.find((gameRequest) => (gameRequest.sender.id === userID || gameRequest.receiver.id === userID) && gameRequest.matchmaking === inMatchmaking);
 	}
 
-	getGameRequests(userID: string, inMatchmaking: boolean): { sender: string, receiver: string, bonus: boolean, startTime: number }[] {
+	getGameRequests(userID: string, inMatchmaking: boolean): { sender: string, receiver: string, bonus: boolean, startTime: number, timeup: number }[] {
 		return this._gamesRequest.filter((gameRequest) => gameRequest.receiver.id === userID && gameRequest.matchmaking === inMatchmaking).map(gameRequest => {
 			return {
 				sender: gameRequest.sender.id,

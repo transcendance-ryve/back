@@ -39,6 +39,7 @@ export default class GameController {
 				avatar: user.avatar,
 				status: user.status,
 				bonus: gameRequest.bonus,
+				timeup: gameRequest.timeup,
 				startTime: gameRequest.startTime,
 			};
 		}));
