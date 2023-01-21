@@ -261,6 +261,7 @@ export default class GameService {
 		await this._usersService.updateUser({ id }, { status: Status.INGAME });
 		await this._usersService.updateUser({ id: opponent }, { status: Status.INGAME });
 		const startTime: number = Date.now() + preGameTime;
+		game.startTime = startTime;
 		const res: StartInfo = {
 			players,
 			width,
@@ -281,8 +282,8 @@ export default class GameService {
 		});
 		server.to(game.gameId).emit('start', res);
 		setTimeout(() => {
-			this.emitNewGameToSpectate(game, players, server);
 			game.runGame();
+			this.emitNewGameToSpectate(game, players, server);
 		}, preGameTime);
 		return true;
 	}
@@ -480,6 +481,7 @@ export default class GameService {
 					players,
 					width,
 					height,
+					startTime: game.startTime > Date.now() ? game.startTime : null,
 				};
 				server.to(game.gameId).emit('start', res);
 			}

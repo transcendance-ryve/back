@@ -39,6 +39,7 @@ export class Pong
 	topScore: number = 5;
 	start: boolean = false;
 	timeout: NodeJS.Timeout;
+	startTime: number;
 
 	bonuses: Bonus[] = [];
 	ball = new Ball();
