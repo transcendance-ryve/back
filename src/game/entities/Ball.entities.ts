@@ -16,6 +16,7 @@ import {
 import { Player } from './Player.entities';
 import { Pong } from './neoPong.entities';
 import { Bonus } from './Bonus.entities';
+import { runInThisContext } from 'vm';
 
 export class Ball extends Entity
 {
@@ -31,7 +32,9 @@ export class Ball extends Entity
 	lastPlayerTouchingBall: string;
 	speed: number;
 	radius: number;
-	activated: boolean = true;
+	paddleCollisionsActivated: boolean = true;
+	// for tests
+	// wallCollisionsActivated: boolean = true;
 	hits: number = 0;
 	ballFreezed = false;
 
@@ -68,7 +71,7 @@ export class Ball extends Entity
 		this.saveState.dataSaved = true;
 	}
 
-	generateRandDirection()
+	generateRandDirectionAndTrajectory()
 	{
 		if (randomNb(0, 1) > 0.5)
 			this.velocityX = -this.velocityX;
@@ -79,20 +82,18 @@ export class Ball extends Entity
 		else
 			this.color = color.blue;
 
-
-		// for testing
-		this.velocityX = START_BALL_SPEED;
-		this.velocityY = START_BALL_SPEED;
+		// gives ball a random trajectory
+		this.velocityY = randomNb(0, 1) * this.velocityY;
 	};
-
+ 
 	private init()
 	{
-		this.positionX = WIDTH / 2 - START_BALL_RADIUS / 2;
-		this.positionY = HEIGHT / 2 - START_BALL_RADIUS / 2;
+		this.positionX = WIDTH / 2;
+		this.positionY = HEIGHT / 2;
 		this.velocityX = START_BALL_SPEED;
 		this.velocityY = START_BALL_SPEED;
 		this.radius = START_BALL_RADIUS;
-		this.generateRandDirection();
+		this.generateRandDirectionAndTrajectory();
 	};
 
 	private resetBallState(): void
@@ -133,15 +134,21 @@ export class Ball extends Entity
 			if (velocityX < 0) {
 				this.velocityX = -START_BALL_SPEED;
 				this.velocityY = START_BALL_SPEED;
+				// gives ball random trajectory
 				if (randomNb(0, 1) > 0.5)
 					this.velocityY = -this.velocityY;
 			}
 			else {
 				this.velocityX = START_BALL_SPEED;
 				this.velocityY = START_BALL_SPEED;
+				// gives ball random trajectory
 				if (randomNb(0, 1) > 0.5)
 					this.velocityY = -this.velocityY;
 			}
+			this.velocityY = randomNb(0, 1) * this.velocityY;
+			// for tests
+			// if (this.velocityY < 0)
+			// 	this.velocityY = -this.velocityY;
 			this.ballFreezed = false;
 			pong.playerIncreased = false;
 			pong.playerDecreased = false;
@@ -154,7 +161,7 @@ export class Ball extends Entity
 		this.positionY += this.velocityY;
 	}
 
-	private increaseBallSpeed = function()
+	private increaseBallSpeed()
 	{
 		if (this.hits === 1)
 		{
@@ -167,11 +174,11 @@ export class Ball extends Entity
 		}
 	}
 
-	private collisionTimeLag = function()
+	private collisionTimeLag()
 	{
-		this.activated = false
+		this.paddleCollisionsActivated = false
 		setTimeout(() => {
-			this.activated = true
+			this.paddleCollisionsActivated = true
 		}, 400)
 	}
 
@@ -183,47 +190,40 @@ export class Ball extends Entity
 			this.color = color.red;
 	};
 
-	private standardBouncing(player: Player)
+	calculateBallTrajectory(player: Player): number
 	{
-		if (player.pad.keyPressed.W && Math.abs(this.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.velocityY < 0)
-			this.velocityX = -this.velocityX * BALL_SPEED_UP_EFFECT
-		else if (player.pad.keyPressed.W && Math.abs(this.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.velocityY > 0)
-			this.velocityX = -this.velocityX * BALL_SLOW_DOWN_EFFECT
-		else if (player.pad.keyPressed.S && Math.abs(this.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.velocityY > 0)
-			this.velocityX = -this.velocityX * BALL_SPEED_UP_EFFECT
-		else if (player.pad.keyPressed.S && Math.abs(this.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.velocityY < 0)
-			this.velocityX = -this.velocityX * BALL_SLOW_DOWN_EFFECT
-		else
-			this.velocityX = -this.velocityX // no effect
+		let a: number = player.pad.height / 2; // c'est le max de l'échelle
+		let b: number = player.pad.positionY + a; // c'est le point 0 (le milieu du pad)
+		let c: number = b - this.positionY; // c'est le point d'impact de la balle sur le pad
+		let d: number = c / a; // c'est le pourcentage
+		let e: number = d * this.velocityX;
+		return (e);
 	}
 
-	private reverseBouncing(player: Player)
+	newBallBouncing(player: Player)
 	{
-			if (player.pad.keyPressed.S && Math.abs(this.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.velocityY < 0)
-				this.velocityX = -this.velocityX * BALL_SPEED_UP_EFFECT
-			else if (player.pad.keyPressed.S && Math.abs(this.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.velocityY > 0)
-				this.velocityX = -this.velocityX * BALL_SLOW_DOWN_EFFECT
-			else if (player.pad.keyPressed.W && Math.abs(this.velocityX) * BALL_SPEED_UP_EFFECT <= MAX_BALL_SPEED && this.velocityY > 0)
-				this.velocityX = -this.velocityX * BALL_SPEED_UP_EFFECT
-			else if (player.pad.keyPressed.W && Math.abs(this.velocityX) * BALL_SLOW_DOWN_EFFECT >= START_BALL_SPEED && this.velocityY < 0)
-				this.velocityX = -this.velocityX * BALL_SLOW_DOWN_EFFECT			
-			else
-				this.velocityX = -this.velocityX // no effect
+		// reverses ball direction
+		this.velocityX = -this.velocityX;
+
+		// if ball hits the paddle's upper part
+		if (this.positionY >= player.pad.positionY 
+			&& this.positionY <= player.pad.positionY + (player.pad.height / 2))
+			this.velocityY = this.calculateBallTrajectory(player);
+		
+		// if ball hits the paddle's bottom part
+		else if (this.positionY > player.pad.positionY + (player.pad.height / 2)
+			&& this.positionY <= player.pad.positionY + player.pad.height)
+			this.velocityY = this.calculateBallTrajectory(player);
+		if (this.velocityX > 0)
+			this.velocityY = -this.velocityY;
 	}
 
 	private makeBallBounce(leftPlayer: Player, rightPlayer: Player, pong: Pong)
 	{
-		if (!pong.bonusCaught[pong.REVERSE_KEYS_BONUS])
-		{
-			if (this.velocityX < 0)
-				this.standardBouncing(leftPlayer);
-			else if (this.velocityX > 0)
-				this.standardBouncing(rightPlayer);
-		}
-		else if (pong.caughtBy[pong.REVERSE_KEYS_BONUS] === 'R')
-			this.reverseBouncing(leftPlayer);
-		else if (pong.caughtBy[pong.REVERSE_KEYS_BONUS] === 'L')
-			this.reverseBouncing(rightPlayer);
+		if (this.velocityX < 0)
+			this.newBallBouncing(leftPlayer);
+		else if (this.velocityX > 0)
+			this.newBallBouncing(rightPlayer);
 	}
 
 	private triggerSniperShot(player: Player)
@@ -264,18 +264,38 @@ export class Ball extends Entity
 		this.toggleColor();
 	}
 
-	
+	// for tests
+	// private collisionTimeLag2()
+	// {
+	// 	this.wallCollisionsActivated = false
+	// 	setTimeout(() => {
+	// 		this.wallCollisionsActivated = true
+	// 	}, 1000)
+	// }
+
 	private handleBallCollisions(leftPlayer: Player, rightPlayer: Player, throwSniperShot: boolean, caughtBy: string, pong: Pong): void
 	{
 		if ((this.positionY + this.radius) >= HEIGHT || (this.positionY - this.radius) <= 0)
-			this.velocityY = -this.velocityY;
-
+		{
+			// for tests
+			// if (this.wallCollisionsActivated)		
+			{
+				// console.log("entrée Y\nVelY = ", this.velocityY)
+				this.velocityY = -this.velocityY;
+				// console.log("sortie Y\nVelY = ", this.velocityY)
+				// console.log("ball radius = ", this.radius);
+			}
+			// for tests
+			// this.collisionTimeLag2();
+		}
+		
 		if ((this.positionX + this.radius >= WIDTH - (rightPlayer.pad.width + 10) &&
 		(this.positionY >= rightPlayer.pad.positionY && this.positionY <= rightPlayer.pad.positionY + rightPlayer.pad.height)) ||
 		(this.positionX - this.radius <= (leftPlayer.pad.width + 10) &&
 		(this.positionY >= leftPlayer.pad.positionY && this.positionY <= leftPlayer.pad.positionY + leftPlayer.pad.height)))
 		{
-			if (this.activated)
+			console.log("passage paddle hit")
+			if (this.paddleCollisionsActivated)
 			{
 				this.hits++;
 				if (pong.throwSniperShot && ((this.velocityX > 0 && caughtBy === 'R') || (this.velocityX < 0 && caughtBy === 'L')))
@@ -294,8 +314,14 @@ export class Ball extends Entity
 				}
 			}
 			this.collisionTimeLag();
+			
+			// for tests
+			// in case the ball touched the top or bottom wall before touching the ball
+			// and is gonna touch the paddle again, wall collsions must be activated
+			// this.wallCollisionsActivated = true;
 		}
 		this.increaseBallSpeed();
+		console.log("check ball vey Y = ", this.velocityY)
 	}
 
 	
