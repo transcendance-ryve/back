@@ -67,8 +67,8 @@ export const	PLAYERS_MAX_HEIGHT = PLAYERS_HEIGHT * 1.5;
 export const	PLAYERS_MIN_HEIGHT = PLAYERS_HEIGHT * 0.5;
 
 
-export const	SIZE_DECREASE_PATH: string = "../bonuses_images/game-controller.svg";
-export const	SIZE_INCREASE_PATH: string = "../bonuses_images/friends.svg";
-export const	REVERSE_KEYS_BONUS_PATH: string = "../bonuses_images/bell.svg";
-export const	SLOWER_BONUS_PATH: string = "../bonuses_images/Play.svg";
-export const	SNIPER_BONUS_PATH: string = "../bonuses_images/Eye.svg";
+export const	SIZE_DECREASE_PATH: string = "http://localhost:3000/game/reduce.svg";
+export const	SIZE_INCREASE_PATH: string = "http://localhost:3000/game/extend.svg";
+export const	REVERSE_KEYS_BONUS_PATH: string = "http://localhost:3000/game/speed.svg";
+export const	SLOWER_BONUS_PATH: string = "http://localhost:3000/game/slow.svg";
+export const	SNIPER_BONUS_PATH: string = "http://localhost:3000/game/sniper.svg";
