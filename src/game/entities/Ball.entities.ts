@@ -294,7 +294,7 @@ export class Ball extends Entity
 		(this.positionX - this.radius <= (leftPlayer.pad.width + 10) &&
 		(this.positionY >= leftPlayer.pad.positionY && this.positionY <= leftPlayer.pad.positionY + leftPlayer.pad.height)))
 		{
-			console.log("passage paddle hit")
+			//console.log("passage paddle hit")
 			if (this.paddleCollisionsActivated)
 			{
 				this.hits++;
@@ -321,7 +321,7 @@ export class Ball extends Entity
 			// this.wallCollisionsActivated = true;
 		}
 		this.increaseBallSpeed();
-		console.log("check ball vey Y = ", this.velocityY)
+		//console.log("check ball vey Y = ", this.velocityY)
 	}
 
 	

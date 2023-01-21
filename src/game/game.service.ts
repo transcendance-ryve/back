@@ -248,10 +248,9 @@ export default class GameService {
 		// console.log('game created : ' + game.gameId);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
-		this.gameIdToGame.set(gameId, game);
 		const playerOneSockets: Socket[] = UserIdToSockets.get(id);
 		const playerTwoSockets: Socket[] = UserIdToSockets.get(opponent);
-
+		
 		playerOneSockets.forEach((socket) => socket.join(game.gameId));
 		playerTwoSockets.forEach((socket) => socket.join(game.gameId));
 		const players: Players = await this.getPlayers(id, opponent);
@@ -282,8 +281,10 @@ export default class GameService {
 		});
 		server.to(game.gameId).emit('start', res);
 		setTimeout(() => {
+			console.log('game started : ' + game.gameId);
 			game.runGame();
 			this.emitNewGameToSpectate(game, players, server);
+			this.gameIdToGame.set(gameId, game);
 		}, preGameTime);
 		return true;
 	}
@@ -432,8 +433,11 @@ export default class GameService {
 
 	async spectateGame(gameId: string, userSocket: Socket, server: Server): Promise<void> {
 		const game: Pong = this.gameIdToGame.get(gameId);
+		console.log('user joined game spectate');
 		if (game) {
-			const players: Players = await this.getPlayers(game.leftPlayer.id, game.rightPlayer.id);
+			const players: Players = await this.getPlayersByGameId(game.gameId);
+			players.left.score = game.leftPlayer.score;
+			players.right.score = game.rightPlayer.score;
 			const width = 790;
 			const height = 390;
 			const res: StartInfo = {
@@ -448,7 +452,6 @@ export default class GameService {
 
 	async leaveSpectateGame(gameId: string, userSocket: Socket): Promise<void> {
 		const game: Pong = this.gameIdToGame.get(gameId);
-		console.log('user left game spectate');
 		if (game) {
 			userSocket.leave(game.gameId);
 		}
