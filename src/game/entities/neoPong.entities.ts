@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { GameService } from "../game.service";
+import GameService from "../game.service";
 import { Paddles, EndGamePlayer } from "../interfaces/game.interface";
 import { Player } from "./Player.entities";
 import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT,
@@ -39,6 +39,7 @@ export class Pong
 	topScore: number = 5;
 	start: boolean = false;
 	timeout: NodeJS.Timeout;
+	startTime: number;
 
 	bonuses: Bonus[] = [];
 	ball = new Ball();

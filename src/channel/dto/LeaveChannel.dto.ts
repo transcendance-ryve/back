@@ -1,8 +1,8 @@
-import { ChannelType } from "@prisma/client";
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsString } from 'class-validator';
 
+// eslint-disable-next-line import/prefer-default-export
 export class LeaveChannelDto {
 	@IsNotEmpty()
 	@IsString()
-	channelId: string;
+		channelId: string;
 }

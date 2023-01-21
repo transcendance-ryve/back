@@ -1,4 +1,4 @@
-import { UseGuards } from "@nestjs/common";
+import { Res, UseGuards } from "@nestjs/common";
 import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Status, User } from "@prisma/client";
 import { Server, Socket } from 'socket.io';
@@ -6,8 +6,9 @@ import { JwtAuthGuard } from "./guard/jwt.guard";
 import { UsersService } from "./users.service";
 import { UserIdToSockets } from "./userIdToSockets.service";
 import { JwtService } from "@nestjs/jwt";
-import { GetCurrentUserId } from "src/decorators/user.decorator";
+import { GetCurrentUser, GetCurrentUserId } from "src/decorators/user.decorator";
 import { userInfo } from "os";
+import { Response } from "express";
 
 @WebSocketGateway({
 	cors: {
@@ -24,23 +25,23 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 	@WebSocketServer() private _server: Server;
 
-	private _emitToFriends(id: string, event: string, data: any) {
+	_emitToFriends(id: string, event: string, data: any) {
 		this._usersService.getFriends(id).then((friends: Partial<User>[]) => {
 			friends.forEach((friend: Partial<User>) => {
-				const friendSocket = UserIdToSockets.get(friend.id);
-				if (friendSocket) {
-					this._server.to(friendSocket.id).emit(event, data);
-				}
+				UserIdToSockets.emit(friend.id, this._server, event, data);
 			});
 		});
 	}
 
-	async handleConnection(socket: Socket) {
+	async handleConnection(
+		socket: Socket
+	) {
 		const { cookie } = socket.handshake?.headers;
 		const accessToken = cookie?.split('=')?.pop();
 		
 		try {
 			const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
+			
 			UserIdToSockets.set(payload.id, socket);
 			
 			const currentDate = new Date()
@@ -57,11 +58,12 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const { id } = socket.data || {};
 		if (!id) return;
 		
+		UserIdToSockets.delete(id, socket);
 		await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
 		setTimeout(async () => {
 			const user = await this._usersService.getUser({ id });
 
-			if (user.status === Status.ONLINE) return;
+			if (user.status === Status.ONLINE || user.status === Status.INGAME) return;
 			this._emitToFriends(user.id, 'user_disconnected', { id: user.id, status: user.status, username: user.username, avatar: user.avatar });
 		}, 5000);
 	}
@@ -77,6 +79,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 	@SubscribeMessage('leave_game')
 	async handleLeaveGame(socket: Socket) {
+
 		const { id } = socket.data;
 		if (!id) return;
 
@@ -91,10 +94,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@ConnectedSocket() socket: Socket,
 	) {
 		this._usersService.acceptFriendRequest(id, friendId).then(friendship => {
-			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket)
-				this._server.to(friendSocket.id).emit('friend_accepted', friendship.receiver);
-			this._server.to(socket.id).emit('friend_accepted_submitted', friendship.sender);
+			UserIdToSockets.emit(friendId, this._server, 'friend_accepted', friendship.receiver);
+			UserIdToSockets.emit(id, this._server, 'friend_accepted_submitted', friendship.sender);
 		}).catch(err => console.log(err.message));
 	}
 
@@ -105,10 +106,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@ConnectedSocket() socket: Socket,
 	) {
 		this._usersService.removeFriendRequest(id, friendId).then(friendship => {
-			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket)
-				this._server.to(friendSocket.id).emit('friend_declined', friendship.sender);
-			this._server.to(socket.id).emit('friend_declined_submitted', friendship.receiver);
+			UserIdToSockets.emit(friendId, this._server, 'friend_declined', friendship.sender);
+			UserIdToSockets.emit(id, this._server, 'friend_declined_submitted', friendship.receiver);
 		}).catch(err => console.log(err.message));
 	}
 	
@@ -119,10 +118,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@ConnectedSocket() socket: Socket,
 	) {
 		this._usersService.sendFriendRequest(id, friendId).then(friendship => {
-			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket)
-				this._server.to(friendSocket.id).emit('friend_request', friendship.sender);
-			this._server.to(socket.id).emit('friend_request_submitted', friendship.receiver);
+			UserIdToSockets.emit(friendId, this._server, 'friend_request', friendship.sender);
+			UserIdToSockets.emit(id, this._server, 'friend_request_submitted', friendship.receiver);
 		}).catch(err => console.log(err.message));
 	}
 
@@ -133,10 +130,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@ConnectedSocket() socket: Socket,
 	) {
 		this._usersService.removeFriendRequest(id, friendId).then(friendship => {
-			const friendSocket = UserIdToSockets.get(friendId);
-			if (friendSocket)
-				this._server.to(friendSocket.id).emit('friend_removed', friendship.sender);
-			this._server.to(socket.id).emit('friend_removed_submitted', friendship.receiver);
+			UserIdToSockets.emit(friendId, this._server, 'friend_removed', friendship.sender);
+			UserIdToSockets.emit(id, this._server, 'friend_removed_submitted', friendship.receiver);
 		}).catch(err => console.log(err.message));
 	}
 
@@ -147,10 +142,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@ConnectedSocket() socket: Socket,
 	) {
 		this._usersService.blockUser(id, blockedId).then(blocked => {
-			const blockedSocket = UserIdToSockets.get(blockedId);
-			if (blockedSocket)
-				this._server.to(blockedSocket.id).emit('user_blocked', blocked.sender);
-			this._server.to(socket.id).emit('user_blocked_submitted', blocked.receiver);
+			UserIdToSockets.emit(blockedId, this._server, 'user_blocked', blocked.sender);
+			UserIdToSockets.emit(id, this._server, 'user_blocked_submitted', blocked.receiver);
 		}).catch(err => console.log(err.message));
 	}
 
@@ -161,10 +154,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@ConnectedSocket() socket: Socket,
 	) {
 		this._usersService.unblockUser(id, blockedId).then(blocked => {
-			const blockedSocket = UserIdToSockets.get(blockedId);
-			if (blockedSocket)
-				this._server.to(blockedSocket.id).emit('user_unblocked', blocked.sender);
-			this._server.to(socket.id).emit('user_unblocked_submitted', blocked.receiver);
+			UserIdToSockets.emit(blockedId, this._server, 'user_unblocked', blocked.sender);
+			UserIdToSockets.emit(id, this._server, 'user_unblocked_submitted', blocked.receiver);
 		}).catch(err => console.log(err.message));
 	}
 }

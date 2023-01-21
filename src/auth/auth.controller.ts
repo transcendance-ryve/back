@@ -21,7 +21,6 @@ export class AuthController {
 		private readonly _usersService: UsersService
 	) {}
 
-	private _loginURL = "http://localhost:5173/accounts/login/tfa";
 	private _apiURL = "https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-0be07deda32efaa9ac4f060716bd7ee5addaadf80d64008efd9ad3b0b10e8407&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Faccounts%2Flogin&response_type=code";
 
 	/* Login, register and disconnect */
@@ -37,15 +36,15 @@ export class AuthController {
 		@GetCurrentUser() currentUser: RegisterFortyTwoDto,
 		@Res({ passthrough: true }) res: Response
 	): Promise<Partial<User> |  { tfa: boolean, token: string, id: string }> {
-		const { username, email, avatarURL } = currentUser;
+		const { email, avatarURL } = currentUser;
 		let user: Partial<User> = await this._authService.login(email, null, true);
 
 		if (!user) {
-			const { secret } = await this._authService.generateTFA(username);
-			user = await this._authService.register(username, email, null, secret, avatarURL, true);
+			const randomUsername = Math.random().toString(36).substring(7);
+			const { secret } = await this._authService.generateTFA(randomUsername);
+			user = await this._authService.register(randomUsername, email, null, secret, avatarURL, true);
 		} else if (user && user.tfa_enabled) {
 			const token = await this._authService.createTFAToken(user.id);
-			
 			return { tfa: true, token, id: user.id }
 		}
 
@@ -149,7 +148,6 @@ export class AuthController {
 		@GetCurrentUser() currentUser: JwtPayloadDto
 	): Promise<any> {
 		const qrCode: string = this._authService.getTFAQrCode(currentUser);
-
 		return toDataURL(qrCode);	
 	}
 		
@@ -166,10 +164,11 @@ export class AuthController {
 		
 		if (secret !== user.tfa_token)
 			throw new UnauthorizedException('Invalid token');
-		await this._authService.deleteTFAToken(id);
-		
+			
 		this._authService.verifyTFA(user.tfa_secret, code);
-
+		
+		await this._authService.deleteTFAToken(id);
+			
 		const token = await this._authService.createToken({
 			id: user.id,
 			username: user.username,

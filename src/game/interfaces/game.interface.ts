@@ -17,6 +17,7 @@ export interface StartInfo {
 	players: Players,
 	width: number,
 	height: number,
+	startTime?: number,
 }
 
 export interface GamesRequest {
@@ -28,6 +29,10 @@ export interface GamesRequest {
 		id: string,
 		accept: boolean,
 	},
+	bonus: boolean,
+	matchmaking: boolean,
+	startTime: number,
+	timeup: number,
 
 	timer: NodeJS.Timeout,
 }

@@ -19,7 +19,7 @@ export class AuthService {
         private readonly _prismaService: PrismaService
     ) {}
 
-	private _staticPath = "http://localhost:3000/";
+	private _staticPath = "http://localhost:3000/avatars/";
 
 	async createToken(data: JwtPayloadDto) : Promise<string> {
 		return this._jwtService.signAsync({
@@ -50,8 +50,7 @@ export class AuthService {
                     if (!await bcrypt.compare(password, user.password))
 						throw new UnauthorizedException("Wrong password");
 				} else throw new UnauthorizedException("Unauthorized to login without OAuth");
-            } else if (auth && !user.auth)
-				throw new UnauthorizedException("Unauthorized to login with OAuth");
+			}
 
 			delete user.password;
 			return user;
@@ -94,6 +93,8 @@ export class AuthService {
 				});
 			}
         } catch(err) {
+			console.log(err);
+
             throw new UnauthorizedException("User already exist");
         }
     }

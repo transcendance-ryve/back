@@ -3,14 +3,14 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { ChannelModule } from './channel/channel.module';
-import { GameModule } from './game/game.module';
+import ChannelModule from './channel/channel.module';
+import GameModule from './game/game.module';
 
 
 @Module({
     imports: [
 		ServeStaticModule.forRoot({
-			rootPath: join(__dirname, '..', 'data', 'avatars')
+			rootPath: join(__dirname, '..', 'data')
 		}),
         UsersModule,
         AuthModule,
