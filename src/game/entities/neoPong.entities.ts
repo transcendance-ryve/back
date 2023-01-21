@@ -566,7 +566,6 @@ export class Pong
 		this.timeout = setInterval(() => {
 			if (!this.start) return;
 			this._server.to(this.gameId).emit("update", this.getDrawingData());
-			this._server.to(this.gameId).emit("specUpdate", this.getDrawingData());
 			this.update();
 		}, TICK_INTERVAL);
 	}

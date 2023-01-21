@@ -281,7 +281,6 @@ export default class GameService {
 		});
 		server.to(game.gameId).emit('start', res);
 		setTimeout(() => {
-			console.log('game started : ' + game.gameId);
 			game.runGame();
 			this.emitNewGameToSpectate(game, players, server);
 			this.gameIdToGame.set(gameId, game);
