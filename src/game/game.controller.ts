@@ -47,6 +47,14 @@ export default class GameController {
 		return requests;
 	}
 
+	@Get('playerGame/:userId')
+	async getPlayerGame(
+		@Param('userId') userId: string,
+	) : Promise<string | null> {
+		const game: string | null = await this._gameService.getPlayerGame(userId);
+		return game;
+	}
+
 	@Get('history/:userId')
 	async getGameHistory(
 		@Param('userId') userId: string,

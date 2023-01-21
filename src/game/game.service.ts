@@ -201,6 +201,15 @@ export default class GameService {
 		return { res, count: games.length };
 	}
 
+	getPlayerGame(userId: string): string {
+		for (const game of this.gameIdToGame.values()) {
+			if (game.leftPlayer.id === userId || game.rightPlayer.id === userId) {
+				return game.gameId;
+			}
+		}
+		return null;
+	}
+
 	async initCurrentGameArray(page: number, take: number, games):
 	Promise<any> {
 		const res = [];
@@ -280,10 +289,10 @@ export default class GameService {
 			avatar: players.right.avatar,
 		});
 		server.to(game.gameId).emit('start', res);
+		this.gameIdToGame.set(gameId, game);
 		setTimeout(() => {
 			game.runGame();
 			this.emitNewGameToSpectate(game, players, server);
-			this.gameIdToGame.set(gameId, game);
 		}, preGameTime);
 		return true;
 	}
@@ -523,7 +532,7 @@ export default class GameService {
 				}
 				this.playerIdToGame.delete(userId);
 				this.userIdToTimeout.set(userId, setTimeout(async () => {
-					if (!await this.isOnCurrentGame(userId, game.gameId)) {
+					if (!await this.isOnCurrentGame(userId, game.gameId) && this.gameIdToGame.has(game.gameId)) {
 						this.endGame(leftPlayer, rightPlayer, server, game.gameId);
 					}
 				}, 15000));
