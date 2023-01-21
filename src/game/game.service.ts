@@ -484,6 +484,8 @@ export default class GameService {
 					startTime: game.startTime > Date.now() ? game.startTime : null,
 				};
 				server.to(game.gameId).emit('start', res);
+			} else {
+				server.to(userSocket.id).emit('matchmaking', null);
 			}
 		} catch (err) {
 			console.log(err);
