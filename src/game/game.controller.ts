@@ -70,8 +70,8 @@ export default class GameController {
 			Number(page) || undefined,
 			Number(take) || undefined,
 		);
-		const count = await this._gameService.getGameHistoryCount(userId);
-		return { games, count };
+		//const count = await this._gameService.getGameHistoryCount(userId);
+		return games;
 	}
 
 	@Get('current')

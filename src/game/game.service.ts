@@ -79,7 +79,7 @@ export default class GameService {
 		page?: number,
 		take?: number,
 	) {
-		const games = await this._prismaService.game.findMany({
+		const gamesS = await this._prismaService.game.findMany({
 			where: {
 				AND: [
 					{
@@ -142,9 +142,9 @@ export default class GameService {
 				},
 			},
 		});
-		const res = [];
-		games.forEach((game) => {
-			res.push({
+		const games = [];
+		gamesS.forEach((game) => {
+			games.push({
 				left: {
 					...game.player_one,
 					score: game.player_one_score,
@@ -161,7 +161,31 @@ export default class GameService {
 				},
 			});
 		});
-		return res;
+
+		const count = await this._prismaService.game.count({
+			where: {
+				OR: [
+					{
+						player_one: {
+							username: {
+								contains: search,
+								mode: 'insensitive'
+							},
+						},
+					},
+					{
+						player_two: {
+							username: {
+								contains: search,
+								mode: 'insensitive'
+							},
+						},
+					},
+				],
+			}
+		});
+		console.log(count);
+		return { games, count };
 	}
 
 	async getGameHistoryCount(userId: string) {
