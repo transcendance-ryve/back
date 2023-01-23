@@ -198,7 +198,6 @@ export default class GameService {
 				],
 			},
 		});
-		console.log(count);
 		return { games, count };
 	}
 
