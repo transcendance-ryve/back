@@ -306,14 +306,7 @@ export default class GameService {
 		const preGameTime = 5000;
 		await this._usersService.updateUser({ id }, { status: Status.INGAME });
 		await this._usersService.updateUser({ id: opponent }, { status: Status.INGAME });
-		const startTime: number = Date.now() + preGameTime;
-		game.startTime = startTime;
-		const res: StartInfo = {
-			players,
-			width,
-			height,
-			startTime,
-		};
+
 		this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
 			id: players.left.id,
 			status: Status.INGAME,
@@ -326,6 +319,15 @@ export default class GameService {
 			username: players.right.username,
 			avatar: players.right.avatar,
 		});
+
+		const startTime: number = Date.now() + preGameTime;
+		game.startTime = startTime;
+		const res: StartInfo = {
+			players,
+			width,
+			height,
+			startTime,
+		};
 		server.to(game.gameId).emit('start', res);
 		this.gameIdToGame.set(gameId, game);
 		setTimeout(() => {
