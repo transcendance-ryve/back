@@ -490,6 +490,7 @@ export default class GameService {
 				players,
 				width,
 				height,
+				startTime: game.startTime > Date.now() ? game.startTime : null,
 			};
 			server.to(userSocket.id).emit('start', res);
 			userSocket.join(game.gameId);
