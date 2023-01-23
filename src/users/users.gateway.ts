@@ -6,9 +6,7 @@ import { JwtAuthGuard } from "./guard/jwt.guard";
 import { UsersService } from "./users.service";
 import { UserIdToSockets } from "./userIdToSockets.service";
 import { JwtService } from "@nestjs/jwt";
-import { GetCurrentUser, GetCurrentUserId } from "src/decorators/user.decorator";
-import { userInfo } from "os";
-import { Response } from "express";
+import { GetCurrentUserId } from "src/decorators/user.decorator";
 
 @WebSocketGateway({
 	cors: {
