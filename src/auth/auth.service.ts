@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { User } from '@prisma/client';
@@ -58,6 +58,7 @@ export class AuthService {
         catch(err) {
             if (err instanceof UnauthorizedException)
                 throw err;
+			throw new InternalServerErrorException("Internal server error");
         }
     }
 
@@ -93,9 +94,11 @@ export class AuthService {
 				});
 			}
         } catch(err) {
-			console.log(err);
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === 'P2002')
+					throw new ConflictException("User already exist");
 
-            throw new UnauthorizedException("User already exist");
+            throw new InternalServerErrorException("Internal server error");
         }
     }
 

@@ -9,7 +9,9 @@ import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT,
 	PLAYER_SHRINK_MULTIPLIER, PLAYERS_SHRINK_POSITION_FIX,
 	PLAYERS_SHRINK_POSITION_FIX2, PLAYERS_MIN_HEIGHT,
 	PLAYER_INCREASE_MULTIPLIER, PLAYERS_GROWTH_POSITION_FIX,
-	PLAYERS_MAX_HEIGHT} from "./utils.entities";
+	PLAYERS_MAX_HEIGHT,
+	BONUS_WIDTH,
+	BONUS_HEIGHT} from "./utils.entities";
 import { Ball } from "./Ball.entities";
 import { Bonus } from "./Bonus.entities"
 import { emit } from "process";
@@ -41,7 +43,6 @@ export class Pong
 	timeout: NodeJS.Timeout;
 	startTime: number;
 
-	bonuses: Bonus[] = [];
 	ball = new Ball();
 	leftPlayer: Player;
 	rightPlayer: Player;
@@ -72,7 +73,6 @@ export class Pong
 	timeOver: boolean[] = [];
 	gameStartTimer = Date.now();
 	timeOutIDs: NodeJS.Timeout[] = [];
-	// ballFreezed = false;
 
 //-------------BONUS VARIABLES---------------//
 
@@ -294,12 +294,11 @@ export class Pong
 		this._server.to(this.gameId).emit("bonus_spawn", bonusData);
 	}
 
-	drawBonus()
+	bonusesDisplay()
 	{
 		const millis = (Date.now() - this.gameStartTimer) / 1000;
-		if (millis > BONUSES_START) {
-
-
+		if (millis > BONUSES_START)
+		{
 			for (let i = 0; i < NB_BONUS; i++) {
 				if (this.displayBonus[i] && !this.ball.isFreezed()) {
 					if (!this.randBonusPosSet[i] && ((this.ball.positionX > RAND_GEN_AREA_X)
@@ -309,7 +308,6 @@ export class Pong
 							this.randBonusPosSet[i] = true;
 					}
 					if (this.randBonusPosSet[i]) {
-						// context?.drawImage(this.bonus.mapBonusImages.get(i), this.bonus.positionX, this.bonus.positionY, this.bonus.height, this.bonus.width);
 						if (!this.bonusCountDownLaunched[i]) {
 							this.bonusCountDownLaunched[i] = true;
 							this.timeOutIDs[i] = setTimeout(() => {
@@ -446,13 +444,12 @@ export class Pong
 	
 	update()
 	{
-		// this.updateKeyPress();
 		this.leftPlayer.pad.update(this);
 		this.rightPlayer.pad.update(this);
-		this.ball.update(this.leftPlayer, this.rightPlayer, this.throwSniperShot, this.caughtBy[this.SNIPER_BONUS], this);
+		this.ball.update(this.leftPlayer, this.rightPlayer, this.caughtBy[this.SNIPER_BONUS], this);
 		this.handleBallInBonusArea();
 		if (this.bonusesActivated)
-			this.drawBonus();
+			this.bonusesDisplay();
 		this.setScore();
 		this.gameOver();
 		this.resetPlayersHeight();
@@ -544,7 +541,6 @@ export class Pong
 		this.initMapBonuses();
 		for (let i = 0; i < NB_BONUS * 2; i++)
 		{
-			// this.timeOutIDs[i] = 0;
 			if (i < NB_BONUS)
 			{
 				this.timeOver[i] = false;

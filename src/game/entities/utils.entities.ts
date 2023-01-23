@@ -26,13 +26,11 @@ export function randomNb(min: number, max: number): number
 export const HEIGHT: number = 390;
 export const WIDTH: number = 790;
 
-export const	TICK_INTERVAL: number = 1000 / 60;		// interval of time between each frame
+export const	TICK_INTERVAL: number = 1000/60;		// interval of time between each frame
 
 export const	START_BALL_SPEED: number = 3;
 
 export const	BALL_SPEED_MULTIPLIER: number = 1.1;
-export const	BALL_SPEED_UP_EFFECT: number = 1.2;
-export const	BALL_SLOW_DOWN_EFFECT: number = 0.8;
 
 export const	PLAYER_INCREASE_MULTIPLIER: number = 1.05;
 export const	PLAYERS_GROWTH_POSITION_FIX: number = 2.1;

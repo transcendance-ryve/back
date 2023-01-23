@@ -125,6 +125,12 @@ export class MatchmakingService {
 				status: sender.status,
 				timeup: Date.now() + this._gameRequestTimer
 			});
+			const receiver = await this._usersService.getUser({ id: userID }, "id,username,avatar,status");
+			UserIdToSockets.emit(userID, server, "private_game_request_submitted", {
+				id: receiver.id,
+				username: receiver.username,
+				avatar: receiver.avatar,
+			});
 		}
 	}
 

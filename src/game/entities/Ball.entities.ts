@@ -6,8 +6,6 @@ import {
 	HEIGHT,
 	START_BALL_SPEED,
 	START_BALL_RADIUS,
-	BALL_SPEED_UP_EFFECT,
-	BALL_SLOW_DOWN_EFFECT,
 	MAX_BALL_SPEED,
 	BALL_SPEED_MULTIPLIER,
 	SNIPER_SPEED_UP_EFFECT_X,
@@ -33,8 +31,7 @@ export class Ball extends Entity
 	speed: number;
 	radius: number;
 	paddleCollisionsActivated: boolean = true;
-	// for tests
-	// wallCollisionsActivated: boolean = true;
+	wallCollisionsActivated: boolean = true;
 	hits: number = 0;
 	ballFreezed = false;
 
@@ -99,12 +96,7 @@ export class Ball extends Entity
 	private resetBallState(): void
 	{
 		this.velocityX = -this.saveState.copyVelX;
-	
-		// makes the ball fall down after sniper shot
-		if (this.saveState.copyVelY > 0)
-			this.velocityY = this.saveState.copyVelY;
-		else if (this.saveState.copyVelY < 0)
-			this.velocityY = -this.saveState.copyVelY;
+		this.velocityY = this.saveState.copyVelY;
 		this.saveState.copyVelX = 0;
 		this.saveState.copyVelY = 0;
 		this.saveState.dataSaved = false;
@@ -119,7 +111,7 @@ export class Ball extends Entity
 		// centers the ball
 		this.positionX = WIDTH / 2;
 		this.positionY = HEIGHT / 2;
-	
+
 		// saves the direction
 		let velocityX = this.velocityX;
 	
@@ -146,9 +138,6 @@ export class Ball extends Entity
 					this.velocityY = -this.velocityY;
 			}
 			this.velocityY = randomNb(0, 1) * this.velocityY;
-			// for tests
-			// if (this.velocityY < 0)
-			// 	this.velocityY = -this.velocityY;
 			this.ballFreezed = false;
 			pong.playerIncreased = false;
 			pong.playerDecreased = false;
@@ -174,7 +163,7 @@ export class Ball extends Entity
 		}
 	}
 
-	private collisionTimeLag()
+	private paddlesCollisionTimeLag()
 	{
 		this.paddleCollisionsActivated = false
 		setTimeout(() => {
@@ -192,12 +181,12 @@ export class Ball extends Entity
 
 	calculateBallTrajectory(player: Player): number
 	{
-		let a: number = player.pad.height / 2; // c'est le max de l'échelle
-		let b: number = player.pad.positionY + a; // c'est le point 0 (le milieu du pad)
-		let c: number = b - this.positionY; // c'est le point d'impact de la balle sur le pad
-		let d: number = c / a; // c'est le pourcentage
-		let e: number = d * this.velocityX;
-		return (e);
+		let midPad: number = player.pad.height / 2;
+		let midPadPos: number = player.pad.positionY + midPad;
+		let impactSpot: number = midPadPos - this.positionY;
+		let ratio: number = impactSpot / midPad;
+		let trajectory: number = ratio * this.velocityX;
+		return (trajectory);
 	}
 
 	newBallBouncing(player: Player)
@@ -226,67 +215,80 @@ export class Ball extends Entity
 			this.newBallBouncing(rightPlayer);
 	}
 
-	private triggerSniperShot(player: Player)
+	private sniperShotGoesUp()
 	{
-		if (player.pad.keyPressed.W)
-		{
-			if (this.velocityX > 0)
-				this.velocityX = -SNIPER_SPEED_UP_EFFECT_X
-			else
-				this.velocityX = SNIPER_SPEED_UP_EFFECT_X
-			this.velocityY = -SNIPER_SPEED_UP_EFFECT_Y
-
-		}
-		else if (player.pad.keyPressed.S)
-		{
-			if (this.velocityX > 0)
-				this.velocityX = -SNIPER_SPEED_UP_EFFECT_X
-			else
-				this.velocityX = SNIPER_SPEED_UP_EFFECT_X
-			this.velocityY = SNIPER_SPEED_UP_EFFECT_Y
-		}
+		if (this.velocityX > 0)
+			this.velocityX = -SNIPER_SPEED_UP_EFFECT_X
 		else
+			this.velocityX = SNIPER_SPEED_UP_EFFECT_X
+		this.velocityY = -SNIPER_SPEED_UP_EFFECT_Y
+	}
+
+	private sniperShotGoesDown()
+	{
+		if (this.velocityX > 0)
+			this.velocityX = -SNIPER_SPEED_UP_EFFECT_X
+		else
+			this.velocityX = SNIPER_SPEED_UP_EFFECT_X
+		this.velocityY = SNIPER_SPEED_UP_EFFECT_Y
+	}
+
+	private straightSniperShot()
+	{
+		if (this.velocityX > 0)
+			this.velocityX = -SNIPER_SPEED_UP_EFFECT_X
+		else
+			this.velocityX = SNIPER_SPEED_UP_EFFECT_X
+		this.velocityY = 0
+	}
+
+	private triggerSniperShot(player: Player, pong: Pong)
+	{
+		if (!pong.bonusCaught[pong.REVERSE_KEYS_BONUS])
 		{
-			if (this.velocityX > 0)
-				this.velocityX = -SNIPER_SPEED_UP_EFFECT_X
+			if (player.pad.keyPressed.W)
+				this.sniperShotGoesUp();
+			else if (player.pad.keyPressed.S)
+				this.sniperShotGoesDown();
 			else
-				this.velocityX = SNIPER_SPEED_UP_EFFECT_X
-			this.velocityY = 0
+				this.straightSniperShot();
 		}
+		else if (pong.bonusCaught[pong.REVERSE_KEYS_BONUS])
+		{
+			if (player.pad.keyPressed.W)
+				this.sniperShotGoesDown();
+			else if (player.pad.keyPressed.S)
+				this.sniperShotGoesUp();
+			else
+				this.straightSniperShot();
+		}
+
 	}
 
 	private sniperShot(leftPlayer: Player, rightPlayer: Player, pong: Pong)
 	{
 		if (this.velocityX < 0)
-			this.triggerSniperShot(leftPlayer);
+			this.triggerSniperShot(leftPlayer, pong);
 		else if (this.velocityX > 0)
-			this.triggerSniperShot(rightPlayer);
+			this.triggerSniperShot(rightPlayer, pong);
 		this.toggleColor();
 	}
 
-	// for tests
-	// private collisionTimeLag2()
-	// {
-	// 	this.wallCollisionsActivated = false
-	// 	setTimeout(() => {
-	// 		this.wallCollisionsActivated = true
-	// 	}, 1000)
-	// }
+	private wallCollisionTimeLag()
+	{
+		this.wallCollisionsActivated = false
+		setTimeout(() => {
+			this.wallCollisionsActivated = true
+		}, 400)
+	}
 
-	private handleBallCollisions(leftPlayer: Player, rightPlayer: Player, throwSniperShot: boolean, caughtBy: string, pong: Pong): void
+	private handleBallCollisions(leftPlayer: Player, rightPlayer: Player, caughtBy: string, pong: Pong): void
 	{
 		if ((this.positionY + this.radius) >= HEIGHT || (this.positionY - this.radius) <= 0)
 		{
-			// for tests
-			// if (this.wallCollisionsActivated)		
-			{
-				// console.log("entrée Y\nVelY = ", this.velocityY)
+			if (this.wallCollisionsActivated)		
 				this.velocityY = -this.velocityY;
-				// console.log("sortie Y\nVelY = ", this.velocityY)
-				// console.log("ball radius = ", this.radius);
-			}
-			// for tests
-			// this.collisionTimeLag2();
+			this.wallCollisionTimeLag();
 		}
 		
 		if ((this.positionX + this.radius >= WIDTH - (rightPlayer.pad.width + 10) &&
@@ -294,7 +296,6 @@ export class Ball extends Entity
 		(this.positionX - this.radius <= (leftPlayer.pad.width + 10) &&
 		(this.positionY >= leftPlayer.pad.positionY && this.positionY <= leftPlayer.pad.positionY + leftPlayer.pad.height)))
 		{
-			//console.log("passage paddle hit")
 			if (this.paddleCollisionsActivated)
 			{
 				this.hits++;
@@ -313,21 +314,19 @@ export class Ball extends Entity
 					this.toggleColor();
 				}
 			}
-			this.collisionTimeLag();
+			this.paddlesCollisionTimeLag();
 			
-			// for tests
-			// in case the ball touched the top or bottom wall before touching the ball
+			// in case the ball touched the top or bottom wall before touching the paddle
 			// and is gonna touch the paddle again, wall collsions must be activated
-			// this.wallCollisionsActivated = true;
+			this.wallCollisionsActivated = true;
 		}
 		this.increaseBallSpeed();
-		//console.log("check ball vey Y = ", this.velocityY)
 	}
 
 	
-	update(leftPlayer: Player, rightPlayer: Player, throwSniperShot: boolean, caughtBy: string, pong: Pong): void
+	update(leftPlayer: Player, rightPlayer: Player, caughtBy: string, pong: Pong): void
 	{
-		this.handleBallCollisions(leftPlayer, rightPlayer, throwSniperShot, caughtBy, pong);
+		this.handleBallCollisions(leftPlayer, rightPlayer, caughtBy, pong);
 		this.updateBallPos();
 	}
 }
