@@ -164,25 +164,39 @@ export default class GameService {
 
 		const count = await this._prismaService.game.count({
 			where: {
-				OR: [
+				AND: [
 					{
-						player_one: {
-							username: {
-								contains: search,
-								mode: 'insensitive'
+						OR: [
+							{
+								player_one_id: userId,
 							},
-						},
+							{
+								player_two_id: userId,
+							},
+						],
 					},
 					{
-						player_two: {
-							username: {
-								contains: search,
-								mode: 'insensitive'
+						OR: [
+							{
+								player_one: {
+									username: {
+										contains: search,
+										mode: 'insensitive'
+									},
+								},
 							},
-						},
+							{
+								player_two: {
+									username: {
+										contains: search,
+										mode: 'insensitive'
+									},
+								},
+							},
+						],
 					},
 				],
-			}
+			},
 		});
 		console.log(count);
 		return { games, count };
