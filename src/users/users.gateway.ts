@@ -68,25 +68,6 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		}, 5000);
 	}
 
-	@SubscribeMessage('join_game')
-	async handleJoinGame(socket: Socket) {
-		const { id } = socket.data;
-		if (!id) return;
-
-		await this._usersService.updateUser({ id }, { status: Status.INGAME });
-		this._emitToFriends(id, 'user_joined_game', id);
-	}
-
-	@SubscribeMessage('leave_game')
-	async handleLeaveGame(socket: Socket) {
-
-		const { id } = socket.data;
-		if (!id) return;
-
-		await this._usersService.updateUser({ id }, { status: Status.ONLINE });
-		this._emitToFriends(id, 'user_left_game', id);
-	}
-
 	@SubscribeMessage('accept_friend')
 	async handleAcceptFriend(
 		@GetCurrentUserId() id: string,
