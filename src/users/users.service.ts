@@ -37,7 +37,6 @@ export class UsersService {
                 { avatar: `${staticPath}${avatar.filename}` }
             );
         } catch(err) {
-			console.log(err);
             if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
@@ -47,9 +46,9 @@ export class UsersService {
     async addExperience(
         id: Prisma.UserWhereUniqueInput['id'],
         point: number
-    ) : Promise<User> {
+    ) : Promise<Partial<User>> {
         try {
-            const user: User = await this._prismaService.user.findUnique({ where: { id } });
+            const user: Partial<User> = await this.getUser({ id });
 
             if (!user)
                 throw new NotFoundException('User not found');
@@ -57,19 +56,17 @@ export class UsersService {
             const newExperience: number = user.experience + (this._experienceGain * point);
 
             if (newExperience >= user.next_level) {
-                return this._prismaService.user.update({
-                    where: { id },
-                    data: {
+                return this.updateUser({ id },
+                    {
                         experience: newExperience - user.next_level,
                         level: { increment: 1 },
                         next_level: { multiply: this._nextLevelPourcentage }
                     }
-                });
+                );
             } else {
-                return this._prismaService.user.update({
-                    where: { id },
-                    data: { experience: newExperience }
-                });
+                return this.updateUser({ id },
+                    { experience: newExperience }
+                );
             }
         } catch(err) {
             if (err instanceof NotFoundException)
@@ -81,14 +78,14 @@ export class UsersService {
     async addRankPoint(
         id: Prisma.UserWhereUniqueInput['id'],
         winner: boolean
-    ) : Promise<User> {
+    ) : Promise<Partial<User>> {
         try {
             const point = winner ? this._rankPointGain : -this._rankPointGain;
 
-            return this._prismaService.user.update({
-                where: { id },
-                data: { rank_point: { increment: point } }
-            });
+            return this.updateUser(
+                { id },
+                { rank_point: { increment: point } }
+            );
         } catch(err) {
             if (err instanceof NotFoundException)
                 throw err;
@@ -149,6 +146,9 @@ export class UsersService {
 
 			return { sender: blocked.user, receiver: blocked.blocked };
 		} catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === 'P2025')
+					throw new NotFoundException('User not found');
 			if (err instanceof NotFoundException)
 				throw err;
 			throw new InternalServerErrorException('Internal server error');
@@ -219,7 +219,9 @@ export class UsersService {
 				return friendship;
 			}
         } catch(err) {
-			if (err instanceof HttpException)
+			if (err instanceof ForbiddenException)
+				throw err;
+			if (err instanceof NotFoundException)
 				throw err;
             if (err instanceof PrismaClientKnownRequestError)
                 if (err.code === 'P2002')
@@ -327,7 +329,11 @@ export class UsersService {
 
             return data;
         } catch(err) {
-			console.log(err);
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === 'P2025')
+					throw new NotFoundException('Friend request not found');
+			if (err instanceof NotFoundException)
+				throw err;
             throw new InternalServerErrorException('Internal server error');
 		}
     }
@@ -419,6 +425,9 @@ export class UsersService {
                 },
             })
 
+			if (!friends || friends.length > 0)
+				return [];
+
             return friends.map(friend => friend.sender);
         } catch(err) {
             throw new InternalServerErrorException('Internal server error');
@@ -435,8 +444,11 @@ export class UsersService {
 
             return user;
         } catch(err) {
-			console.log(err);
-            throw new ConflictException("User already exist");
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === 'P2002')
+					throw new ConflictException('User already exist');
+
+			throw new InternalServerErrorException('Internal server error');
         }
     }
 
