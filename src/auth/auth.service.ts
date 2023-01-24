@@ -56,6 +56,7 @@ export class AuthService {
 			return user;
 		}
         catch(err) {
+			console.log(err);
             if (err instanceof UnauthorizedException)
                 throw err;
 			throw new InternalServerErrorException("Internal server error");

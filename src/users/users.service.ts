@@ -425,7 +425,7 @@ export class UsersService {
                 },
             })
 
-			if (!friends || friends.length > 0)
+			if (!friends || friends.length <= 0)
 				return [];
 
             return friends.map(friend => friend.sender);

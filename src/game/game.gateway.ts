@@ -13,7 +13,12 @@ import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 import { MatchmakingService } from './matchmaking.service';
 import GameService from './game.service';
 
-@WebSocketGateway()
+@WebSocketGateway({
+	cors: {
+		origin: 'http://localhost:8080',
+		credentials: true,
+	},
+})
 @UseGuards(JwtAuthGuard)
 export default class GameGateway {
 	constructor(
