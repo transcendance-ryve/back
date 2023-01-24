@@ -29,7 +29,7 @@ import { UserTag } from './interfaces/utils.interfaces';
 
 @WebSocketGateway({
 	cors: {
-		origin: '*',
+		origin: 'http://localhost:8080',
 		credentials: true,
 	},
 })
