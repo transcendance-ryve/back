@@ -5,7 +5,8 @@ import {
 	PLAYERS_HEIGHT,
 	PLAYERS_SPEED,
 	PLAYERS_WIDTH,
-	WIDTH
+	WIDTH,
+	PLAYER_TO_BORDER_GAP
 } from "./utils.entities";
 import { Pong } from "./neoPong.entities"
 
@@ -46,18 +47,18 @@ export class Paddle extends Entity
 
 	moveUp()
 	{
-		if (this.positionY > 7 && (this.positionY - this.speed) >= 7)
+		if (this.positionY > PLAYER_TO_BORDER_GAP && (this.positionY - this.speed) >= PLAYER_TO_BORDER_GAP)
 			this.positionY -= this.speed;
 		else
-			this.positionY = 7;
+			this.positionY = PLAYER_TO_BORDER_GAP;
 	}
 
 	moveDown()
 	{
-		if (this.positionY < HEIGHT - this.height - 7 && (this.positionY + this.speed)  <= HEIGHT - this.height - 7)
+		if (this.positionY < HEIGHT - this.height - PLAYER_TO_BORDER_GAP && (this.positionY + this.speed)  <= HEIGHT - this.height - PLAYER_TO_BORDER_GAP)
 			this.positionY += this.speed;
 		else
-			this.positionY = HEIGHT - this.height - 7
+			this.positionY = HEIGHT - this.height - PLAYER_TO_BORDER_GAP
 	}
 
 	standardKeysBehavior()

@@ -1,17 +1,31 @@
 import { Entity } from './Entity.entities';
 import { Ball } from './Ball.entities';
-import { WIDTH, HEIGHT, BONUS_LIFETIME, X_BONUS_LIMIT,
-		Y_BONUS_LIMIT, BONUS_WIDTH, BONUS_HEIGHT, SIZE_DECREASE_PATH,
-		SIZE_INCREASE_PATH, REVERSE_KEYS_BONUS_PATH, SLOWER_BONUS_PATH,
-		SNIPER_BONUS_PATH} from './utils.entities';
+import {
+	randomNb,
+	WIDTH,
+	HEIGHT,
+	BONUS_LIFETIME,
+	X_BONUS_LIMIT,
+	Y_BONUS_LIMIT,
+	BONUS_WIDTH,
+	BONUS_HEIGHT,
+	SIZE_DECREASE_PATH,
+	SIZE_INCREASE_PATH,
+	REVERSE_KEYS_BONUS_PATH,
+	SLOWER_BONUS_PATH,
+	SNIPER_BONUS_PATH
+}
+from './utils.entities';
+import { Server } from 'socket.io';
 
 export class Bonus extends Entity {
 
-	constructor(effect: string, spawningNb: number){
+	constructor(effect: string, spawningNb: number, gameId:string, _server: Server){
 		super();
 		this.effect = effect;
-		// this.image = new Image();
 		this.spawningNb = spawningNb;
+		this.gameId = gameId;
+		this._server = _server;
 		this.init();
 	}
 	effect: string;
@@ -19,6 +33,8 @@ export class Bonus extends Entity {
 	imagePath: string;
 	spawningNb: number;
 	lifetime: number = BONUS_LIFETIME;
+	gameId: string;
+	_server: Server;
 
 	init()
 	{
@@ -44,13 +60,28 @@ export class Bonus extends Entity {
 	}
 
 
-	randomNb(min: number, max: number): number
+
+	sendBonusData(ball: Ball)
 	{
-		let randomNumber:number = min + Math.random() * (max - min);
-		return (randomNumber);
+		this.setRandBonusPos(ball);
+		let bonusData = {
+			name: this.effect,
+			imgURL: this.imagePath,
+			x: this.positionX,
+			y: this.positionY,
+			h: this.height,
+			w: this.width
+		}
+		this._server.to(this.gameId).emit("bonus_spawn", bonusData);
 	}
 
-	randomY(min: number, max: number, ball: Ball): number
+	// randomNb(min: number, max: number): number
+	// {
+	// 	let randomNumber:number = min + Math.random() * (max - min);
+	// 	return (randomNumber);
+	// }
+
+	private randomY(min: number, max: number, ball: Ball): number
 	{
 		while (1)		// finds randomNumber for Y to not be on the ball's trajectory
 		{
@@ -64,7 +95,7 @@ export class Bonus extends Entity {
 						if (randomNumber + BONUS_HEIGHT < ball.positionY)	// if BONUS is not under the ball
 							return (randomNumber as number);
 						else if (BONUS_HEIGHT >= ball.positionY - Y_BONUS_LIMIT) // if BONUS cannot be above the ball
-							this.positionX = this.randomNb(X_BONUS_LIMIT, ball.positionX - BONUS_WIDTH); // forces BONUS to be left of the ball
+							this.positionX = randomNb(X_BONUS_LIMIT, ball.positionX - BONUS_WIDTH); // forces BONUS to be left of the ball
 					}
 					else													// if BONUS is left of the ball
 						return (randomNumber as number);
@@ -76,7 +107,7 @@ export class Bonus extends Entity {
 						if (randomNumber > ball.positionY)					// if BONUS is not above the ball
 							return (randomNumber as number);
 						else if (BONUS_HEIGHT >= HEIGHT - Y_BONUS_LIMIT - ball.positionY) // if BONUS cannot be under the ball
-							this.positionX = this.randomNb(X_BONUS_LIMIT, ball.positionX - BONUS_WIDTH); // forces BONUS to be left of the ball
+							this.positionX = randomNb(X_BONUS_LIMIT, ball.positionX - BONUS_WIDTH); // forces BONUS to be left of the ball
 					}
 					else													// if BONUS is left of the ball
 						return (randomNumber as number);
@@ -91,7 +122,7 @@ export class Bonus extends Entity {
 						if (randomNumber + BONUS_HEIGHT < ball.positionY)	// if BONUS is not under the ball
 							return (randomNumber as number);
 						else if (BONUS_HEIGHT >= ball.positionY - Y_BONUS_LIMIT) // if BONUS cannot be above the ball
-							this.positionX = this.randomNb(ball.positionX, (WIDTH - BONUS_WIDTH - X_BONUS_LIMIT)); // forces BONUS to be right of the ball
+							this.positionX = randomNb(ball.positionX, (WIDTH - BONUS_WIDTH - X_BONUS_LIMIT)); // forces BONUS to be right of the ball
 					}
 					else													// if BONUS is right of the ball
 						return (randomNumber as number);
@@ -103,7 +134,7 @@ export class Bonus extends Entity {
 						if (randomNumber > ball.positionY)					// if BONUS is not above the ball
 							return (randomNumber as number);
 						else if (BONUS_HEIGHT >= HEIGHT - Y_BONUS_LIMIT - ball.positionY) // if BONUS cannot be under the ball
-							this.positionX = this.randomNb(ball.positionX, (WIDTH - BONUS_WIDTH - X_BONUS_LIMIT)); // forces BONUS to be right of the ball
+							this.positionX = randomNb(ball.positionX, (WIDTH - BONUS_WIDTH - X_BONUS_LIMIT)); // forces BONUS to be right of the ball
 					}
 					else													// if BONUS is right of the ball
 						return (randomNumber as number);
@@ -115,9 +146,7 @@ export class Bonus extends Entity {
 
 	setRandBonusPos(ball: Ball)
 	{
-		this.positionX = this.randomNb((X_BONUS_LIMIT), (WIDTH - BONUS_WIDTH - X_BONUS_LIMIT));
+		this.positionX = randomNb((X_BONUS_LIMIT), (WIDTH - BONUS_WIDTH - X_BONUS_LIMIT));
 		this.positionY  = this.randomY(Y_BONUS_LIMIT, HEIGHT - BONUS_HEIGHT - Y_BONUS_LIMIT, ball);
 	}
-
-	// update(); // check si la balle est sur le bonus
 }

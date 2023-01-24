@@ -9,11 +9,12 @@ import {
 	MAX_BALL_SPEED,
 	BALL_SPEED_MULTIPLIER,
 	SNIPER_SPEED_UP_EFFECT_X,
-	SNIPER_SPEED_UP_EFFECT_Y
-} from './utils.entities';
+	SNIPER_SPEED_UP_EFFECT_Y,
+	NB_BONUS
+} 
+from './utils.entities';
 import { Player } from './Player.entities';
 import { Pong } from './neoPong.entities';
-import { Bonus } from './Bonus.entities';
 import { runInThisContext } from 'vm';
 
 export class Ball extends Entity
@@ -41,73 +42,12 @@ export class Ball extends Entity
 		dataSaved: false
 	}
 
-	vel = {
-		x: 0,
-		y: 0
-	}
-
-	blue = {
-		color: color.blue,
-		velocity: this.vel
-	}
-
-	red = {
-		color: color.red,
-		velocity: this.vel
-	}
-
-	sides = [
-		this.blue,
-		this.red
-	]
-
-	saveBallState()
-	{
-		this.saveState.copyVelX = this.velocityX;
-		this.saveState.copyVelY = this.velocityY;
-		this.saveState.dataSaved = true;
-	}
-
-	generateRandDirectionAndTrajectory()
-	{
-		if (randomNb(0, 1) > 0.5)
-			this.velocityX = -this.velocityX;
-		if (randomNb(0, 1) > 0.5)
-			this.velocityY = -this.velocityY;
-		if (this.velocityX < 0)
-			this.color = color.red;
-		else
-			this.color = color.blue;
-
-		// gives ball a random trajectory
-		this.velocityY = randomNb(0, 1) * this.velocityY;
-	};
- 
-	private init()
-	{
-		this.positionX = WIDTH / 2;
-		this.positionY = HEIGHT / 2;
-		this.velocityX = START_BALL_SPEED;
-		this.velocityY = START_BALL_SPEED;
-		this.radius = START_BALL_RADIUS;
-		this.generateRandDirectionAndTrajectory();
-	};
-
-	private resetBallState(): void
-	{
-		this.velocityX = -this.saveState.copyVelX;
-		this.velocityY = this.saveState.copyVelY;
-		this.saveState.copyVelX = 0;
-		this.saveState.copyVelY = 0;
-		this.saveState.dataSaved = false;
-	};
-
 	isFreezed(): boolean
 	{
 		return (this.ballFreezed);
 	}
-	
-	resetBall(pong: Pong) {
+
+	public resetBall(pong: Pong) {
 		// centers the ball
 		this.positionX = WIDTH / 2;
 		this.positionY = HEIGHT / 2;
@@ -150,6 +90,30 @@ export class Ball extends Entity
 		this.positionY += this.velocityY;
 	}
 
+	private handleBallInBonusArea(pong: Pong)
+	{
+		for (let i = 0; i < NB_BONUS; i++)
+		{
+			if (pong.displayBonus[i] && pong.randBonusPosSet[i] && ((pong.ball.positionY) >= pong.mapBonus.get(i).positionY
+				&& (pong.ball.positionY) <= (pong.mapBonus.get(i).positionY + pong.mapBonus.get(i).height))
+				&& ((pong.ball.positionX) >= pong.mapBonus.get(i).positionX
+				&& (pong.ball.positionX) <= (pong.mapBonus.get(i).positionX + pong.mapBonus.get(i).width)))
+			{
+				pong.bonusCaught[i] = true;
+				if (pong.ball.velocityX > 0)
+					pong.caughtBy[i] = 'L';
+				else if (pong.ball.velocityX < 0)
+					pong.caughtBy[i] = 'R';
+				if (i == pong.SNIPER_BONUS)
+					pong.throwSniperShot = true;
+			}
+		}
+		if (pong.bonusCaught[pong.SIZE_INCREASE])
+			pong.increasePlayerSize();
+		if (pong.bonusCaught[pong.SIZE_DECREASE])
+			pong.decreasePlayerSize();
+	}
+
 	private increaseBallSpeed()
 	{
 		if (this.hits === 1)
@@ -171,14 +135,6 @@ export class Ball extends Entity
 		}, 400)
 	}
 
-	private toggleColor(): void
-	{
-		if (this.color === color.red)
-			this.color = color.blue;
-		else if (this.color === color.blue)
-			this.color = color.red;
-	};
-
 	calculateBallTrajectory(player: Player): number
 	{
 		let midPad: number = player.pad.height / 2;
@@ -189,7 +145,7 @@ export class Ball extends Entity
 		return (trajectory);
 	}
 
-	newBallBouncing(player: Player)
+	makeBallBounce(player: Player)
 	{
 		// reverses ball direction
 		this.velocityX = -this.velocityX;
@@ -207,21 +163,30 @@ export class Ball extends Entity
 			this.velocityY = -this.velocityY;
 	}
 
-	private makeBallBounce(leftPlayer: Player, rightPlayer: Player, pong: Pong)
+	private resetBallState(): void
 	{
-		if (this.velocityX < 0)
-			this.newBallBouncing(leftPlayer);
-		else if (this.velocityX > 0)
-			this.newBallBouncing(rightPlayer);
-	}
+		this.velocityX = -this.saveState.copyVelX;
+		this.velocityY = this.saveState.copyVelY;
+		this.saveState.copyVelX = 0;
+		this.saveState.copyVelY = 0;
+		this.saveState.dataSaved = false;
+	};
 
-	private sniperShotGoesUp()
+	private toggleColor(): void
+	{
+		if (this.color === color.red)
+			this.color = color.blue;
+		else if (this.color === color.blue)
+			this.color = color.red;
+	};
+
+	private straightSniperShot()
 	{
 		if (this.velocityX > 0)
 			this.velocityX = -SNIPER_SPEED_UP_EFFECT_X
 		else
 			this.velocityX = SNIPER_SPEED_UP_EFFECT_X
-		this.velocityY = -SNIPER_SPEED_UP_EFFECT_Y
+		this.velocityY = 0
 	}
 
 	private sniperShotGoesDown()
@@ -233,13 +198,13 @@ export class Ball extends Entity
 		this.velocityY = SNIPER_SPEED_UP_EFFECT_Y
 	}
 
-	private straightSniperShot()
+	private sniperShotGoesUp()
 	{
 		if (this.velocityX > 0)
 			this.velocityX = -SNIPER_SPEED_UP_EFFECT_X
 		else
 			this.velocityX = SNIPER_SPEED_UP_EFFECT_X
-		this.velocityY = 0
+		this.velocityY = -SNIPER_SPEED_UP_EFFECT_Y
 	}
 
 	private triggerSniperShot(player: Player, pong: Pong)
@@ -274,6 +239,13 @@ export class Ball extends Entity
 		this.toggleColor();
 	}
 
+	saveBallState()
+	{
+		this.saveState.copyVelX = this.velocityX;
+		this.saveState.copyVelY = this.velocityY;
+		this.saveState.dataSaved = true;
+	}
+
 	private wallCollisionTimeLag()
 	{
 		this.wallCollisionsActivated = false
@@ -282,7 +254,7 @@ export class Ball extends Entity
 		}, 400)
 	}
 
-	private handleBallCollisions(leftPlayer: Player, rightPlayer: Player, caughtBy: string, pong: Pong): void
+	private handleBallCollisions(leftPlayer: Player, rightPlayer: Player, pong: Pong): void
 	{
 		if ((this.positionY + this.radius) >= HEIGHT || (this.positionY - this.radius) <= 0)
 		{
@@ -299,7 +271,7 @@ export class Ball extends Entity
 			if (this.paddleCollisionsActivated)
 			{
 				this.hits++;
-				if (pong.throwSniperShot && ((this.velocityX > 0 && caughtBy === 'R') || (this.velocityX < 0 && caughtBy === 'L')))
+				if (pong.throwSniperShot && ((this.velocityX > 0 && pong.caughtBy[pong.SNIPER_BONUS] === 'R') || (this.velocityX < 0 && pong.caughtBy[pong.SNIPER_BONUS] === 'L')))
 				{
 					this.saveBallState();
 					this.sniperShot(leftPlayer, rightPlayer, pong);
@@ -310,7 +282,10 @@ export class Ball extends Entity
 				{
 					if (this.saveState.dataSaved)
 						this.resetBallState();
-					this.makeBallBounce(leftPlayer, rightPlayer, pong);
+					if (this.velocityX < 0)
+						this.makeBallBounce(leftPlayer);
+					else if (this.velocityX > 0)
+						this.makeBallBounce(rightPlayer);
 					this.toggleColor();
 				}
 			}
@@ -323,10 +298,35 @@ export class Ball extends Entity
 		this.increaseBallSpeed();
 	}
 
-	
-	update(leftPlayer: Player, rightPlayer: Player, caughtBy: string, pong: Pong): void
+	public update(leftPlayer: Player, rightPlayer: Player, pong: Pong): void
 	{
-		this.handleBallCollisions(leftPlayer, rightPlayer, caughtBy, pong);
+		this.handleBallCollisions(leftPlayer, rightPlayer, pong);
+		this.handleBallInBonusArea(pong);
 		this.updateBallPos();
 	}
+
+	private generateRandDirectionAndTrajectory()
+	{
+		if (randomNb(0, 1) > 0.5)
+			this.velocityX = -this.velocityX;
+		if (randomNb(0, 1) > 0.5)
+			this.velocityY = -this.velocityY;
+		if (this.velocityX < 0)
+			this.color = color.red;
+		else
+			this.color = color.blue;
+
+		// gives ball a random trajectory
+		this.velocityY = randomNb(0, 1) * this.velocityY;
+	};
+ 
+	private init()
+	{
+		this.positionX = WIDTH / 2;
+		this.positionY = HEIGHT / 2;
+		this.velocityX = START_BALL_SPEED;
+		this.velocityY = START_BALL_SPEED;
+		this.radius = START_BALL_RADIUS;
+		this.generateRandDirectionAndTrajectory();
+	};
 }

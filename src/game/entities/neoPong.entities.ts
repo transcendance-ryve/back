@@ -2,16 +2,29 @@ import { Server } from "socket.io";
 import GameService from "../game.service";
 import { Paddles, EndGamePlayer } from "../interfaces/game.interface";
 import { Player } from "./Player.entities";
-import { color, WIDTH, HEIGHT, PLAYERS_HEIGHT,
-	PLAYERS_WIDTH, START_BALL_RADIUS, TICK_INTERVAL,
-	NB_BONUS, BONUSES_START, RAND_GEN_AREA_X,
-	BONUS_LIFETIME, BONUSES_INTERVAL, PLAYERS_SPEED,
-	PLAYER_SHRINK_MULTIPLIER, PLAYERS_SHRINK_POSITION_FIX,
-	PLAYERS_SHRINK_POSITION_FIX2, PLAYERS_MIN_HEIGHT,
-	PLAYER_INCREASE_MULTIPLIER, PLAYERS_GROWTH_POSITION_FIX,
+import { color,
+	WIDTH,
+	HEIGHT,
+	PLAYERS_HEIGHT,
+	PLAYERS_WIDTH,
+	START_BALL_RADIUS,
+	TICK_INTERVAL,
+	NB_BONUS,
+	BONUSES_START,
+	RAND_GEN_AREA_X,
+	BONUS_LIFETIME,
+	BONUSES_INTERVAL,
+	PLAYERS_SPEED,
+	PLAYER_SHRINK_MULTIPLIER,
+	PLAYERS_SHRINK_POSITION_FIX,
+	PLAYERS_SHRINK_POSITION_FIX2,
+	PLAYERS_MIN_HEIGHT,
+	PLAYER_INCREASE_MULTIPLIER,
+	PLAYERS_GROWTH_POSITION_FIX,
 	PLAYERS_MAX_HEIGHT,
-	BONUS_WIDTH,
-	BONUS_HEIGHT} from "./utils.entities";
+	PLAYER_TO_BORDER_GAP,
+	PLAYER_TO_BOTTOM_BORDER_GAP_FIX,
+} from "./utils.entities";
 import { Ball } from "./Ball.entities";
 import { Bonus } from "./Bonus.entities"
 import { emit } from "process";
@@ -214,7 +227,17 @@ export class Pong
 		{
 			this.rightPlayer.pad.increased = true;
 			this.rightPlayer.pad.height *= PLAYER_INCREASE_MULTIPLIER;
-			this.rightPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
+			// this.rightPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
+			if ((this.rightPlayer.pad.height + this.rightPlayer.pad.positionY) >= (HEIGHT - PLAYER_TO_BORDER_GAP))
+			{
+				this.rightPlayer.pad.positionY -= PLAYER_TO_BOTTOM_BORDER_GAP_FIX;
+				if (this.rightPlayer.pad.height >= PLAYERS_MAX_HEIGHT )
+					this.rightPlayer.pad.positionY = (HEIGHT - PLAYER_TO_BORDER_GAP) - this.rightPlayer.pad.height;
+			}
+			else if ( this.rightPlayer.pad.positionY <= PLAYER_TO_BORDER_GAP)
+				this.rightPlayer.pad.positionY = PLAYER_TO_BORDER_GAP;
+			else
+				this.rightPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
 		}
 
 		// increases the left player's height if it is the first bonus taken that modifies the left player's height
@@ -222,35 +245,18 @@ export class Pong
 		{
 			this.leftPlayer.pad.increased = true;
 			this.leftPlayer.pad.height *= PLAYER_INCREASE_MULTIPLIER;
-			this.leftPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
-		}
-	}
-
-
-	handleBallInBonusArea()
-	{
-		for (let i = 0; i < NB_BONUS; i++)
-		{
-			if (this.displayBonus[i] && this.randBonusPosSet[i] && ((this.ball.positionY) >= this.mapBonus.get(i).positionY
-				&& (this.ball.positionY) <= (this.mapBonus.get(i).positionY + this.mapBonus.get(i).height))
-				&& ((this.ball.positionX) >= this.mapBonus.get(i).positionX
-				&& (this.ball.positionX) <= (this.mapBonus.get(i).positionX + this.mapBonus.get(i).width)))
+			if ((this.leftPlayer.pad.height + this.leftPlayer.pad.positionY) >= (HEIGHT - PLAYER_TO_BORDER_GAP))
 			{
-				this.bonusCaught[i] = true;
-				if (this.ball.velocityX > 0)
-					this.caughtBy[i] = 'L';
-				else if (this.ball.velocityX < 0)
-					this.caughtBy[i] = 'R';
-				if (i == this.SNIPER_BONUS)
-					this.throwSniperShot = true;
+				this.leftPlayer.pad.positionY -= PLAYER_TO_BOTTOM_BORDER_GAP_FIX;
+				if (this.leftPlayer.pad.height >= PLAYERS_MAX_HEIGHT )
+					this.leftPlayer.pad.positionY = (HEIGHT - PLAYER_TO_BORDER_GAP) - this.leftPlayer.pad.height;
 			}
+			else if ( this.leftPlayer.pad.positionY <= PLAYER_TO_BORDER_GAP)
+					this.leftPlayer.pad.positionY = PLAYER_TO_BORDER_GAP;
+			else
+				this.leftPlayer.pad.positionY -= PLAYERS_GROWTH_POSITION_FIX;
 		}
-		if (this.bonusCaught[this.SIZE_INCREASE])
-			this.increasePlayerSize();
-		if (this.bonusCaught[this.SIZE_DECREASE])
-			this.decreasePlayerSize();
 	}
-
 
 
 	resetBonuses()
@@ -279,21 +285,6 @@ export class Pong
 			this.gameStartTimer = Date.now();
 	}
 
-
-	sendBonusData(bonus: Bonus)
-	{
-		bonus.setRandBonusPos(this.ball);
-		let bonusData = {
-			name: bonus.effect,
-			imgURL: bonus.imagePath,
-			x: bonus.positionX,
-			y: bonus.positionY,
-			h: bonus.height,
-			w: bonus.width
-		}
-		this._server.to(this.gameId).emit("bonus_spawn", bonusData);
-	}
-
 	bonusesDisplay()
 	{
 		const millis = (Date.now() - this.gameStartTimer) / 1000;
@@ -304,8 +295,8 @@ export class Pong
 					if (!this.randBonusPosSet[i] && ((this.ball.positionX > RAND_GEN_AREA_X)
 						&& (this.ball.positionX < WIDTH - RAND_GEN_AREA_X)))
 					{
-							this.sendBonusData(this.mapBonus.get(i));
-							this.randBonusPosSet[i] = true;
+						this.mapBonus.get(i).sendBonusData(this.ball);
+						this.randBonusPosSet[i] = true;
 					}
 					if (this.randBonusPosSet[i]) {
 						if (!this.bonusCountDownLaunched[i]) {
@@ -446,8 +437,8 @@ export class Pong
 	{
 		this.leftPlayer.pad.update(this);
 		this.rightPlayer.pad.update(this);
-		this.ball.update(this.leftPlayer, this.rightPlayer, this.caughtBy[this.SNIPER_BONUS], this);
-		this.handleBallInBonusArea();
+		this.ball.update(this.leftPlayer, this.rightPlayer, this);
+		// this.handleBallInBonusArea();
 		if (this.bonusesActivated)
 			this.bonusesDisplay();
 		this.setScore();
@@ -492,19 +483,19 @@ export class Pong
 	initMapBonuses()
 	{
 		this.mapBonus.set(this.SIZE_DECREASE,
-			new Bonus("SIZE_DECREASE", this.SIZE_DECREASE));
+			new Bonus("SIZE_DECREASE", this.SIZE_DECREASE, this.gameId, this._server));
 
 		this.mapBonus.set(this.SIZE_INCREASE,
-			new Bonus("SIZE_INCREASE", this.SIZE_INCREASE));
+			new Bonus("SIZE_INCREASE", this.SIZE_INCREASE, this.gameId, this._server));
 
 		this.mapBonus.set(this.REVERSE_KEYS_BONUS,
-			new Bonus("REVERSE_KEYS_BONUS", this.REVERSE_KEYS_BONUS));
+			new Bonus("REVERSE_KEYS_BONUS", this.REVERSE_KEYS_BONUS, this.gameId, this._server));
 		
 		this.mapBonus.set(this.SLOWER_BONUS,
-			new Bonus("SLOWER_BONUS", this.SLOWER_BONUS));
+			new Bonus("SLOWER_BONUS", this.SLOWER_BONUS, this.gameId, this._server));
 		
 		this.mapBonus.set(this.SNIPER_BONUS,
-			new Bonus("SNIPER_BONUS", this.SNIPER_BONUS));
+			new Bonus("SNIPER_BONUS", this.SNIPER_BONUS, this.gameId, this._server));
 	}
 
 	genSingleRandNumber(tab: number[])
