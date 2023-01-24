@@ -408,7 +408,6 @@ export class Pong
 				score: this.leftPlayer.score,
 			}
 			this._server.to(this.gameId).emit('score', data);
-			console.log("score: " + this._gameService.spectateRoom);
 			this._server.to(this._gameService.spectateRoom)
 				.emit('updateScore', this.gameId, data);
 		}
@@ -426,7 +425,6 @@ export class Pong
 				score: this.rightPlayer.score
 			}
 			this._server.to(this.gameId).emit('score', data);
-			console.log("score: " + this._gameService.spectateRoom);
 			this._server.to(this._gameService.spectateRoom)
 				.emit('updateScore', this.gameId, data);
 		}

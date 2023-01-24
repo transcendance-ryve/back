@@ -134,8 +134,12 @@ export default class GameGateway {
 	handleConnect(
 		@GetCurrentUserId() currentID: string,
 	): void {
-		this._gameService.connect(currentID, this._server);
-		UserIdToSockets.emit(currentID, this._server, 'game_connected');
+		try {
+			this._gameService.connect(currentID, this._server);
+			UserIdToSockets.emit(currentID, this._server, 'game_connected');
+		} catch (e) {
+			UserIdToSockets.emit(currentID, this._server, 'game_connect_failed');
+		}
 	}
 
 	@SubscribeMessage('onSpectate')

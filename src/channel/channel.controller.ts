@@ -92,7 +92,6 @@ export default class ChannelController {
 		@Body('createInfo') dto: CreateChannelDto,
 		@UploadedFile() avatar: Express.Multer.File,
 	): Promise<void> {
-		console.log('createRoom called');
 		const clientSocket = UserIdToSockets.get(userId);
 		const channel:
 		Channel | string = await this.channelService.createChannelWS(

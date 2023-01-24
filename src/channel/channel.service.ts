@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import {
 	Prisma,
@@ -88,11 +88,11 @@ export default class ChannelService {
 				where,
 				select: (selected && selected.length > 0) ? select : undefined,
 			});
-			if (!channel) throw new Error('Channel not found');
+			if (!channel) throw new NotFoundException('Channel not found');
 			delete channel.password;
 			return channel;
 		} catch (err) {
-			if (err) throw new Error(err.message);
+			if (err.message === "Channel not found") throw new NotFoundException(err.message);
 			throw new Error('Internal server error');
 		}
 	}
@@ -150,7 +150,7 @@ export default class ChannelService {
 			};
 			return res;
 		} catch (error) {
-			console.log(error.message);
+			if (error.message === 'Channel not found') throw new NotFoundException(error.message);
 			return error;
 		}
 	}
@@ -222,10 +222,9 @@ export default class ChannelService {
 					isBlocked: await this.isBlocked(userId, user.user.id),
 				});
 			}));
-			console.log(res);
 			return res;
 		} catch (error) {
-			console.log(error);
+			if (error.message === 'Channel not found') throw new NotFoundException(error.message);
 			return error;
 		}
 	}
@@ -368,6 +367,7 @@ export default class ChannelService {
 			});
 			return mutedUsers;
 		} catch (error) {
+			if (error.message === 'Channel not found') throw new NotFoundException(error.message);
 			return error.message;
 		}
 	}
@@ -413,6 +413,7 @@ export default class ChannelService {
 			}));
 			return res;
 		} catch (error) {
+			if (error.message === 'Channel not found') throw new NotFoundException(error.message);
 			return error.message;
 		}
 	}
@@ -438,6 +439,7 @@ export default class ChannelService {
 			});
 			return role.role;
 		} catch (error) {
+			if (error.message === 'Channel not found') throw new NotFoundException(error.message);
 			return error.message;
 		}
 	}
@@ -463,7 +465,6 @@ export default class ChannelService {
 				},
 			});
 			const res: UserTag[] = [];
-
 			await Promise.all(users.map(async (user) => {
 				res.push({
 					id: user.invitedUser.id,
@@ -564,7 +565,6 @@ export default class ChannelService {
 		} catch (err) {
 			if (err.code === 'P2002') return 'Channel name already exists';
 			if (err === 'string' && err === 'Error: WrongData') return 'WrongData';
-			console.log('err', err);
 			return 'Internal server error: error creating channel';
 		}
 	}
@@ -658,7 +658,6 @@ export default class ChannelService {
 			friendSockets.forEach(async (socket) => socket.join(newDMChannel.id));
 			return newDMChannel;
 		} catch (err) {
-			console.log(err);
 			if (err.code === 'P2002') return 'Channel name already used';
 			if (err) return err.message;
 			return 'Internal server error: error creating channel';
@@ -763,7 +762,6 @@ export default class ChannelService {
 			}
 			return joinedChannel;
 		} catch (err) {
-			console.log('Join error: ', err.message);
 			if (err.message === 'data and hash must be strings') return 'Wrong password';
 			if (err) return (err.message);
 			return 'Internal server error: error joining channel';
@@ -830,7 +828,6 @@ export default class ChannelService {
 			};
 			return res;
 		} catch (err) {
-			console.log('msg error: ', err.message);
 			if (err) return (err.message as string);
 			return 'Internal server error: error storing message';
 		}
@@ -879,7 +876,7 @@ export default class ChannelService {
 			}
 			return leavingUser;
 		} catch (err) {
-			console.log('err', err);
+			if (err.message === 'Channel not found') return 'Channel not found';
 			if (err.code === 'P2025') return 'User not in channel';
 			if (typeof err === 'string') return err;
 			return 'Internal server error: error leaving channel';
@@ -943,7 +940,6 @@ export default class ChannelService {
 			};
 			return res;
 		} catch (err) {
-			console.log('err', err);
 			if (err.code === 'P2002') return 'User already invited to channel';
 			if (err) return err.message;
 			return 'Internal server error: error inviting user to channel';
@@ -1017,7 +1013,6 @@ export default class ChannelService {
 			joinedChannel.password = '';
 			return joinedChannel;
 		} catch (err) {
-			console.log('err', err);
 			if (err) return err.message;
 			return 'Internal server error: error accepting invitation';
 		}
@@ -1051,7 +1046,6 @@ export default class ChannelService {
 			});
 			return true;
 		} catch (err) {
-			console.log('err', err.message);
 			return 'Internal server error: error declining invitation';
 		}
 	}
@@ -1397,7 +1391,7 @@ export default class ChannelService {
 				id: channelId,
 			},
 		});
-		if (channel == null) throw new Error('Channel not found');
+		if (channel == null) throw new NotFoundException('Channel not found');
 	}
 
 	// @brief: Check if user have permission to moderate,

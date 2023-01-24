@@ -43,7 +43,6 @@ export default class GameController {
 				startTime: gameRequest.startTime,
 			};
 		}));
-
 		return requests;
 	}
 

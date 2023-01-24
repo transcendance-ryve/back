@@ -56,9 +56,7 @@ export default class GameService {
 					...playerTwoData,
 				},
 			};
-		} catch (error) {
-			throw new Error(error);
-		}
+		} catch (error) {}
 	}
 
 	async getGameHistoryCount(userId: string, search: string ): Promise<number> {
@@ -229,7 +227,7 @@ export default class GameService {
 				await this.create(playerOne, playerTwo, server, true);
 			}
 		} catch (error) {
-			throw new Error(error);
+			throw new Error(error.message);
 		}
 	}
 
@@ -341,7 +339,6 @@ export default class GameService {
 				{ id: playerTwo.id },
 				{ loses: { increment: 1 }, played: { increment: 1 } },
 			);
-			console.log('playerOne win');
 			UserIdToSockets.emit(playerTwo.id, server, 'updateUser', updatedPlayerTwo);
 		} else {
 			const updatedPlayerOne: Partial<User> = await this._usersService.updateUser(
@@ -496,8 +493,7 @@ export default class GameService {
 				};
 				server.to(game.gameId).emit('start', res);
 			}
-		} catch (err) {
-		}
+		} catch (err) {}
 	}
 
 	async disconnect(userId: string, server: Server): Promise<void> {

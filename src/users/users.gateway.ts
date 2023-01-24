@@ -7,6 +7,7 @@ import { UsersService } from "./users.service";
 import { UserIdToSockets } from "./userIdToSockets.service";
 import { JwtService } from "@nestjs/jwt";
 import { GetCurrentUserId } from "src/decorators/user.decorator";
+import { parse } from "cookie";
 
 @WebSocketGateway({
 	cors: {
@@ -39,8 +40,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		socket: Socket
 	) {
 		const { cookie } = socket.handshake?.headers;
-		const accessToken = cookie?.split('=')?.pop();
-		
+		const accessToken = parse(cookie).access_token;
+
 		try {
 			if (!accessToken) throw new Error('No access token');
 			const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });

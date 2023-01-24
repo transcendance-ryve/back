@@ -26,6 +26,7 @@ import {
 } from './dto';
 import { GetCurrentUserId } from '../decorators/user.decorator';
 import { UserTag } from './interfaces/utils.interfaces';
+import { parse } from 'cookie';
 
 @WebSocketGateway({
 	cors: {
@@ -53,9 +54,9 @@ export default class ChannelGateway implements OnGatewayConnection, OnGatewayDis
 	): Promise<void> {
 		const { cookie } = clientSocket.handshake?.headers;
 		if (!cookie || !cookie.includes('access_token')) return;
-		const accessToken = cookie?.split('=')?.pop();
-		if (!accessToken) return;
-		const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
+		const cookies = parse(clientSocket.handshake?.headers.cookie);
+		if(!cookies.access_token) return;
+		const payload = await this._jwtService.verifyAsync(cookies.access_token, { secret: 'wartek' });
 		await this.channelService.connectToMyChannels(payload.id);
 	}
 
@@ -67,13 +68,12 @@ export default class ChannelGateway implements OnGatewayConnection, OnGatewayDis
 		@MessageBody('channelId') channelId: string,
 		@GetCurrentUserId() userId: string,
 	): Promise<void> {
-		const role = await this.channelService.getRole(userId, channelId);
-		UserIdToSockets.emit(userId, this._server, 'role', role);
-	}
-
-	@SubscribeMessage('ping')
-	async ping(@ConnectedSocket() clientSocket: Socket): Promise<void> {
-		this._server.to(clientSocket.id).emit('pong');
+		try{
+			const role = await this.channelService.getRole(userId, channelId);
+			UserIdToSockets.emit(userId, this._server, 'role', role);
+		} catch (e) {
+			UserIdToSockets.emit(userId, this._server, 'roleFailed', e.message);
+		}
 	}
 
 	@SubscribeMessage('DM')
@@ -200,7 +200,6 @@ export default class ChannelGateway implements OnGatewayConnection, OnGatewayDis
 			UserIdToSockets.emit(userId, this._server, 'declineInvitationFailed');
 		} else {
 			UserIdToSockets.emit(userId, this._server, 'invitationDeclined', inviteInfo.channelId);
-
 			const user : Partial<User> = await this.userService.getUser({ id: userId }, 'id,username,avatar,status');
 			this._server.to(inviteInfo.channelId).emit('roomDeclined', user);
 		}

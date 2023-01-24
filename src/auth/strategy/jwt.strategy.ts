@@ -4,6 +4,7 @@ import { PassportStrategy } from "@nestjs/passport";
 import { UsersService } from "src/users/users.service";
 import { JwtPayloadDto } from "../dto/jwt-payload.dto";
 import { Request } from "express";
+import { parse } from "cookie";
 
 interface HandshakeRequest extends Request {
 	handshake?: { headers: { cookie: string } };
@@ -19,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 						req.handshake?.headers.cookie &&
 						req.handshake.headers.cookie.length > 0
 						) {
-							const access_token = req.handshake.headers.cookie.split('=').pop();
+							const access_token = parse(req.handshake.headers.cookie).access_token;
 							if (access_token)
 								return access_token;
 
