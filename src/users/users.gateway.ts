@@ -10,7 +10,7 @@ import { GetCurrentUserId } from "src/decorators/user.decorator";
 
 @WebSocketGateway({
 	cors: {
-		origin: 'http://localhost:8080',
+		origin: process.env.FRONTEND_URL,
 		credentials: true,
 	},
 })

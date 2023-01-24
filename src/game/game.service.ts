@@ -524,6 +524,8 @@ export default class GameService {
 				this.playerIdToGame.delete(userId);
 				this.userIdToTimeout.set(userId, setTimeout(async () => {
 					if (!await this.isOnCurrentGame(userId, game.gameId) && this.gameIdToGame.has(game.gameId)) {
+						leftPlayer.score = game.leftPlayer.score;
+						rightPlayer.score = game.rightPlayer.score;
 						this.endGame(leftPlayer, rightPlayer, server, game.gameId);
 					}
 				}, 15000));

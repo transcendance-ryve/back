@@ -15,7 +15,7 @@ import GameService from './game.service';
 
 @WebSocketGateway({
 	cors: {
-		origin: 'http://localhost:8080',
+		origin: process.env.FRONTEND_URL,
 		credentials: true,
 	},
 })
