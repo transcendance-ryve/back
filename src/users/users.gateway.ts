@@ -10,7 +10,7 @@ import { GetCurrentUserId } from "src/decorators/user.decorator";
 
 @WebSocketGateway({
 	cors: {
-		origin: 'http://localhost:8080',
+		origin: process.env.FRONTEND_URL,
 		credentials: true,
 	},
 })
@@ -86,7 +86,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			UserIdToSockets.emit(friendId, this._server, 'friend_accepted', friendship.receiver);
 			UserIdToSockets.emit(id, this._server, 'friend_accepted_submitted', friendship.sender);
 		}).catch(err => {
-			UserIdToSockets.emit(id, this._server, 'accept_friend_failure');
+			UserIdToSockets.emit(id, this._server, 'accept_friend_failure', "Couldn't accept friend request");
 		});
 	}
 
@@ -100,7 +100,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			UserIdToSockets.emit(friendId, this._server, 'friend_declined', friendship.sender);
 			UserIdToSockets.emit(id, this._server, 'friend_declined_submitted', friendship.receiver);
 		}).catch(err => {
-			UserIdToSockets.emit(id, this._server, 'accept_decline_failure');
+			UserIdToSockets.emit(id, this._server, 'accept_decline_failure', "Couldn't decline friend request");
 		});
 	}
 	
@@ -114,7 +114,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			UserIdToSockets.emit(friendId, this._server, 'friend_request', friendship.sender);
 			UserIdToSockets.emit(id, this._server, 'friend_request_submitted', friendship.receiver);
 		}).catch(err => {
-			UserIdToSockets.emit(id, this._server, 'friend_request_failure');
+			UserIdToSockets.emit(id, this._server, 'friend_request_failure', "Couldn't send friend request");
 		});
 	}
 
@@ -128,7 +128,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			UserIdToSockets.emit(friendId, this._server, 'friend_removed', friendship.sender);
 			UserIdToSockets.emit(id, this._server, 'friend_removed_submitted', friendship.receiver);
 		}).catch(err => {
-			UserIdToSockets.emit(id, this._server, 'friend_removed_failure');
+			UserIdToSockets.emit(id, this._server, 'friend_removed_failure', "Couldn't remove friend");
 		});
 	}
 
@@ -142,7 +142,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			UserIdToSockets.emit(blockedId, this._server, 'user_blocked', blocked.sender);
 			UserIdToSockets.emit(id, this._server, 'user_blocked_submitted', blocked.receiver);
 		}).catch(err => {
-			UserIdToSockets.emit(id, this._server, 'used_blocked_failure');
+			UserIdToSockets.emit(id, this._server, 'used_blocked_failure', "Couldn't block user");
 		});
 	}
 
@@ -156,7 +156,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			UserIdToSockets.emit(blockedId, this._server, 'user_unblocked', blocked.sender);
 			UserIdToSockets.emit(id, this._server, 'user_unblocked_submitted', blocked.receiver);
 		}).catch(err => {
-			UserIdToSockets.emit(id, this._server, 'used_unblocked_failure');
+			UserIdToSockets.emit(id, this._server, 'used_unblocked_failure', "Couldn't unblock user");
 		});
 	}
 }
