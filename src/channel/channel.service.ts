@@ -1337,9 +1337,6 @@ export default class ChannelService {
 					},
 				},
 			});
-			UserIdToSockets.get(dto.targetId)?.forEach((socket) => {
-				socket.leave(dto.channelId);
-			});
 			return user;
 		} catch (err) {
 			if (err) return err.message;

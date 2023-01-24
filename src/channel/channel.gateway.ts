@@ -289,6 +289,9 @@ export default class ChannelGateway implements OnGatewayConnection, OnGatewayDis
 			UserIdToSockets.emit(userId, this._server, 'banUserFailed', userBanned);
 		} else {
 			this._server.to(banInfo.channelId).emit('userBanned', userBanned);
+			UserIdToSockets.get(banInfo.targetId)?.forEach((socket) => {
+				socket.leave(banInfo.channelId);
+			});
 			const chanName:
 			Partial<Channel> | null = await this.channelService.getChannelById({ id: banInfo.channelId }, 'id,name');
 			UserIdToSockets.emit(banInfo.targetId, this._server, 'banned', chanName);
