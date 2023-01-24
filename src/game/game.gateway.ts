@@ -180,7 +180,6 @@ export default class GameGateway {
 	handleDisconnectGame(
 		@GetCurrentUserId() currentID: string,
 	): void {
-		console.log('disconnected from game');
 		this._gameService.disconnect(currentID, this._server);
 		UserIdToSockets.emit(currentID, this._server, 'game_disconnected');
 	}
@@ -190,7 +189,6 @@ export default class GameGateway {
 		@GetCurrentUserId() currentID: string,
 		@ConnectedSocket() socket: Socket,
 	) {
-		console.log('connected to game');
 		const isOnGame = await this._gameService.isOnGame(currentID);
 		if (isOnGame) this._gameService.reconnect(currentID, socket, this._server);
 		UserIdToSockets.emit(currentID, this._server, 'reconnected_to_game', isOnGame);

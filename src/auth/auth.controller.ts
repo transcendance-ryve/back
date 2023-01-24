@@ -185,7 +185,7 @@ export class AuthController {
 	async tfaVerify(
 		@GetCurrentUser() currentUser: JwtPayloadDto,
 		@Query('code') code: string
-	): Promise<any> {
+	): Promise<boolean> {
 		return this._authService.verifyTFA(currentUser.tfa_secret, code);
 	}
 
@@ -198,7 +198,7 @@ export class AuthController {
 	): Promise<Partial<User>> {
 		const user: Partial<User> = await this._authService.toggleTFA(currentUser, code);
 
-		const token = await this._authService.createToken({
+		const token: string = await this._authService.createToken({
 			id: user.id,
 			username: user.username,
 			tfa_enabled: user.tfa_enabled,

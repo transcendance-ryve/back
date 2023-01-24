@@ -1,12 +1,10 @@
 import { BadRequestException, ConflictException, ForbiddenException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { Prisma, User, Friendship, InviteStatus, Blocked } from '@prisma/client';
+import { Prisma, User, InviteStatus, Blocked } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import { join } from 'path';
-import { channel } from 'diagnostics_channel';
-
 
 @Injectable()
 export class UsersService {

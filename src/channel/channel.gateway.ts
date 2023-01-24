@@ -51,9 +51,10 @@ export default class ChannelGateway implements OnGatewayConnection, OnGatewayDis
 	async handleConnection(
 		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-		const { cookie } = clientSocket.handshake.headers;
+		const { cookie } = clientSocket.handshake?.headers;
 		if (!cookie || !cookie.includes('access_token')) return;
 		const accessToken = cookie?.split('=')?.pop();
+		if (!accessToken) return;
 		const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
 		await this.channelService.connectToMyChannels(payload.id);
 	}

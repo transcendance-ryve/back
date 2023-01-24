@@ -10,7 +10,8 @@ import GameModule from './game/game.module';
 @Module({
     imports: [
 		ServeStaticModule.forRoot({
-			rootPath: join(__dirname, '..', 'data')
+			rootPath: join(__dirname, '..', 'data'),
+			exclude: ['/api*'],
 		}),
         UsersModule,
         AuthModule,
