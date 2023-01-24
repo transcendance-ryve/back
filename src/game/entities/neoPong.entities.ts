@@ -84,7 +84,7 @@ export class Pong
 	bonusCaught: boolean[] = [];
 	caughtBy: string[] = [];
 	timeOver: boolean[] = [];
-	gameStartTimer = Date.now();
+	gameStartTimer: number;
 	timeOutIDs: NodeJS.Timeout[] = [];
 
 //-------------BONUS VARIABLES---------------//
@@ -558,6 +558,7 @@ export class Pong
 	runGame()
 	{
 		this.initBonusesVars();
+		this.gameStartTimer = Date.now();
 		this.gameLoop();
 	}
 
