@@ -21,6 +21,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		private readonly _jwtService: JwtService,	
 	) {}
 
+	private _disconnectedTime: Map<string, number> = new Map();
+
 	@WebSocketServer() private _server: Server;
 
 	_emitToFriends(id: string, event: string, data: any) {
@@ -40,14 +42,18 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		const accessToken = cookie?.split('=')?.pop();
 		
 		try {
+			if (!accessToken) throw new Error('No access token');
 			const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
 			
 			UserIdToSockets.set(payload.id, socket);
 			
 			const currentDate = new Date()
 			const user = await this._usersService.getUser({ id: payload.id });
-			if (currentDate.getTime() - user.updatedAt.getTime() > 5000)
+			if (!this._disconnectedTime.has(payload.id) || currentDate.getTime() - this._disconnectedTime.get(payload.id) > 5000) {
 				this._emitToFriends(user.id, 'user_connected', { id: user.id, status: user.status, username: user.username, avatar: user.avatar });
+				if (this._disconnectedTime.has(payload.id))
+					this._disconnectedTime.delete(payload.id);
+			}
 			await this._usersService.updateUser({ id: user.id }, { status: Status.ONLINE });
 
 			socket.data = user;
@@ -60,11 +66,13 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		
 		UserIdToSockets.delete(id, socket);
 		await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
+		this._disconnectedTime.set(id, new Date().getTime());
 		setTimeout(async () => {
 			const user = await this._usersService.getUser({ id });
 			
-			if (user.status === Status.ONLINE || user.status === Status.INGAME) return;
+			if (!this._disconnectedTime.has(id) || user.status === Status.ONLINE || user.status === Status.INGAME) return;
 			this._emitToFriends(user.id, 'user_disconnected', { id: user.id, status: user.status, username: user.username, avatar: user.avatar });
+			this._disconnectedTime.delete(id)
 		}, 5000);
 	}
 
