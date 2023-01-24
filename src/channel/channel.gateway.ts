@@ -56,7 +56,7 @@ export default class ChannelGateway implements OnGatewayConnection, OnGatewayDis
 		if (!cookie || !cookie.includes('access_token')) return;
 		const cookies = parse(clientSocket.handshake?.headers.cookie);
 		if(!cookies.access_token) return;
-		const payload = await this._jwtService.verifyAsync(cookies.access_token, { secret: 'wartek' });
+		const payload = await this._jwtService.verifyAsync(cookies.access_token, { secret: process.env.JWT_SECRET });
 		await this.channelService.connectToMyChannels(payload.id);
 	}
 
