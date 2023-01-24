@@ -12,7 +12,6 @@ import { toDataURL } from 'qrcode';
 import { JwtAuthGuard } from "src/users/guard/jwt.guard";
 import { JwtPayloadDto } from "./dto/jwt-payload.dto";
 import { RegisterFortyTwoDto } from "./dto/register-forty-two.dto";
-import { HttpStatusCode } from "axios";
 
 @Controller("auth")
 export class AuthController {
@@ -21,7 +20,7 @@ export class AuthController {
 		private readonly _usersService: UsersService
 	) {}
 
-	private _apiURL = "https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-0be07deda32efaa9ac4f060716bd7ee5addaadf80d64008efd9ad3b0b10e8407&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Faccounts%2Flogin&response_type=code";
+	private _apiURL = "https://api.intra.42.fr/oauth/authorize?client_id=" + process.env.CLIENT_ID + "&redirect_uri=" + process.env.callbackURL + "&response_type=code";
 
 	/* Login, register and disconnect */
 
