@@ -34,6 +34,7 @@ export class Ball extends Entity
 	paddleCollisionsActivated: boolean = true;
 	wallCollisionsActivated: boolean = true;
 	hits: number = 0;
+	hitsBeforeSpeedIncrease: number = 3;
 	ballFreezed = false;
 
 	saveState = {
@@ -116,7 +117,7 @@ export class Ball extends Entity
 
 	private increaseBallSpeed()
 	{
-		if (this.hits === 1)
+		if (this.hits === this.hitsBeforeSpeedIncrease)
 		{
 			this.hits = 0
 			if (Math.abs(this.velocityX) < MAX_BALL_SPEED)
