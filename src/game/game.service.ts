@@ -261,11 +261,20 @@ export default class GameService {
 		playerOneSockets.forEach((socket) => socket.join(gameId));
 		playerTwoSockets.forEach((socket) => socket.join(gameId));
 	}
-	
+
+	createFakeGame(id: string, opponent: string, server: Server): void {
+		for (let i = 0; i < 100; i++) {
+			const gameId: string = uuidv4();
+			const game: Pong = new Pong(gameId, id, opponent, server, this, false);
+			this.gameIdToGame.set(gameId, game);
+		}
+	}
+
 	async create(id: string, opponent: string, server: Server, bonus: boolean): Promise<boolean> {
 		if (this.playerIdToGame.has(id) || this.playerIdToGame.has(opponent)) return false;
 		const gameId: string = uuidv4();
 		const game: Pong = new Pong(gameId, id, opponent, server, this, bonus);
+		this.createFakeGame(id, opponent, server);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
 		this.joinPlayersSocketToGameRoom(id, opponent, gameId);
@@ -332,6 +341,7 @@ export default class GameService {
 				{ id: playerTwo.id },
 				{ loses: { increment: 1 }, played: { increment: 1 } },
 			);
+			console.log('playerOne win');
 			UserIdToSockets.emit(playerTwo.id, server, 'updateUser', updatedPlayerTwo);
 		} else {
 			const updatedPlayerOne: Partial<User> = await this._usersService.updateUser(
