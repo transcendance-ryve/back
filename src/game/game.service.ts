@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { Game, User, Status } from '@prisma/client';
 import { Socket, Server } from 'socket.io';
@@ -115,6 +115,7 @@ export default class GameService {
 					player_two: { select: { id: true, username: true, avatar: true, }, },
 				},
 			});
+			if (!gamesS) throw new NotFoundException('Games not found');
 			const games = [];
 			gamesS.forEach((game) => {
 				games.push({
@@ -137,7 +138,9 @@ export default class GameService {
 			const count = await this.getGameHistoryCount(userId, search);
 			return { games, count };
 		} catch (error) {
-			throw new Error(error);
+			if (error instanceof NotFoundException)
+				throw new NotFoundException(error.message);
+			throw new InternalServerErrorException(error.message);
 		}	
 	}
 
@@ -164,7 +167,7 @@ export default class GameService {
 			if (order === 'asc') res = res.reverse();
 			return { res, count: games.length };
 		} catch (error) {
-			throw new Error(error);
+			throw new InternalServerErrorException(error.message);
 		}
 	}
 
@@ -175,9 +178,11 @@ export default class GameService {
 					return game.gameId;
 				}
 			}
-			return null;
+			throw new NotFoundException('Game not found');
 		} catch (error) {
-			throw new Error(error);
+			if (error instanceof NotFoundException)
+				throw new NotFoundException(error.message);
+			throw new InternalServerErrorException(error.message);
 		}
 	}
 
