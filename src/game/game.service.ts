@@ -8,7 +8,8 @@ import { UsersService } from 'src/users/users.service';
 import { UserIdToSockets } from 'src/users/userIdToSockets.service';
 // eslint-disable-next-line import/no-cycle
 import { Pong } from './entities/neoPong.entities';
-import { Players, StartInfo, EndGamePlayer } from './interfaces/game.interface';
+import { Players, StartInfo, EndGamePlayer, Player } from './interfaces/game.interface';
+import { HEIGHT, WIDTH } from './entities/utils.entities';
 
 @Injectable()
 export default class GameService {
@@ -33,43 +34,52 @@ export default class GameService {
 	userIdToTimeout: Map<string, NodeJS.Timeout> = new Map();
 
 	// Getter
-	async getPlayers(playerOne : string, playerTwo: string): Promise<Players> {
-		const playerOneData = await this._prismaService.user.findUnique({
+	async getPlayers(playerOne : string, playerTwo: string): Promise<Partial<Players>> {
+		try{
+			const playerOneData: Partial<Player> = await this._usersService.getUser(
+				{ id: playerOne },
+				"id,username,avatar,level,experience,next_level"
+			);
+			const playerTwoData = await this._usersService.getUser(
+				{ id: playerTwo },
+				"id,username,avatar,level,experience,next_level"
+			);
+			if (!playerOneData || !playerTwoData)
+				throw new Error('Player not found');
+			return {
+				left: {
+					score: 0,
+					...playerOneData,
+				},
+				right: {
+					score: 0,
+					...playerTwoData,
+				},
+			};
+		} catch (error) {
+			throw new Error(error);
+		}
+	}
+
+	async getGameHistoryCount(userId: string, search: string ): Promise<number> {
+		return await this._prismaService.game.count({
 			where: {
-				id: playerOne,
-			},
-			select: {
-				id: true,
-				username: true,
-				avatar: true,
-				level: true,
-				experience: true,
-				next_level: true,
+				AND: [
+					{ OR:
+						[
+							{ player_one_id: userId, },
+							{ player_two_id: userId, },
+						],
+					},
+					{ OR: 
+						[
+							{ player_one: { username: { contains: search, mode: 'insensitive' }, }, },
+							{ player_two: { username: { contains: search, mode: 'insensitive' }, }, },
+						],
+					},
+				],
 			},
 		});
-		const playerTwoData = await this._prismaService.user.findUnique({
-			where: {
-				id: playerTwo,
-			},
-			select: {
-				id: true,
-				username: true,
-				avatar: true,
-				level: true,
-				experience: true,
-				next_level: true,
-			},
-		});
-		return {
-			left: {
-				score: 0,
-				...playerOneData,
-			},
-			right: {
-				score: 0,
-				...playerTwoData,
-			},
-		};
 	}
 
 	async getGameHistory(
@@ -79,126 +89,56 @@ export default class GameService {
 		page?: number,
 		take?: number,
 	) {
-		const gamesS = await this._prismaService.game.findMany({
-			where: {
-				AND: [
-					{
-						OR: [
-							{
-								player_one_id: userId,
-							},
-							{
-								player_two_id: userId,
-							},
-						],
-					},
-					{
-						OR: [
-							{
-								player_one: {
-									username: {
-										contains: search,
-										mode: 'insensitive',
-									},
-								},
-							},
-							{
-								player_two: {
-									username: {
-										contains: search,
-										mode: 'insensitive',
-									},
-								},
-							},
-						],
-					},
-				],
-			},
-			skip: (page - 1) * take || undefined,
-			take: take || 20,
-			orderBy: { createdAt: order === 'asc' ? 'asc' : 'desc' },
-			select: {
-				player_one_score: true,
-				player_one_level: true,
-				player_one_experience: true,
-				player_one_next_level: true,
-				player_two_score: true,
-				player_two_level: true,
-				player_two_experience: true,
-				player_two_next_level: true,
-				player_one: {
-					select: {
-						id: true,
-						username: true,
-						avatar: true,
-					},
+		try {
+			const gamesS = await this._prismaService.game.findMany({
+				where: {
+					AND: [
+						{ OR: [ { player_one_id: userId, },
+								{ player_two_id: userId,}, ], },
+						{ OR: [ { player_one: { username: { contains: search, mode: 'insensitive', }, }, },
+								{ player_two: { username: { contains: search, mode: 'insensitive', }, }, }, ], },
+					],
 				},
-				player_two: {
-					select: {
-						id: true,
-						username: true,
-						avatar: true,
-					},
-				},
-			},
-		});
-		const games = [];
-		gamesS.forEach((game) => {
-			games.push({
-				left: {
-					...game.player_one,
-					score: game.player_one_score,
-					level: game.player_one_level,
-					experience: game.player_one_experience,
-					next_level: game.player_one_next_level,
-				},
-				right: {
-					...game.player_two,
-					score: game.player_two_score,
-					level: game.player_two_level,
-					experience: game.player_two_experience,
-					next_level: game.player_two_next_level,
+				skip: (page - 1) * take || undefined,
+				take: take || 20,
+				orderBy: { createdAt: order === 'asc' ? 'asc' : 'desc' },
+				select: {
+					player_one_score: true,
+					player_one_level: true,
+					player_one_experience: true,
+					player_one_next_level: true,
+					player_two_score: true,
+					player_two_level: true,
+					player_two_experience: true,
+					player_two_next_level: true,
+					player_one: { select: { id: true, username: true, avatar: true, }, },
+					player_two: { select: { id: true, username: true, avatar: true, }, },
 				},
 			});
-		});
-
-		const count = await this._prismaService.game.count({
-			where: {
-				AND: [
-					{
-						OR: [
-							{
-								player_one_id: userId,
-							},
-							{
-								player_two_id: userId,
-							},
-						],
+			const games = [];
+			gamesS.forEach((game) => {
+				games.push({
+					left: {
+						...game.player_one,
+						score: game.player_one_score,
+						level: game.player_one_level,
+						experience: game.player_one_experience,
+						next_level: game.player_one_next_level,
 					},
-					{
-						OR: [
-							{
-								player_one: {
-									username: {
-										contains: search,
-										mode: 'insensitive'
-									},
-								},
-							},
-							{
-								player_two: {
-									username: {
-										contains: search,
-										mode: 'insensitive'
-									},
-								},
-							},
-						],
+					right: {
+						...game.player_two,
+						score: game.player_two_score,
+						level: game.player_two_level,
+						experience: game.player_two_experience,
+						next_level: game.player_two_next_level,
 					},
-				],
-			},
-		});
-		return { games, count };
+				});
+			});
+			const count = await this.getGameHistoryCount(userId, search);
+			return { games, count };
+		} catch (error) {
+			throw new Error(error);
+		}	
 	}
 
 	async getCurrentGame(
@@ -207,111 +147,132 @@ export default class GameService {
 		take: number,
 		search?: string,
 	): Promise<any> {
-		const games = [];
-
-		for (const game of this.gameIdToGame.entries()) {
-			const player: Players = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
-			const left: string = player.left.username.toLowerCase();
-			const right: string = player.right.username.toLowerCase();
-			if (!search || search && left.includes(search.toLowerCase())
-				|| right.includes(search.toLowerCase()))
-					games.push(game);
+		try {
+			const games = [];
+			for (const game of this.gameIdToGame.entries()) {
+				const player: Players = await this.getPlayers(game[1].leftPlayer.id, game[1].rightPlayer.id);
+				const left: string = player.left.username.toLowerCase();
+				const right: string = player.right.username.toLowerCase();
+				if (!search || search && left.includes(search.toLowerCase())
+					|| right.includes(search.toLowerCase()))
+						games.push(game);
+			}
+			if (take > games.length) take = games.length;
+			if (order === 'desc') page = (games.length / take) - page;
+			else page++;
+			let res = await this.initCurrentGameArray(page, take, games);
+			if (order === 'asc') res = res.reverse();
+			return { res, count: games.length };
+		} catch (error) {
+			throw new Error(error);
 		}
-		if (take > games.length) take = games.length;
-		if (order === 'desc') page = (games.length / take) - page;
-		else page++;
-		let res = await this.initCurrentGameArray(page, take, games);
-		if (order === 'asc') res = res.reverse();
-		return { res, count: games.length };
 	}
 
 	getPlayerGame(userId: string): string {
-		for (const game of this.gameIdToGame.values()) {
-			if (game.leftPlayer.id === userId || game.rightPlayer.id === userId) {
-				return game.gameId;
+		try {
+			for (const game of this.gameIdToGame.values()) {
+				if (game.leftPlayer.id === userId || game.rightPlayer.id === userId) {
+					return game.gameId;
+				}
 			}
+			return null;
+		} catch (error) {
+			throw new Error(error);
 		}
-		return null;
 	}
 
 	async initCurrentGameArray(page: number, take: number, games):
 	Promise<any> {
-		const res = [];
-
-		for (let i = (page - 1) * take; i < page * take; i++) {
-			i = Math.floor(i);
-			if (i < 0) i = 0;
-			if (i >= games.length) break;
-			let player:
-			Players = await this.getPlayers(games[i][1].leftPlayer.id, games[i][1].rightPlayer.id);
-			player = {
-				left: {
-					...player.left,
-					score: games[i][1].leftPlayer.score,
-				},
-				right: {
-					...player.right,
-					score: games[i][1].rightPlayer.score,
-				},
-			};
-			res.unshift({
-				id: games[i][1].gameId,
-				players: player,
-			});
+		try {
+			const res = [];
+			for (let i = (page - 1) * take; i < page * take; i++) {
+				i = Math.floor(i);
+				if (i < 0) i = 0;
+				if (i >= games.length) break;
+				let player:
+				Players = await this.getPlayers(games[i][1].leftPlayer.id, games[i][1].rightPlayer.id);
+				player = {
+					left: {
+						...player.left,
+						score: games[i][1].leftPlayer.score,
+					},
+					right: {
+						...player.right,
+						score: games[i][1].rightPlayer.score,
+					},
+				};
+				res.unshift({
+					id: games[i][1].gameId,
+					players: player,
+				});
+			}
+			return res;
+		} catch (error) {
+			throw new Error(error);
 		}
-		return res;
 	}
 
 	// Actions
 	async connect(id: string, server: Server): Promise<void> {
-		this.playerIds.push(id);
-		console.log(this.playerIds.length);
-		if (this.playerIds.length === 2) {
-			const playerOne = this.playerIds[0];
-			const playerTwo = this.playerIds[1];
-			this.playerIds = [];
-			await this.create(playerOne, playerTwo, server, true);
+		try {
+			this.playerIds.push(id);
+			console.log(this.playerIds.length);
+			if (this.playerIds.length === 2) {
+				const playerOne = this.playerIds[0];
+				const playerTwo = this.playerIds[1];
+				this.playerIds = [];
+				await this.create(playerOne, playerTwo, server, true);
+			}
+		} catch (error) {
+			throw new Error(error);
 		}
 	}
 
+	async updatePlayersInGameStatus(players: Players): Promise<void> {
+		try {
+			await this._usersService.updateUser({ id: players.left.id }, { status: Status.INGAME });
+			await this._usersService.updateUser({ id: players.right.id }, { status: Status.INGAME });
+	
+			this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
+				id: players.left.id,
+				status: Status.INGAME,
+				username: players.left.username,
+				avatar: players.left.avatar,
+			});
+			this._usersGateway._emitToFriends(players.right.id, 'user_in_game', {
+				id: players.right.id,
+				status: Status.INGAME,
+				username: players.right.username,
+				avatar: players.right.avatar,
+			});
+		} catch (error) {
+			throw new Error(error);
+		}
+	}
+
+	joinPlayersSocketToGameRoom(id: string, opponent: string, gameId: string): void {
+		const playerOneSockets: Socket[] = UserIdToSockets.get(id);
+		const playerTwoSockets: Socket[] = UserIdToSockets.get(opponent);
+		playerOneSockets.forEach((socket) => socket.join(gameId));
+		playerTwoSockets.forEach((socket) => socket.join(gameId));
+	}
+	
 	async create(id: string, opponent: string, server: Server, bonus: boolean): Promise<boolean> {
 		if (this.playerIdToGame.has(id) || this.playerIdToGame.has(opponent)) return false;
 		const gameId: string = uuidv4();
 		const game: Pong = new Pong(gameId, id, opponent, server, this, bonus);
-		// console.log('game created : ' + game.gameId);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
-		const playerOneSockets: Socket[] = UserIdToSockets.get(id);
-		const playerTwoSockets: Socket[] = UserIdToSockets.get(opponent);
-		
-		playerOneSockets.forEach((socket) => socket.join(game.gameId));
-		playerTwoSockets.forEach((socket) => socket.join(game.gameId));
+		this.joinPlayersSocketToGameRoom(id, opponent, gameId);
 		const players: Players = await this.getPlayers(id, opponent);
-		const width = 790;
-		const height = 390;
 		const preGameTime = 5000;
-		await this._usersService.updateUser({ id }, { status: Status.INGAME });
-		await this._usersService.updateUser({ id: opponent }, { status: Status.INGAME });
-
-		this._usersGateway._emitToFriends(players.left.id, 'user_in_game', {
-			id: players.left.id,
-			status: Status.INGAME,
-			username: players.left.username,
-			avatar: players.left.avatar,
-		});
-		this._usersGateway._emitToFriends(players.right.id, 'user_in_game', {
-			id: players.right.id,
-			status: Status.INGAME,
-			username: players.right.username,
-			avatar: players.right.avatar,
-		});
-
+		await this.updatePlayersInGameStatus(players);
 		const startTime: number = Date.now() + preGameTime;
 		game.startTime = startTime;
 		const res: StartInfo = {
 			players,
-			width,
-			height,
+			width: WIDTH,
+			height: HEIGHT,
 			startTime,
 		};
 		server.to(game.gameId).emit('start', res);
@@ -407,6 +368,32 @@ export default class GameService {
 		return true;
 	}
 
+	leaveGameRoom(playerOneId: string, playerTwoId: string, gameId: string ): void {
+		const playerOneSockets: Socket[] = UserIdToSockets.get(playerOneId);
+		const playerTwoSockets: Socket[] = UserIdToSockets.get(playerTwoId);
+		if (playerOneSockets && playerOneSockets.length > 0) {
+			playerOneSockets.forEach((socket) => socket.leave(gameId));
+		}
+		if (playerTwoSockets && playerTwoSockets.length > 0) {
+			playerTwoSockets.forEach((socket) => socket.leave(gameId));
+		}
+	}
+
+	async updatePlayersLeftGameStatus(playerOne: EndGamePlayer, playerTwo: EndGamePlayer) {
+		await this._usersService.updateUser({ id: playerOne.id }, { status: Status.ONLINE });
+		await this._usersService.updateUser({ id: playerTwo.id }, { status: Status.ONLINE });
+		this._usersGateway._emitToFriends(
+			playerOne.id,
+			'user_left_game',
+			{ id: playerOne.id, status: Status.INGAME },
+		);
+		this._usersGateway._emitToFriends(
+			playerTwo.id,
+			'user_left_game',
+			{ id: playerTwo.id, status: Status.INGAME },
+		);
+	}
+
 	async endGame(
 		playerOne: EndGamePlayer,
 		playerTwo: EndGamePlayer,
@@ -414,7 +401,6 @@ export default class GameService {
 		gameId: string,
 	): Promise<string> {
 		try {
-			console.log('game ended');
 			const game: Pong = this.gameIdToGame.get(gameId);
 			if (!game) {
 				throw new Error('Game not found');
@@ -426,58 +412,34 @@ export default class GameService {
 			this.playerIdToGame.delete(playerOne.id);
 			this.playerIdToGame.delete(playerTwo.id);
 			await this.updateUserStats(playerOne, playerTwo, server);
-			await this._usersService.updateUser({ id: playerOne.id }, { status: Status.ONLINE });
-			await this._usersService.updateUser({ id: playerTwo.id }, { status: Status.ONLINE });
-			const playerOneSockets: Socket[] = UserIdToSockets.get(playerOne.id);
-			const playerTwoSockets: Socket[] = UserIdToSockets.get(playerTwo.id);
-
-			if (playerOneSockets && playerOneSockets.length > 0) {
-				playerOneSockets.forEach((socket) => socket.leave(game.gameId));
-			}
-			if (playerTwoSockets && playerTwoSockets.length > 0) {
-				playerTwoSockets.forEach((socket) => socket.leave(game.gameId));
-			}
-			this._usersGateway._emitToFriends(
-				playerOne.id,
-				'user_left_game',
-				{ id: playerOne.id, status: Status.INGAME },
-			);
-			this._usersGateway._emitToFriends(
-				playerTwo.id,
-				'user_left_game',
-				{ id: playerTwo.id, status: Status.INGAME },
-			);
+			await this.updatePlayersLeftGameStatus(playerOne, playerTwo);
+			this.leaveGameRoom(playerOne.id, playerTwo.id, game.gameId);
 			game.resetgame();
 			game.start = false;
 			game.destructor();
 		} catch (err) {
-			console.log(err.message);
+			throw new Error(err);
 		}
 	}
 
 	async onSpectate(id: string, userSocket: Socket): Promise<void> {
 		userSocket.join(this.spectateRoom);
-		console.log('user joined spcetate room');
 	}
 
 	async offSpectate(id: string, userSocket: Socket): Promise<void> {
 		userSocket.leave(this.spectateRoom);
-		console.log('user left spcetate room');
 	}
 
 	async spectateGame(gameId: string, userSocket: Socket, server: Server): Promise<void> {
 		const game: Pong = this.gameIdToGame.get(gameId);
-		console.log('user joined game spectate');
 		if (game) {
 			const players: Players = await this.getPlayersByGameId(game.gameId);
 			players.left.score = game.leftPlayer.score;
 			players.right.score = game.rightPlayer.score;
-			const width = 790;
-			const height = 390;
 			const res: StartInfo = {
 				players,
-				width,
-				height,
+				width: WIDTH,
+				height: HEIGHT,
 				startTime: game.startTime > Date.now() ? game.startTime : null,
 			};
 			server.to(userSocket.id).emit('start', res);
@@ -493,12 +455,10 @@ export default class GameService {
 	}
 
 	async reconnect(userId: string, userSocket: Socket, server: Server): Promise<void> {
-		console.log(await this.isOnGame(userId));
 		try {
 			if (await this.isOnGame(userId)) {
 				const timeout: NodeJS.Timeout = this.userIdToTimeout.get(userId);
 				clearTimeout(timeout);
-				console.log('user is on game');
 				let game: Pong;
 				for (const gameSess of this.gameIdToGame.values()) {
 					if (gameSess.leftPlayer.id === userId || gameSess.rightPlayer.id === userId) {
@@ -513,23 +473,19 @@ export default class GameService {
 				const players: Players = await this.getPlayersByGameId(game.gameId);
 				players.left.score = game.leftPlayer.score;
 				players.right.score = game.rightPlayer.score;
-				const width = 790;
-				const height = 390;
 				const res: StartInfo = {
 					players,
-					width,
-					height,
+					width: WIDTH,
+					height: HEIGHT,
 					startTime: game.startTime > Date.now() ? game.startTime : null,
 				};
 				server.to(game.gameId).emit('start', res);
 			}
 		} catch (err) {
-			console.log(err);
 		}
 	}
 
 	async disconnect(userId: string, server: Server): Promise<void> {
-		console.log('user disconnected');
 		if (await this.isOnGame(userId)) {
 			const game: Pong = this.playerIdToGame.get(userId);
 			if (game) {
@@ -546,17 +502,10 @@ export default class GameService {
 					win: false,
 					loose: true,
 				};
-				if (players.left.id === userId) {
-					leftPlayer.loose = true;
-					leftPlayer.win = false;
-					rightPlayer.loose = false;
-					rightPlayer.win = true;
-				} else {
-					leftPlayer.loose = false;
-					leftPlayer.win = true;
-					rightPlayer.loose = true;
-					rightPlayer.win = false;
-				}
+				leftPlayer.win = players.right.id === userId ? true : false;
+				leftPlayer.loose = players.right.id === userId ? false : true;
+				rightPlayer.win = players.left.id === userId ? true : false;
+				rightPlayer.loose = players.left.id === userId ? false : true;
 				this.playerIdToGame.delete(userId);
 				this.userIdToTimeout.set(userId, setTimeout(async () => {
 					if (!await this.isOnCurrentGame(userId, game.gameId) && this.gameIdToGame.has(game.gameId)) {
