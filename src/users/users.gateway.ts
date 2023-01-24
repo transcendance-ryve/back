@@ -31,7 +31,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 				UserIdToSockets.emit(friend.id, this._server, event, data);
 			});
 		}).catch(err => {
-			UserIdToSockets.emit(id, this._server, 'get_friends_failure');
+			UserIdToSockets.emit(id, this._server, 'get_friends_failure', "Couldn't get friends");
 		})
 	}
 
