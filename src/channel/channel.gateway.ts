@@ -52,12 +52,16 @@ export default class ChannelGateway implements OnGatewayConnection, OnGatewayDis
 	async handleConnection(
 		@ConnectedSocket() clientSocket: Socket,
 	): Promise<void> {
-		const { cookie } = clientSocket.handshake?.headers;
-		if (!cookie || !cookie.includes('access_token')) return;
-		const cookies = parse(clientSocket.handshake?.headers.cookie);
-		if(!cookies.access_token) return;
-		const payload = await this._jwtService.verifyAsync(cookies.access_token, { secret: process.env.JWT_SECRET });
-		await this.channelService.connectToMyChannels(payload.id);
+		try {
+			const { cookie } = clientSocket.handshake?.headers;
+			if (!cookie || !cookie.includes('access_token')) return;
+			const cookies = parse(clientSocket.handshake?.headers.cookie);
+			if(!cookies.access_token) return;
+			const payload = await this._jwtService.verifyAsync(cookies.access_token, { secret: process.env.JWT_SECRET });
+			await this.channelService.connectToMyChannels(payload.id);
+		} catch (e) {
+			if (e.message === 'invalid signature') return;
+		}
 	}
 
 	// eslint-disable-next-line class-methods-use-this, no-empty-function
