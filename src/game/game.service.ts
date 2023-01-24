@@ -274,7 +274,7 @@ export default class GameService {
 		if (this.playerIdToGame.has(id) || this.playerIdToGame.has(opponent)) return false;
 		const gameId: string = uuidv4();
 		const game: Pong = new Pong(gameId, id, opponent, server, this, bonus);
-		this.createFakeGame(id, opponent, server);
+		//this.createFakeGame(id, opponent, server);
 		this.playerIdToGame.set(id, game);
 		this.playerIdToGame.set(opponent, game);
 		this.joinPlayersSocketToGameRoom(id, opponent, gameId);
