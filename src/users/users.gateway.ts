@@ -44,7 +44,7 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 		try {
 			if (!accessToken) throw new Error('No access token');
-			const payload = await this._jwtService.verifyAsync(accessToken, { secret: 'wartek' });
+			const payload = await this._jwtService.verifyAsync(accessToken, { secret: process.env.JWT_SECRET });
 			
 			UserIdToSockets.set(payload.id, socket);
 			
