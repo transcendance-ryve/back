@@ -58,7 +58,7 @@ export class AuthService {
         catch(err) {
 			if (err instanceof PrismaClientKnownRequestError)
 				if (err.code === "P2021")
-					throw new NotFoundException("User not found");
+					return null;
             if (err instanceof UnauthorizedException)
                 throw err;
 			throw new InternalServerErrorException("Internal server error");
