@@ -219,7 +219,6 @@ export default class GameService {
 	async connect(id: string, server: Server): Promise<void> {
 		try {
 			this.playerIds.push(id);
-			console.log(this.playerIds.length);
 			if (this.playerIds.length === 2) {
 				const playerOne = this.playerIds[0];
 				const playerTwo = this.playerIds[1];

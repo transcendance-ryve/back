@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ConsoleLogger, ForbiddenException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma, User, InviteStatus, Blocked } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
@@ -9,7 +9,7 @@ import { join } from 'path';
 @Injectable()
 export class UsersService {
     constructor(
-        private readonly _prismaService: PrismaService
+        private readonly _prismaService: PrismaService,
     ) {}
 
     private _experienceGain: number = 10;
@@ -35,6 +35,9 @@ export class UsersService {
                 { avatar: `${staticPath}${avatar.filename}` }
             );
         } catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === "P2021")
+					throw new NotFoundException("User not found");
             if (err instanceof NotFoundException)
                 throw err;
             throw new InternalServerErrorException('Internal server error');
@@ -353,6 +356,9 @@ export class UsersService {
 			const hashedPassword = await bcrypt.hash(newPassword, 10);
 			return this.updateUser({ id }, { password: hashedPassword });
 		} catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === "P2021")
+					throw new NotFoundException("User not found");
 			if (err instanceof ConflictException)
 				throw err;
 			if (err instanceof NotFoundException)
@@ -365,6 +371,19 @@ export class UsersService {
         id: Prisma.UserWhereUniqueInput['id'],
     ) : Promise<any> {
         try {
+			const blockedUsers = await this._prismaService.user.findUnique({
+				where: {
+					id
+				},
+				select: {
+					user_blocked: {
+						select: {
+							user_id: true
+						}
+					}
+				}
+			})
+
             const friends = await this._prismaService.friendship.findMany({
                 where: {
 					OR: [
@@ -385,14 +404,16 @@ export class UsersService {
 					}
                 },
             })
-
+			
 			const friendsList = friends.map(friend => {
+				let messages = null;
+				if (!blockedUsers?.user_blocked?.find(user => user.user_id === friend?.sender?.id || user.user_id === friend?.receiver?.id))
+					messages = friend?.channel?.messages[0] || null;
+
 				if (friend.sender.id === id)
 					delete friend.sender;
 				else
 					delete friend.receiver;
-				
-				const messages = friend?.channel?.messages[0] || null;
 
 				if (friend.sender) return { ...friend.sender, messages };
 				else return { ...friend.receiver, messages };
@@ -400,6 +421,9 @@ export class UsersService {
 
             return friendsList;
         } catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === "P2021")
+					throw new NotFoundException("User not found");
             throw new InternalServerErrorException('Internal server error'); 
         }
     }
@@ -481,6 +505,9 @@ export class UsersService {
 			delete user.password;
 			return { user, status: friendStatus ? friendStatus.status : InviteStatus.NONE, sender: friendStatus?.sender_id || undefined };
         } catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === "P2021")
+					throw new NotFoundException("User not found");
 			if (err instanceof NotFoundException)
 				throw err;
             throw new InternalServerErrorException("Internal server error");
@@ -567,6 +594,9 @@ export class UsersService {
 			delete user.password;
 			return user;
         } catch(err) {
+			if (err instanceof PrismaClientKnownRequestError)
+				if (err.code === "P2021")
+					return null;
             throw new InternalServerErrorException("Internal server error");
         }
     }
