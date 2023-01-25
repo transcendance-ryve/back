@@ -20,7 +20,7 @@ export class AuthController {
 		private readonly _usersService: UsersService
 	) {}
 
-	private _apiURL = "https://api.intra.42.fr/oauth/authorize?client_id=" + process.env.CLIENT_ID + "&redirect_uri=" + process.env.callbackURL + "&response_type=code";
+	private _apiURL = "https://api.intra.42.fr/oauth/authorize?client_id=" + process.env.CLIENT_ID + "&redirect_uri=" + process.env.CALLBACK_URL + "&response_type=code";
 
 	/* Login, register and disconnect */
 
