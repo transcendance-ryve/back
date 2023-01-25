@@ -40,6 +40,9 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		socket: Socket
 	) {
 		const { cookie } = socket.handshake?.headers;
+		
+		if (!cookie) return socket.disconnect();
+
 		const accessToken = parse(cookie).access_token;
 
 		try {
