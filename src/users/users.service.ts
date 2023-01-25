@@ -634,6 +634,10 @@ export class UsersService {
 
 			return { users, count };
 		} catch(err) {
+			if (err instanceof PrismaClientKnownRequestError) {
+				if (err.code === 'P2025')
+					throw new NotFoundException('User not found');
+			}
 			throw new InternalServerErrorException("Internal server error");
 		}
 	}
@@ -648,9 +652,13 @@ export class UsersService {
 
             return user;
         } catch(err) {
-			if (err instanceof PrismaClientKnownRequestError)
+			if (err instanceof PrismaClientKnownRequestError) {
+				if (err.code === 'P2002')
+					throw new ConflictException('username already taken');
 				if (err.code === 'P2025')
 					throw new NotFoundException('User not found');
+			}
+
             throw new InternalServerErrorException("Internal server error");
         }
     }
