@@ -160,7 +160,7 @@ export default class ChannelService {
 	//  @return: Promise<Channel[]>
 	async getChannelsByUserId(userId: string):
 	Promise<Partial<Channel>[]> {
-		const channels: Partial<Channel>[] = await this.prisma.channel.findMany({
+		const channels = await this.prisma.channel.findMany({
 			where: {
 				users: {
 					some: {
@@ -180,11 +180,20 @@ export default class ChannelService {
 						createdAt: 'desc',
 					},
 					select: {
+						senderId: true,
 						content: true,
 					},
 				},
 			},
 		});
+		channels.forEach((channel) => {
+			if (channel.messages[0]) {
+				if (this.isBlocked(userId, channel.messages[0].senderId)) {
+					channel.messages[0].content = null;
+				}
+			}
+		});
+				
 		return channels;
 	}
 
