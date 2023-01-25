@@ -69,7 +69,8 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		if (!id) return;
 		
 		UserIdToSockets.delete(id, socket);
-		await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
+		if (!UserIdToSockets.get(id))
+			await this._usersService.updateUser({ id }, { status: Status.OFFLINE });
 		this._disconnectedTime.set(id, new Date().getTime());
 		setTimeout(async () => {
 			const user = await this._usersService.getUser({ id });
